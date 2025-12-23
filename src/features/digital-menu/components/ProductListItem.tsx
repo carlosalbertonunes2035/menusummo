@@ -1,0 +1,46 @@
+import React from 'react';
+import { Product } from '@/types';
+import { Percent, Info, Image as ImageIcon, Plus } from 'lucide-react';
+import { getProductImage } from '../utils/imageMapper';
+import { getProductChannel } from '@/lib/utils';
+
+interface ProductListItemProps {
+    product: Product;
+    onAdd: () => void;
+}
+
+const ProductListItem: React.FC<ProductListItemProps> = ({ product, onAdd }) => {
+    const channel = getProductChannel(product, 'digital-menu');
+    const hasPromo = !!(channel.promotionalPrice && channel.promotionalPrice > 0 && channel.promotionalPrice < (channel.price || 0));
+
+    return (
+        <div onClick={onAdd} className="flex gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm cursor-pointer active:scale-[0.98] transition hover:shadow-md h-[132px]">
+            <div className="relative w-[100px] h-[100px] flex-shrink-0">
+                <img
+                    src={getProductImage(product)}
+                    alt={product.name}
+                    className="w-full h-full object-cover rounded-xl bg-gray-100 dark:bg-gray-800 shadow-sm transition-transform duration-500 group-hover:scale-110"
+                />
+                {hasPromo && <div className="absolute top-0 left-0 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-br-lg rounded-tl-lg shadow-sm"><Percent size={10} className="inline mr-0.5" />OFF</div>}
+            </div>
+
+            <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
+                <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white leading-tight mb-1 line-clamp-2">{product.name}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">{channel.description}</p>
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                    <div className="flex flex-col">
+                        {hasPromo && <span className="text-[10px] text-gray-400 line-through">R$ {channel.price?.toFixed(2)}</span>}
+                        <span className="font-bold text-green-600 dark:text-green-400 text-lg">R$ {(hasPromo ? channel.promotionalPrice : channel.price)?.toFixed(2)}</span>
+                    </div>
+                    <button className="bg-summo-primary text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg shadow-summo-primary/30 hover:scale-110 transition active:scale-95">
+                        <Plus size={18} />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default ProductListItem;

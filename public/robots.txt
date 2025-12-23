@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitemap will be generated at build time or served dynamically
+Sitemap: https://summo.app/sitemap.xml

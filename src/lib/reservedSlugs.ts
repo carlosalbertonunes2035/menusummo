@@ -1,0 +1,55 @@
+export const RESERVED_SLUGS = [
+    'app',
+    'login',
+    'register',
+    'dashboard',
+    'admin',
+    'settings',
+    'api',
+    'static',
+    'assets',
+    'digital-menu', // Legacy
+    'loja',         // Legacy
+    'auth',
+    'logout',
+    'signin',
+    'signup',
+    'reset-password',
+    'forgot-password',
+    'profile',
+    'billing',
+    'subscription',
+    'onboarding',
+    'support',
+    'help',
+    'docs',
+    'legal',
+    'terms',
+    'privacy',
+    'status',
+    'health',
+    'sitemap',
+    'robots',
+    'manifest',
+    'icons',
+    'images',
+    'fonts',
+    'css',
+    'js',
+    'public',
+    'garcom',
+    'kds',
+    'pos',
+    'pdv',
+    'cozinha',
+    'estoque',
+    'financeiro',
+    'relatorios',
+    'crm',
+    'marketing'
+];
+
+export const isReservedSlug = (slug: string): boolean => {
+    if (!slug) return false;
+    return RESERVED_SLUGS.includes(slug.toLowerCase().trim());
+};

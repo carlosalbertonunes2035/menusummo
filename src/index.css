@@ -1,0 +1,372 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/* --- SUMMO DESIGN SYSTEM --- */
+:root {
+  /* LIGHT MODE (Default) */
+  --summo-primary: #FF6B00;
+  /* Laranja Sumo */
+  --summo-primary-fg: #ffffff;
+  --summo-secondary: #10B981;
+  /* Verde Lucro */
+
+  --summo-bg: #F8FAFC;
+  /* Slate 50 */
+  --summo-surface: #ffffff;
+  --summo-text: #0F172A;
+  /* Slate 900 (Anthracite) */
+  --summo-text-muted: #64748B;
+  /* Slate 500 */
+  --summo-border: #E2E8F0;
+  /* Slate 200 */
+
+  --summo-input-bg: #F1F5F9;
+  --summo-input-text: #0F172A;
+}
+
+.dark {
+  /* DARK MODE */
+  --summo-primary: #FF6B00;
+  --summo-primary-fg: #ffffff;
+  --summo-secondary: #10B981;
+
+  --summo-bg: #0F172A;
+  /* SUMMO Anthracite */
+  --summo-surface: #1E293B;
+  /* Slate 800 */
+  --summo-text: #F8FAFC;
+  --summo-text-muted: #94A3B8;
+  --summo-border: #334155;
+
+  --summo-input-bg: #1E293B;
+  --summo-input-text: #F8FAFC;
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+}
+
+/* GLOBAL BASE STYLES */
+body {
+  background-color: var(--summo-bg);
+  color: var(--summo-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* MODERN SCROLLBAR - ORANGE BRANDED */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #fdba74;
+  border-radius: 20px;
+  transition: background-color 0.2s;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #fb923c;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--summo-primary);
+}
+
+/* UTILITIES */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 107, 0, 0.3);
+  border-radius: 4px;
+}
+
+::selection {
+  background-color: var(--summo-primary);
+  color: white;
+}
+
+/* BROWSER AUTOFILL FIX */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px var(--summo-input-bg) inset !important;
+  -webkit-text-fill-color: var(--summo-input-text) !important;
+  transition: background-color 5000s ease-in-out 0s;
+  caret-color: var(--summo-text);
+}
+
+/* MOBILE SAFE AREAS */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* GLASSMORPHISM */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark .glass {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-dark {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* CARD STYLES */
+.card-summo {
+  background-color: white;
+  border-radius: 1rem;
+  border-width: 1px;
+  border-color: var(--summo-border);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+.dark .card-summo {
+  background-color: var(--summo-surface);
+}
+
+.card-summo-hover {
+  background-color: white;
+  border-radius: 1rem;
+  border-width: 1px;
+  border-color: var(--summo-border);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+.dark .card-summo-hover {
+  background-color: var(--summo-surface);
+}
+
+.card-summo-hover:hover {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  border-color: color-mix(in srgb, var(--summo-primary) 20%, transparent);
+  transform: translateY(-0.25rem);
+}
+
+/* BUTTON STYLES */
+.btn-summo {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-summo:active {
+  transform: scale(0.95);
+}
+
+.btn-summo:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-summo-primary {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  /* Primary specific */
+  background-color: var(--summo-primary);
+  color: white;
+  box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.2), 0 4px 6px -4px rgba(249, 115, 22, 0.2);
+}
+
+.btn-summo-primary:hover {
+  background-color: #ea580c;
+}
+
+.btn-summo-primary:active {
+  transform: scale(0.95);
+}
+
+.btn-summo-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Animations & Transitions */
+.transition-smooth {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.hover-scale {
+  @apply transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98];
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glass-premium {
+  @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-xl shadow-black/5;
+}
+
+/* ===== ENHANCED SCROLLBAR STYLES ===== */
+/* Thin scrollbar for better visibility */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(209 213 219) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgb(209 213 219);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgb(156 163 175);
+}
+
+/* Summo branded scrollbar */
+.scrollbar-summo {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 107, 0, 0.3) transparent;
+}
+
+.scrollbar-summo::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-summo::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-summo::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 0, 0.3);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.scrollbar-summo::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 0, 0.5);
+}
+
+/* ===== SCROLL BEHAVIOR ===== */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}
+
+/* Snap scrolling for mobile tabs */
+.snap-x {
+  scroll-snap-type: x mandatory;
+}
+
+.snap-start {
+  scroll-snap-align: start;
+}
+
+/* ===== ACCESSIBILITY IMPROVEMENTS ===== */
+.focus-visible:focus {
+  outline: 2px solid #FF6B35;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip to content link for keyboard navigation */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #FF6B35;
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  z-index: 100;
+  font-weight: 600;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* Keyboard shortcut hint */
+.kbd {
+  @apply inline-flex items-center justify-center px-2 py-1 text-xs font-mono 
+         bg-gray-100 border border-gray-300 rounded shadow-sm;
+}
+
+.dark .kbd {
+  @apply bg-gray-800 border-gray-600;
+}

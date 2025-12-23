@@ -1,0 +1,108 @@
+
+import React, { useEffect, useState, memo } from 'react';
+import { Sparkles, ArrowRight, TrendingUp, Lightbulb, Loader2, Bot } from 'lucide-react';
+import { getProfitabilityInsights } from '@/services/ai/businessService';
+import { useData } from '@/contexts/DataContext';
+import { useOrders } from '@/hooks/useOrders';
+import { useExpenses } from '@/hooks/useExpenses';
+
+const AiInsightsCard: React.FC = () => {
+    const { products } = useData();
+    const { data: orders, loading: ordersLoading } = useOrders({ limit: 50 });
+    const { data: expenses, loading: expensesLoading } = useExpenses({ limit: 20 });
+    const [insights, setInsights] = useState<string[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+    const dataLoading = ordersLoading || expensesLoading;
+
+    useEffect(() => {
+        const fetchInsights = async () => {
+            if (dataLoading || products.length === 0 || orders.length === 0) return;
+
+            setLoading(true);
+            try {
+                // Prepare simplified data for AI
+                const productStats = (products as any[]).map(p => {
+                    const price = p.channels?.find((c: any) => c.channel === 'pos')?.price || 0;
+                    const cost = p.cost || 0;
+                    const marginPercent = price > 0 ? ((price - cost) / price) * 100 : 0;
+                    return { name: p.name, marginPercent };
+                });
+
+                const result = await getProfitabilityInsights({
+                    products: productStats,
+                    orders: orders.slice(-50), // Last 50 orders for context
+                    expenses: expenses.slice(-20)
+                });
+                setInsights(result);
+                setLastUpdated(new Date());
+            } catch (error) {
+                console.error("Failed to fetch AI insights", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchInsights();
+    }, [dataLoading, products.length, orders.length]);
+
+    if (loading && insights.length === 0) {
+        return (
+            <div className="bg-gradient-to-br from-indigo-900 to-purple-900 p-6 rounded-[2.5rem] shadow-xl text-white flex flex-col items-center justify-center min-h-[160px] animate-pulse">
+                <Loader2 className="animate-spin mb-2" size={24} />
+                <p className="text-sm font-medium opacity-70">O Conselheiro SUMMO está analisando seus números...</p>
+            </div>
+        );
+    }
+
+    if (insights.length === 0) return null;
+
+    return (
+        <div className="bg-gradient-to-br from-indigo-600 via-purple-700 to-purple-900 p-6 rounded-[2.5rem] shadow-2xl text-white relative overflow-hidden group border border-white/10">
+            {/* Animated Background Elements */}
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-700 -rotate-12 translate-x-4">
+                <Bot size={140} />
+            </div>
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-[80px] pointer-events-none"></div>
+
+            <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+                        <Sparkles size={20} className="text-yellow-300 fill-yellow-300" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg leading-none">Conselheiro SUMMO</h3>
+                        <p className="text-[10px] uppercase font-black tracking-[0.2em] opacity-60 mt-1">
+                            {lastUpdated ? `Atualizado em ${lastUpdated.toLocaleTimeString()}` : 'Inteligência Proativa'}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    {insights.map((insight, idx) => (
+                        <div key={idx} className="flex gap-3 bg-white/10 hover:bg-white/20 p-3 rounded-2xl backdrop-blur-sm border border-white/5 transition group/item cursor-default">
+                            <div className="bg-purple-500/30 p-1.5 rounded-lg h-fit">
+                                <Lightbulb size={16} className="text-yellow-200" />
+                            </div>
+                            <p className="text-sm font-medium leading-relaxed">{insight}</p>
+                        </div>
+                    ))}
+                </div>
+
+                <button
+                    onClick={() => {
+                        localStorage.removeItem('summo_ai_cache_profitability_insights_' + products.length + '_' + orders.length);
+                        window.location.reload();
+                    }}
+                    className="w-full mt-6 bg-white text-purple-900 py-3.5 rounded-2xl font-bold text-sm shadow-xl hover:bg-purple-50 transition-all flex items-center justify-center gap-2 group/btn"
+                >
+                    Recalcular Insights
+                    <TrendingUp size={18} className="group-hover/btn:scale-110 transition-transform" />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export default memo(AiInsightsCard);

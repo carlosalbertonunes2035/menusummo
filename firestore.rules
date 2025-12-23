@@ -1,0 +1,163 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- HELPERS ---
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper to get user data from the core 'users' collection
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Check if the user is a verified tenant member
+    function isTenantMember(tenantId) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             getUserData().tenantId == tenantId;
+    }
+
+    // Check for specific roles
+    function isOwner() {
+      return isAuthenticated() && 
+             (getUserData().roleId == 'OWNER' || request.auth.token.role == 'owner');
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             (getUserData().roleId == 'OWNER' || getUserData().roleId == 'MANAGER' || request.auth.token.role == 'owner');
+    }
+
+    // Helper to check if a tenant already exists
+    function tenantExists(tenantId) {
+      return exists(/databases/$(database)/documents/settings/$(tenantId));
+    }
+
+    // Resource tenant checks
+    function belongsToUserTenant() {
+      return isAuthenticated() && getUserData().tenantId == resource.data.tenantId;
+    }
+
+    function belongsToRequestTenant() {
+      return isAuthenticated() && getUserData().tenantId == request.resource.data.tenantId;
+    }
+
+    // Special helper for creation: allows during registration OR if tenant member
+    function canCreateForTenant(tenantId) {
+      return isAuthenticated() && 
+             tenantId != null && 
+             (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) || isTenantMember(tenantId));
+    }
+
+    // --- RULES ---
+
+    // Public for Digital Menu (Read-only for specific storefront)
+    match /products/{id} {
+      allow read: if true;
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+    
+    match /settings/{id} {
+      allow read: if true; // Public brand name/info is okay, but sensitive sub-fields are protected in app
+      allow create: if isAuthenticated(); // Allow initial tenant registration
+      allow update: if isAuthenticated() && (getUserData().tenantId == id || request.auth.uid == id) && (isAdmin() || request.auth.uid == id);
+      allow delete: if isAuthenticated() && getUserData().tenantId == id && isOwner();
+    }
+
+    match /option_groups/{id} {
+      allow read: if true;
+      // Allow creation during registration or by tenant members
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+
+    // General collections that REQUIRE strict tenantId match
+    match /orders/{id} {
+      allow read: if isTenantMember(resource.data.tenantId) || (resource.data.customerPhone != null && resource.data.tenantId != null);
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+
+    // Tenant-locked collections (Fixed: prevent cross-tenant creation)
+    match /ingredients/{id} {
+      allow read: if isTenantMember(resource.data.tenantId);
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+    match /customers/{id} {
+      allow read: if isTenantMember(resource.data.tenantId);
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+    match /drivers/{id} {
+      allow read: if isTenantMember(resource.data.tenantId);
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+    match /stock_movements/{id} {
+      allow read: if isTenantMember(resource.data.tenantId);
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+    match /expenses/{id} {
+      allow read: if isTenantMember(resource.data.tenantId);
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+    match /shopping_list/{id} {
+      allow read: if isTenantMember(resource.data.tenantId);
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+    match /recipes/{id} {
+      allow read: if isTenantMember(resource.data.tenantId);
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+    match /print_jobs/{id} {
+      allow read: if isTenantMember(resource.data.tenantId);
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+    match /coupons/{id} {
+      allow read: if isTenantMember(resource.data.tenantId);
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+    match /stories/{id} {
+      allow read: if isTenantMember(resource.data.tenantId);
+      allow create: if canCreateForTenant(request.resource.data.tenantId);
+      allow update, delete: if isTenantMember(resource.data.tenantId);
+    }
+
+    // User Data Security - Only own profile (Fixed: removed circular dependency)
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Team Management (Restricted to Tenant Admins)
+    match /system_users/{id} {
+        // Allow reading team members from same tenant
+        allow read: if isAuthenticated() && (request.auth.uid == id || isTenantMember(resource.data.tenantId));
+        // Allow creation during registration (when user doc doesn't exist yet)
+        allow create: if isAuthenticated() && (request.auth.uid == id || isAdmin());
+        allow update, delete: if isTenantMember(resource.data.tenantId || request.resource.data.tenantId) && isAdmin();
+    }
+
+    match /roles/{id} {
+        allow read: if isAuthenticated(); // Roles are mostly global templates
+        allow write: if isOwner(); // Only Owner can create custom roles
+    }
+
+    // Audit Logs
+    match /security_logs/{id} {
+      allow create: if true;
+      allow read, update, delete: if isOwner();
+    }
+  }
+}

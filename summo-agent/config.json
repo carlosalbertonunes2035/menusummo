@@ -1,0 +1,6 @@
+{
+    "tenantId": "jc-bar",
+    "defaultPrinter": "",
+    "paperWidth": "80mm",
+    "cloudSync": false
+}
