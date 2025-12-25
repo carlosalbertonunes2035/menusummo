@@ -1,31 +1,48 @@
 rules_version = '2';
+
 service firebase.storage {
   match /b/{bucket}/o {
     
+    // --- Função Auxiliar ---
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isValidSize() {
-      return request.resource.size < 5 * 1024 * 1024;
+    // ==================================================
+    // 🧠 IMPORTAÇÃO INTELIGENTE (SUMMO AI)
+    // ==================================================
+    // Permite upload de PDFs/Fotos para a pasta de importação
+    match /imports/{allPaths=**} {
+      allow read, write: if isAuthenticated();
     }
 
-    function isValidMediaType() {
-      return request.resource.contentType.matches('image/.*') ||
-             request.resource.contentType.matches('video/.*');
+    // ==================================================
+    // 🌍 ASSETS PÚBLICOS (Cardápio Digital / iFood)
+    // ==================================================
+    // Qualquer pessoa (mesmo sem logar) pode VER as fotos (read: if true)
+    // Apenas usuários logados podem SUBIR/APAGAR as fotos (write: if isAuthenticated)
+    
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
 
-    // Secure multi-tenant upload paths
-    match /tenants/{tenantId}/{allPaths=**} {
-      allow read: if true; // Public view for menu media
-      allow write: if isAuthenticated() && 
-                    get(/databases/(default)/documents/users/$(request.auth.uid)).data.tenantId == tenantId &&
-                    isValidSize() && isValidMediaType();
+    match /stories/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
 
-    // Compatibility paths (read-only)
-    match /products/{allPaths=**} { allow read: if true; }
-    match /stories/{allPaths=**} { allow read: if true; }
-    match /branding/{allPaths=**} { allow read: if true; }
+    match /branding/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // ==================================================
+    // 🔒 SEGURANÇA FINAL
+    // ==================================================
+    // Bloqueia qualquer outra pasta que não foi listada acima
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
   }
 }

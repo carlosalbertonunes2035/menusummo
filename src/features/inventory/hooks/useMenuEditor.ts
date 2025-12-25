@@ -4,7 +4,8 @@ import { Product, ChannelConfig, SalesChannel, Ingredient } from '../../../types
 import { Recipe, RecipeIngredient } from '../../../types/recipe';
 import { useData } from '../../../contexts/DataContext';
 import { useApp } from '../../../contexts/AppContext';
-import { generateMarketingCopy } from '../../../services/geminiService';
+import { functions } from '@/lib/firebase/client';
+import { httpsCallable } from '@firebase/functions';
 import { ProductSchema } from '../../../lib/schemas';
 import { z } from 'zod';
 
@@ -21,7 +22,10 @@ export const useMenuEditor = () => {
     const [isGeneratingCopy, setIsGeneratingCopy] = useState(false);
 
     // Helpers
-    const onUpdateProduct = useCallback((p: Partial<Product>) => handleAction('products', p.id ? 'update' : 'add', p.id, p), [handleAction]);
+    const onUpdateProduct = useCallback(async (p: Partial<Product>): Promise<string | undefined> => {
+        const result = await handleAction('products', p.id ? 'update' : 'add', p.id, p);
+        return result;
+    }, [handleAction]);
     const onDuplicateProduct = (p: Product) => handleAction('products', 'add', undefined, { ...p, name: p.name + ' (Cópia)' });
 
     useEffect(() => {
@@ -154,12 +158,9 @@ export const useMenuEditor = () => {
             }
 
             try {
-                await onUpdateProduct(finalProduct);
+                const savedId = await onUpdateProduct(finalProduct);
 
                 // Se houver alteração na receita (rendimento ou ingredientes), atualizamos a receita também
-                // MAS APENAS SE NÃO FOR LINKADA (ou se quiséssemos permitir update da linkada, o que o user proibiu na UI, mas aqui protegemos dados)
-                // Se for linkada, a UI bloqueia edição, então recipeEditData deve estar igual à original.
-                // Atualizamos apenas o custo total se necessário.
                 if (recipeEditData.id) {
                     const recipeData: Partial<Recipe> = {
                         ...recipeEditData,
@@ -170,20 +171,29 @@ export const useMenuEditor = () => {
                 }
 
                 showToast('Produto salvo com sucesso!', 'success');
-                setSelectedProduct(null);
-                setEditData({});
-                setRecipeEditData({});
+
+                // CRITICAL FIX: Update state with the saved ID to prevent duplication on subsequent saves
+                if (savedId && typeof savedId === 'string' && !selectedProduct.id) {
+                    const updatedProduct = { ...finalProduct, id: savedId };
+                    setSelectedProduct(updatedProduct);
+                    setEditData(updatedProduct); // Sync edit data
+                } else if (!selectedProduct.id) {
+                    // Fallback if ID wasn't returned but operation succeeded (should not happen with fix)
+                    setSelectedProduct(null);
+                    setEditData({});
+                    setRecipeEditData({});
+                }
+
             } catch (error) {
                 showToast('Erro ao salvar.', 'error');
             }
         }
     }, [selectedProduct, currentEditingProduct, editData, recipeEditData, onUpdateProduct, handleAction, showToast, recipes]);
 
-    const handleClose = useCallback(() => {
+    const handleClose = useCallback(async () => {
         if (hasChanges) {
             if (window.confirm("Você realizou alterações no produto.\n\nDeseja SALVAR as mudanças antes de sair?\n\n[OK] = Salvar e Fechar\n[Cancelar] = Descartar alterações e Fechar")) {
-                handleSave();
-                return;
+                await handleSave();
             }
         }
         setSelectedProduct(null);
@@ -259,8 +269,14 @@ export const useMenuEditor = () => {
                 const ing = ingredients.find(inv => inv.id === i.ingredientId);
                 return ing?.name;
             }).join(', ');
-            const copy = await generateMarketingCopy(currentEditingProduct.name, ingList);
-            handleChannelDataChange('description', copy, 'digital-menu');
+            const generateMarketingCopyFn = httpsCallable(functions, 'generateMarketingCopy');
+            const { data } = await generateMarketingCopyFn({
+                productName: currentEditingProduct.name,
+                ingredients: ingList,
+                restaurantName: "Summo Demo" // Should ideally come from settings
+            });
+            const result = data as any;
+            handleChannelDataChange('description', result.ifoodDescription, 'digital-menu'); // Using ifood desc as generic
         } catch (e) { alert("Erro na IA"); } finally { setIsGeneratingCopy(false); }
     };
 

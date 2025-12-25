@@ -66,7 +66,7 @@ const Support: React.FC = () => {
                             <p className="text-sm text-gray-500">Aprenda visualmente como dominar cada módulo do sistema.</p>
                         </div>
                         <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition cursor-pointer group">
-                            <div className="bg-indigo-50 p-3 rounded-2xl text-indigo-600 w-fit mb-4 group-hover:scale-110 transition-transform">
+                            <div className="bg-orange-50 p-3 rounded-2xl text-orange-600 w-fit mb-4 group-hover:scale-110 transition-transform">
                                 <ShieldCheck size={24} />
                             </div>
                             <h3 className="font-bold text-gray-800 text-lg mb-1">Segurança e Dados</h3>
@@ -92,7 +92,7 @@ const Support: React.FC = () => {
 
                 {/* Other Channels */}
                 <div className="flex flex-col md:flex-row gap-6">
-                    <div className="flex-1 bg-gray-900 text-white p-6 rounded-3xl flex items-center justify-between">
+                    <div className="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 text-white p-6 rounded-3xl flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="bg-white/10 p-3 rounded-2xl text-white"><Mail size={24} /></div>
                             <div>

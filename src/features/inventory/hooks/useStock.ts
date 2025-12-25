@@ -6,7 +6,8 @@ import { useShoppingList } from '@/hooks/useShoppingList';
 import { useApp } from '../../../contexts/AppContext';
 import { useDebounce } from '../../../lib/hooks';
 import { searchMatch } from '../../../lib/utils';
-import { analyzeBulkReceipt } from '../../../services/geminiService';
+import { functions } from '@/lib/firebase/client';
+import { httpsCallable } from '@firebase/functions';
 import { parseNFeXML } from '../../../services/nfeParser';
 
 export type ModalType = 'ADD' | 'EDIT' | 'RESTOCK' | 'LOSS' | 'SHOPPING_ADD' | null;
@@ -200,8 +201,11 @@ export const useStock = () => {
         setBulkItems([]); // Clear previous
         try {
             const { base64, mimeType } = await (window as any).compressImage(file, 1000);
-            const items = await analyzeBulkReceipt(base64, mimeType);
-            setBulkItems(autoMatchItems(items));
+            const analyzeReceiptFn = httpsCallable(functions, 'analyzeReceipt');
+            // Ensure base64 is a proper Data URI if not already
+            const dataUri = base64.startsWith('data:') ? base64 : `data:${mimeType};base64,${base64}`;
+            const { data } = await analyzeReceiptFn({ fileUrl: dataUri, mimeType });
+            setBulkItems(autoMatchItems(data as any[]));
             showToast("Leitura IA concluída!", 'success');
         } catch (error) { console.error(error); showToast("Erro ao analisar.", 'error'); }
         finally { setIsAnalyzing(false); }

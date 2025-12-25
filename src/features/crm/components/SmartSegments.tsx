@@ -3,7 +3,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Customer } from '../../../types';
 import { Zap, Heart, AlertOctagon, UserPlus, ArrowRight, MessageCircle, Sparkles, Loader2 } from 'lucide-react';
 import { generateWhatsAppLink, formatCurrency } from '../../../lib/utils';
-import { getRetentionLoyaltyInsights } from '../../../services/geminiService';
+import { httpsCallable } from '@firebase/functions';
+import { functions } from '../../../lib/firebase/client';
 
 interface SmartSegmentsProps {
     customers: Customer[];
@@ -28,8 +29,9 @@ const SmartSegments: React.FC<SmartSegmentsProps> = ({ customers }) => {
             if (customers.length === 0) return;
             setLoadingAi(true);
             try {
-                const recs = await getRetentionLoyaltyInsights(customers.slice(0, 20));
-                setAiRecommendations(recs);
+                const getRetentionInsightsFn = httpsCallable(functions, 'getRetentionInsights');
+                const { data } = await getRetentionInsightsFn({ customers: customers.slice(0, 20) });
+                setAiRecommendations(data as any[]);
             } catch (e) { console.error(e); }
             finally { setLoadingAi(false); }
         };
@@ -108,7 +110,7 @@ const SmartSegments: React.FC<SmartSegmentsProps> = ({ customers }) => {
             {/* AI Autopilot Section */}
             {(loadingAi || aiRecommendations.length > 0) && (
                 <div className="px-4">
-                    <div className="bg-gradient-to-r from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl shadow-indigo-200 relative overflow-hidden">
+                    <div className="bg-gradient-to-r from-orange-600 to-amber-700 rounded-3xl p-6 text-white shadow-xl shadow-orange-200 relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-4 opacity-10">
                             <Sparkles size={100} />
                         </div>
@@ -134,7 +136,7 @@ const SmartSegments: React.FC<SmartSegmentsProps> = ({ customers }) => {
                                                     const customer = customers.find(c => c.name === rec.name);
                                                     if (customer) window.open(generateWhatsAppLink(customer.phone, "", "", rec.whatsappDrip), '_blank');
                                                 }}
-                                                className="w-full bg-white text-indigo-700 py-2 rounded-xl text-xs font-black shadow-lg flex items-center justify-center gap-2 group-hover:scale-[1.02] transition-transform"
+                                                className="w-full bg-white text-orange-700 py-2 rounded-xl text-xs font-black shadow-lg flex items-center justify-center gap-2 group-hover:scale-[1.02] transition-transform"
                                             >
                                                 Tentar Recuperar <MessageCircle size={14} />
                                             </button>

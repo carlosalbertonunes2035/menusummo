@@ -1,46 +1,29 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
-/* --- SUMMO DESIGN SYSTEM --- */
+/* --- SUMMO DESIGN SYSTEM - ORANGE BRAND --- */
 :root {
-  /* LIGHT MODE (Default) */
+  /* Primary Orange Brand */
   --summo-primary: #FF6B00;
-  /* Laranja Sumo */
   --summo-primary-fg: #ffffff;
   --summo-secondary: #10B981;
-  /* Verde Lucro */
 
+  /* Neutral Backgrounds */
   --summo-bg: #F8FAFC;
-  /* Slate 50 */
   --summo-surface: #ffffff;
-  --summo-text: #0F172A;
-  /* Slate 900 (Anthracite) */
-  --summo-text-muted: #64748B;
-  /* Slate 500 */
-  --summo-border: #E2E8F0;
-  /* Slate 200 */
 
+  /* Text Colors */
+  --summo-text: #0F172A;
+  --summo-text-muted: #64748B;
+
+  /* Borders */
+  --summo-border: #E2E8F0;
+
+  /* Input Styles */
   --summo-input-bg: #F1F5F9;
   --summo-input-text: #0F172A;
 }
 
-.dark {
-  /* DARK MODE */
-  --summo-primary: #FF6B00;
-  --summo-primary-fg: #ffffff;
-  --summo-secondary: #10B981;
-
-  --summo-bg: #0F172A;
-  /* SUMMO Anthracite */
-  --summo-surface: #1E293B;
-  /* Slate 800 */
-  --summo-text: #F8FAFC;
-  --summo-text-muted: #94A3B8;
-  --summo-border: #334155;
-
-  --summo-input-bg: #1E293B;
-  --summo-input-text: #F8FAFC;
-}
 
 @layer utilities {
   .font-display {
@@ -52,7 +35,7 @@
 body {
   background-color: var(--summo-bg);
   color: var(--summo-text);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 /* MODERN SCROLLBAR - ORANGE BRANDED */
@@ -71,9 +54,7 @@ body {
   transition: background-color 0.2s;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background-color: #fb923c;
-}
+
 
 ::-webkit-scrollbar-thumb:hover {
   background-color: var(--summo-primary);
@@ -132,17 +113,6 @@ input:-webkit-autofill:active {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.dark .glass {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.glass-dark {
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
 
 /* CARD STYLES */
 .card-summo {
@@ -156,9 +126,7 @@ input:-webkit-autofill:active {
   transition-duration: 300ms;
 }
 
-.dark .card-summo {
-  background-color: var(--summo-surface);
-}
+
 
 .card-summo-hover {
   background-color: white;
@@ -171,9 +139,7 @@ input:-webkit-autofill:active {
   transition-duration: 300ms;
 }
 
-.dark .card-summo-hover {
-  background-color: var(--summo-surface);
-}
+
 
 .card-summo-hover:hover {
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
@@ -363,10 +329,5 @@ input:-webkit-autofill:active {
 
 /* Keyboard shortcut hint */
 .kbd {
-  @apply inline-flex items-center justify-center px-2 py-1 text-xs font-mono 
-         bg-gray-100 border border-gray-300 rounded shadow-sm;
-}
-
-.dark .kbd {
-  @apply bg-gray-800 border-gray-600;
+  @apply inline-flex items-center justify-center px-2 py-1 text-xs font-mono bg-gray-100 border border-gray-300 rounded shadow-sm;
 }

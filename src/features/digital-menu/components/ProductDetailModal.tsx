@@ -64,7 +64,7 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, isOpen
 
             {/* Sheet */}
             <div
-                className="fixed bottom-0 left-0 right-0 z-[110] bg-white dark:bg-gray-900 flex flex-col overflow-hidden max-h-[90vh] h-[90vh] rounded-t-[32px] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)]"
+                className="fixed bottom-0 left-0 right-0 z-[110] bg-white flex flex-col overflow-hidden max-h-[90vh] h-[90vh] rounded-t-[32px] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)]"
                 style={{
                     transform: `translateY(${translateY}px)`,
                     transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.32, 0.72, 0, 1)',
@@ -77,11 +77,11 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, isOpen
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
                 >
-                    <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full" />
+                    <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
 
                     <button
                         onClick={onClose}
-                        className="absolute right-4 top-4 p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500"
+                        className="absolute right-4 top-4 p-2 bg-gray-100 rounded-full text-gray-500"
                     >
                         <ChevronLeft className="rotate-[-90deg]" size={20} />
                     </button>

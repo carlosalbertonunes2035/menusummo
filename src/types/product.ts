@@ -59,7 +59,8 @@ export interface Product {
     ingredients: { ingredientId: string; amount: number }[]; // Inferred
     optionGroupIds: string[];
     channels: ChannelConfig[];
-    image?: string; // Often on product too
+    image?: string;
+    imageAlt?: string; // SEO alt text for accessibility
     description?: string;
     realCost?: number; // Added to fix useProductPricing error
     // New inventory & recipe fields

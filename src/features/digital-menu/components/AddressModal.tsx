@@ -78,12 +78,12 @@ const AddressModal: React.FC<AddressModalProps> = ({ user, settings, onSave, onC
 
     return (
         <div className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex flex-col justify-end animate-fade-in" onClick={onClose}>
-            <div onClick={e => e.stopPropagation()} className="bg-white dark:bg-gray-800 rounded-t-[2rem] w-full max-w-lg mx-auto flex flex-col shadow-2xl animate-slide-in-up max-h-[85vh]">
-                <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                    <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <div onClick={e => e.stopPropagation()} className="bg-white rounded-t-[2rem] w-full max-w-lg mx-auto flex flex-col shadow-2xl animate-slide-in-up max-h-[85vh]">
+                <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+                    <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                         <MapPin className="text-summo-primary" /> Endereço de Entrega
                     </h3>
-                    <button onClick={onClose} className="bg-gray-100 dark:bg-gray-700 p-2 rounded-full text-gray-500 dark:text-gray-300"><X size={20} /></button>
+                    <button onClick={onClose} className="bg-gray-100 p-2 rounded-full text-gray-500"><X size={20} /></button>
                 </div>
 
                 <div className="p-6 space-y-5 overflow-y-auto pb-safe">
@@ -97,23 +97,23 @@ const AddressModal: React.FC<AddressModalProps> = ({ user, settings, onSave, onC
                     <div className="space-y-4">
                         <div>
                             <label className="text-xs font-bold text-gray-500 ml-1 mb-1 block uppercase">Rua / Avenida</label>
-                            <input placeholder="Ex: Av. Brasil" value={form.street} onChange={e => setForm({ ...form, street: e.target.value })} className="w-full p-3.5 bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-summo-primary font-medium transition-all" />
+                            <input placeholder="Ex: Av. Brasil" value={form.street} onChange={e => setForm({ ...form, street: e.target.value })} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-summo-primary font-medium transition-all" />
                         </div>
 
                         <div className="grid grid-cols-3 gap-4">
                             <div className="col-span-1">
                                 <label className="text-xs font-bold text-gray-500 ml-1 mb-1 block uppercase">Número</label>
-                                <input placeholder="123" value={form.number} onChange={e => setForm({ ...form, number: e.target.value })} className="w-full p-3.5 bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-summo-primary font-medium transition-all" type="tel" />
+                                <input placeholder="123" value={form.number} onChange={e => setForm({ ...form, number: e.target.value })} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-summo-primary font-medium transition-all" type="tel" />
                             </div>
                             <div className="col-span-2">
                                 <label className="text-xs font-bold text-gray-500 ml-1 mb-1 block uppercase">Bairro</label>
-                                <input placeholder="Ex: Centro" value={form.district} onChange={e => setForm({ ...form, district: e.target.value })} className="w-full p-3.5 bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-summo-primary font-medium transition-all" />
+                                <input placeholder="Ex: Centro" value={form.district} onChange={e => setForm({ ...form, district: e.target.value })} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-summo-primary font-medium transition-all" />
                             </div>
                         </div>
 
                         <div>
                             <label className="text-xs font-bold text-gray-500 ml-1 mb-1 block uppercase">Complemento (Opcional)</label>
-                            <input placeholder="Ex: Apto 101, Ao lado da padaria" value={form.complement} onChange={e => setForm({ ...form, complement: e.target.value })} className="w-full p-3.5 bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-summo-primary font-medium transition-all" />
+                            <input placeholder="Ex: Apto 101, Ao lado da padaria" value={form.complement} onChange={e => setForm({ ...form, complement: e.target.value })} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-summo-primary font-medium transition-all" />
                         </div>
                     </div>
 

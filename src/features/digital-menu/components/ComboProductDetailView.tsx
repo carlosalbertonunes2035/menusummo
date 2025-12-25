@@ -124,7 +124,7 @@ const ComboProductDetailView: React.FC<ComboProductDetailViewProps> = ({ product
     };
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-gray-900">
+        <div className="flex flex-col h-full bg-white">
             {/* Content Scrollable */}
             <div className="flex-1 overflow-y-auto custom-scrollbar pb-40 overscroll-contain relative">
                 {/* Back Button */}
@@ -155,13 +155,13 @@ const ComboProductDetailView: React.FC<ComboProductDetailViewProps> = ({ product
                 </div>
 
                 <div className="px-5 py-6 space-y-8">
-                    <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                    <div className="text-sm text-gray-600 leading-relaxed">
                         {channelConfig.description}
                     </div>
 
                     {/* FIXED ITEMS SECTION */}
                     {product.comboItems && product.comboItems.length > 0 && (
-                        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                                 <Check size={14} /> Incluso no Combo
                             </h3>
@@ -170,12 +170,12 @@ const ComboProductDetailView: React.FC<ComboProductDetailViewProps> = ({ product
                                     const p = getProduct(item.productId);
                                     if (!p) return null;
                                     return (
-                                        <div key={idx} className="flex items-center gap-3 bg-white dark:bg-gray-700 p-2 rounded-lg border border-gray-100 dark:border-gray-600">
+                                        <div key={idx} className="flex items-center gap-3 bg-white p-2 rounded-lg border border-gray-100">
                                             <div className="w-10 h-10 bg-gray-100 rounded-md overflow-hidden">
                                                 <img src={getProductImage(p)} className="w-full h-full object-cover" alt="" />
                                             </div>
                                             <div className="flex-1">
-                                                <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{item.quantity}x {p.name}</p>
+                                                <p className="text-sm font-bold text-gray-800">{item.quantity}x {p.name}</p>
                                             </div>
                                         </div>
                                     )
@@ -201,10 +201,10 @@ const ComboProductDetailView: React.FC<ComboProductDetailViewProps> = ({ product
                         const isComplete = totalSelected >= step.min;
 
                         return (
-                            <div key={stepIdx} className={`border-b border-gray-100 dark:border-gray-800 pb-6 ${!isComplete ? 'bg-red-50/30 -mx-4 px-4 py-4 rounded-xl' : ''}`}>
+                            <div key={stepIdx} className={`border-b border-gray-100 pb-6 ${!isComplete ? 'bg-red-50/30 -mx-4 px-4 py-4 rounded-xl' : ''}`}>
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
-                                        <h3 className="font-bold text-lg text-gray-800 dark:text-white">{step.name}</h3>
+                                        <h3 className="font-bold text-lg text-gray-800">{step.name}</h3>
                                         <p className="text-xs text-gray-500 mt-1">
                                             Escolha {step.min === step.max ? step.min : `${step.min} a ${step.max}`} itens
                                         </p>
@@ -221,19 +221,19 @@ const ComboProductDetailView: React.FC<ComboProductDetailViewProps> = ({ product
                                         if (!p) return null;
 
                                         return (
-                                            <div key={itemIdx} className="flex justify-between items-center bg-white dark:bg-gray-800/50 p-2 rounded-xl border border-gray-100 dark:border-gray-700">
+                                            <div key={itemIdx} className="flex justify-between items-center bg-white p-2 rounded-xl border border-gray-100">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                                                         <img src={getProductImage(p)} className="w-full h-full object-cover" alt="" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-sm text-gray-800 dark:text-gray-200">{p.name}</p>
+                                                        <p className="font-bold text-sm text-gray-800">{p.name}</p>
                                                         {stepItem.overridePrice > 0 && <p className="text-xs text-gray-500">+ R$ {stepItem.overridePrice.toFixed(2)}</p>}
                                                     </div>
                                                 </div>
 
                                                 {/* Stepper */}
-                                                <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-900 rounded-lg p-1 border border-gray-200 dark:border-gray-700">
+                                                <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1 border border-gray-200">
                                                     <button
                                                         onClick={() => handleStepSelection(stepIdx, stepItem.productId, -1)}
                                                         disabled={qty === 0}
@@ -260,14 +260,14 @@ const ComboProductDetailView: React.FC<ComboProductDetailViewProps> = ({ product
 
                     {/* Observations */}
                     <div className="mt-4">
-                        <h4 className="font-bold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
+                        <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
                             Observações <span className="text-xs font-normal text-gray-400">(Opcional)</span>
                         </h4>
                         <textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder="Ex: Ponto da carne, sem sal..."
-                            className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-summo-primary outline-none resize-none"
+                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-summo-primary outline-none resize-none"
                             rows={2}
                         />
                     </div>
@@ -275,7 +275,7 @@ const ComboProductDetailView: React.FC<ComboProductDetailViewProps> = ({ product
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 z-20 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            <div className="p-4 bg-white border-t border-gray-100 z-20 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
                 <div className="flex flex-col gap-4 max-w-lg mx-auto">
                     {/* Quantity Control */}
                     <div className="flex items-center justify-center gap-6 mb-2">

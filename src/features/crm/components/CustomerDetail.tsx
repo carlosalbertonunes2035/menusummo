@@ -55,7 +55,7 @@ const CustomerDetail: React.FC<CustomerDetailProps> = ({ customer, orders, onClo
 
             <div className="grid grid-cols-3 gap-2 md:gap-4 p-4 md:p-6 bg-white flex-shrink-0">
                 <div className="bg-blue-50 p-3 md:p-4 rounded-xl border border-blue-100"><p className="text-[10px] md:text-xs font-bold text-blue-600 uppercase mb-1">Total Gasto</p><p className="text-lg md:text-2xl font-bold text-blue-900">{formatCurrency(customer.totalSpent)}</p></div>
-                <div className="bg-purple-50 p-3 md:p-4 rounded-xl border border-purple-100"><p className="text-[10px] md:text-xs font-bold text-purple-600 uppercase mb-1">Pedidos</p><p className="text-lg md:text-2xl font-bold text-purple-900">{customer.totalOrders}</p></div>
+                <div className="bg-orange-50 p-3 md:p-4 rounded-xl border border-orange-100"><p className="text-[10px] md:text-xs font-bold text-orange-600 uppercase mb-1">Pedidos</p><p className="text-lg md:text-2xl font-bold text-orange-900">{customer.totalOrders}</p></div>
                 <div className="bg-green-50 p-3 md:p-4 rounded-xl border border-green-100"><p className="text-[10px] md:text-xs font-bold text-green-600 uppercase mb-1">Última Visita</p><p className="text-sm md:text-lg font-bold text-green-900">{new Date(customer.lastOrderDate).toLocaleDateString()}</p></div>
             </div>
 

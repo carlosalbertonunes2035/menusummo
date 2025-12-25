@@ -130,7 +130,7 @@ export const TeamAndPermissionsForm: React.FC = () => {
     return (
         <div className="space-y-6 animate-fade-in">
             <div className={cardClass}>
-                <div className="flex gap-2 border-b border-slate-100 dark:border-slate-800 mb-4">
+                <div className="flex gap-2 border-b border-slate-100 mb-4">
                     <button onClick={() => setActiveTab('users')} className={`px-4 py-3 font-bold text-sm flex items-center gap-2 border-b-2 ${activeTab === 'users' ? 'text-summo-primary border-summo-primary' : 'text-slate-400 border-transparent'}`}><Users size={16} /> Colaboradores</button>
                     <button onClick={() => setActiveTab('roles')} className={`px-4 py-3 font-bold text-sm flex items-center gap-2 border-b-2 ${activeTab === 'roles' ? 'text-summo-primary border-summo-primary' : 'text-slate-400 border-transparent'}`}><Shield size={16} /> Cargos e Permissões</button>
                 </div>
@@ -138,7 +138,7 @@ export const TeamAndPermissionsForm: React.FC = () => {
                 {activeTab === 'users' ? (
                     <div>
                         <div className="flex justify-between items-center mb-4">
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Gerencie quem tem acesso ao sistema.</p>
+                            <p className="text-xs text-slate-500">Gerencie quem tem acesso ao sistema.</p>
                             <button onClick={() => openUserModal()} className="bg-summo-primary text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-summo-dark transition flex items-center gap-2"><Plus size={16} /> Novo</button>
                         </div>
                         <div className="space-y-3">
@@ -146,9 +146,9 @@ export const TeamAndPermissionsForm: React.FC = () => {
                                 const role = roles.find(r => typeof r !== 'string' && r.id === user.roleId);
                                 const roleName = role && typeof role !== 'string' ? role.name : 'Cargo não encontrado';
                                 return (
-                                    <div key={user.id} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl hover:border-summo-primary/30 transition">
-                                        <div><p className="font-bold text-slate-800 dark:text-slate-100">{user.name}</p><p className="text-xs text-slate-500 dark:text-slate-400">{roleName}</p></div>
-                                        <div className="flex items-center gap-2"><button onClick={() => openUserModal(user)} className="p-2 text-slate-400 hover:text-summo-primary hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"><Edit3 size={16} /></button><button onClick={() => handleDeleteUser(user.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"><Trash2 size={16} /></button></div>
+                                    <div key={user.id} className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-xl hover:border-summo-primary/30 transition">
+                                        <div><p className="font-bold text-slate-800">{user.name}</p><p className="text-xs text-slate-500">{roleName}</p></div>
+                                        <div className="flex items-center gap-2"><button onClick={() => openUserModal(user)} className="p-2 text-slate-400 hover:text-summo-primary hover:bg-slate-100:bg-slate-700 rounded-lg transition"><Edit3 size={16} /></button><button onClick={() => handleDeleteUser(user.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50:bg-red-900/20 rounded-lg transition"><Trash2 size={16} /></button></div>
                                     </div>
                                 )
                             })}
@@ -157,35 +157,35 @@ export const TeamAndPermissionsForm: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-12 gap-6">
                         <div className="col-span-4 space-y-3">
-                            <button onClick={() => openRoleModal()} className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 p-3 rounded-xl text-slate-500 dark:text-slate-400 font-bold hover:border-summo-primary hover:text-summo-primary transition text-sm flex items-center justify-center gap-2"><Plus size={16} /> Novo Cargo</button>
+                            <button onClick={() => openRoleModal()} className="w-full bg-slate-50 border-2 border-dashed border-slate-200 p-3 rounded-xl text-slate-500 font-bold hover:border-summo-primary hover:text-summo-primary transition text-sm flex items-center justify-center gap-2"><Plus size={16} /> Novo Cargo</button>
                             {roles.filter(r => typeof r !== 'string').map(role => {
                                 const roleObj = role as Exclude<Role, string>;
                                 return (
-                                    <div key={roleObj.id} onClick={() => setSelectedRole(role)} className={`p-4 rounded-xl border-2 transition cursor-pointer ${selectedRole && typeof selectedRole !== 'string' && selectedRole.id === roleObj.id ? 'bg-summo-bg border-summo-primary dark:bg-summo-primary/10 dark:border-summo-primary' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-summo-primary/50'}`}>
-                                        <div className="flex justify-between items-start"><p className="font-bold text-slate-800 dark:text-slate-100">{roleObj.name}</p> {roleObj.id !== 'OWNER' && <button onClick={(e) => { e.stopPropagation(); handleDeleteRole(roleObj.id) }} className="text-slate-300 hover:text-red-500"><Trash2 size={14} /></button>}</div>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{roleObj.description}</p>
+                                    <div key={roleObj.id} onClick={() => setSelectedRole(role)} className={`p-4 rounded-xl border-2 transition cursor-pointer ${selectedRole && typeof selectedRole !== 'string' && selectedRole.id === roleObj.id ? 'bg-summo-bg border-summo-primary' : 'bg-white border-slate-100 hover:border-summo-primary/50'}`}>
+                                        <div className="flex justify-between items-start"><p className="font-bold text-slate-800">{roleObj.name}</p> {roleObj.id !== 'OWNER' && <button onClick={(e) => { e.stopPropagation(); handleDeleteRole(roleObj.id) }} className="text-slate-300 hover:text-red-500"><Trash2 size={14} /></button>}</div>
+                                        <p className="text-xs text-slate-500 mt-1 line-clamp-2">{roleObj.description}</p>
                                     </div>
                                 );
                             })}
                         </div>
-                        <div className="col-span-8 bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <div className="col-span-8 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
                             {selectedRole && typeof selectedRole !== 'string' ? (<>
-                                <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-1">{selectedRole.name}</h4>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Selecione os módulos que este cargo pode acessar.</p>
+                                <h4 className="font-bold text-slate-800 mb-1">{selectedRole.name}</h4>
+                                <p className="text-xs text-slate-500 mb-4">Selecione os módulos que este cargo pode acessar.</p>
                                 <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar pr-2">
                                     {ALL_MODULES.map((module: any) => {
                                         const hasPermission = rolePermissions.includes(module.id);
                                         const isDisabled = selectedRole.id === 'OWNER';
                                         return (
-                                            <div key={module.id} onClick={() => !isDisabled && handlePermissionToggle(module.id)} className={`flex items-center gap-3 p-3 rounded-lg border transition ${isDisabled ? 'cursor-not-allowed bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600' : 'cursor-pointer bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-summo-primary/50'}`}>
-                                                {hasPermission ? <CheckSquare size={18} className="text-summo-primary" /> : <Square size={18} className="text-slate-300 dark:text-slate-600" />}
-                                                <div><p className="font-bold text-sm text-slate-700 dark:text-slate-200">{module.label}</p><p className="text-[10px] text-slate-400">{module.description}</p></div>
+                                            <div key={module.id} onClick={() => !isDisabled && handlePermissionToggle(module.id)} className={`flex items-center gap-3 p-3 rounded-lg border transition ${isDisabled ? 'cursor-not-allowed bg-slate-100 border-slate-200' : 'cursor-pointer bg-white border-slate-200 hover:border-summo-primary/50'}`}>
+                                                {hasPermission ? <CheckSquare size={18} className="text-summo-primary" /> : <Square size={18} className="text-slate-300" />}
+                                                <div><p className="font-bold text-sm text-slate-700">{module.label}</p><p className="text-[10px] text-slate-400">{module.description}</p></div>
                                             </div>
                                         )
                                     })}
                                 </div>
                                 {hasPermissionChanges && <button onClick={savePermissions} className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl mt-4 flex items-center justify-center gap-2 shadow-lg hover:bg-emerald-600 transition"><Save size={16} /> Salvar Permissões</button>}
-                            </>) : <p className="text-slate-500 dark:text-slate-400 text-center py-10">Selecione um cargo para editar.</p>}
+                            </>) : <p className="text-slate-500 text-center py-10">Selecione um cargo para editar.</p>}
                         </div>
                     </div>
                 )}
@@ -194,10 +194,10 @@ export const TeamAndPermissionsForm: React.FC = () => {
             {/* NEW COLLABORATOR MODAL */}
             {isUserModalOpen && editingUser && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsUserModalOpen(false)}>
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col" onClick={e => e.stopPropagation()}>
-                        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center flex-shrink-0">
-                            <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{editingUser.id ? 'Editar Colaborador' : 'Novo Colaborador'}</h3>
-                            <button onClick={() => setIsUserModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X size={20} /></button>
+                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="p-5 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+                            <h3 className="font-bold text-lg text-slate-800">{editingUser.id ? 'Editar Colaborador' : 'Novo Colaborador'}</h3>
+                            <button onClick={() => setIsUserModalOpen(false)} className="text-slate-400 hover:text-slate-600:text-slate-200"><X size={20} /></button>
                         </div>
                         <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar max-h-[80vh]">
                             <div>
@@ -233,17 +233,17 @@ export const TeamAndPermissionsForm: React.FC = () => {
             {/* ROLE MODAL */}
             {isRoleModalOpen && editingRole && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setIsRoleModalOpen(false)}>
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800" onClick={e => e.stopPropagation()}>
-                        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                            <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{editingRole?.id ? 'Editar Cargo' : 'Novo Cargo'}</h3>
-                            <button onClick={() => setIsRoleModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X size={20} /></button>
+                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200" onClick={e => e.stopPropagation()}>
+                        <div className="p-5 border-b border-slate-100 flex justify-between items-center">
+                            <h3 className="font-bold text-lg text-slate-800">{editingRole?.id ? 'Editar Cargo' : 'Novo Cargo'}</h3>
+                            <button onClick={() => setIsRoleModalOpen(false)} className="text-slate-400 hover:text-slate-600:text-slate-200"><X size={20} /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div><label className={labelClass}>Nome do Cargo</label><input autoFocus type="text" value={editingRole?.name || ''} onChange={e => setEditingRole({ ...editingRole, name: e.target.value })} className={inputClass} placeholder="Ex: Gerente Noturno" /></div>
                             <div><label className={labelClass}>Descrição</label><input type="text" value={editingRole?.description || ''} onChange={e => setEditingRole({ ...editingRole, description: e.target.value })} className={inputClass} placeholder="Breve descrição da função" /></div>
                         </div>
-                        <div className="p-6 pt-4 flex gap-3 border-t border-slate-100 dark:border-slate-800">
-                            <button onClick={() => setIsRoleModalOpen(false)} className="flex-1 py-3 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition">Cancelar</button>
+                        <div className="p-6 pt-4 flex gap-3 border-t border-slate-100">
+                            <button onClick={() => setIsRoleModalOpen(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100:bg-slate-800 rounded-xl transition">Cancelar</button>
                             <button onClick={handleSaveRole} className="flex-1 py-3 bg-emerald-500 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-600 transition">Salvar</button>
                         </div>
                     </div>

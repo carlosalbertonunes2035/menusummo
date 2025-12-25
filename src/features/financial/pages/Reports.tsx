@@ -155,7 +155,7 @@ const Reports: React.FC = () => {
 
     return (
         <PageContainer>
-            <Breadcrumbs />
+
             <div className="h-full flex flex-col bg-gray-50/50 animate-fade-in printable-report">
                 <style>{`
                     @media print {

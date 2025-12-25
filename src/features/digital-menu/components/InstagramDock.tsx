@@ -11,7 +11,7 @@ interface InstagramDockProps {
 
 const InstagramDock: React.FC<InstagramDockProps> = ({ activeTab, setActiveTab, cartCount, openCart }) => {
     return (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 pb-safe z-50">
+        <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-200 pb-safe z-50">
             <div className="flex justify-around items-center h-16 max-w-lg mx-auto relative px-2">
                 <button
                     onClick={() => setActiveTab('feed')}
@@ -33,12 +33,12 @@ const InstagramDock: React.FC<InstagramDockProps> = ({ activeTab, setActiveTab, 
                 <div className="relative -top-5">
                     <button
                         onClick={openCart}
-                        className="bg-summo-primary text-white w-16 h-16 rounded-full flex items-center justify-center shadow-xl shadow-summo-primary/40 active:scale-90 transition-transform border-4 border-gray-50 dark:border-gray-900"
+                        className="bg-summo-primary text-white w-16 h-16 rounded-full flex items-center justify-center shadow-xl shadow-summo-primary/40 active:scale-90 transition-transform border-4 border-gray-50"
                     >
                         <User size={0} className="hidden" /> {/* Dummy hidden icon to satisfy generic layout if needed */}
                         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
                         {cartCount > 0 && (
-                            <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-white dark:border-gray-900 animate-bounce">
+                            <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-white animate-bounce">
                                 {cartCount}
                             </div>
                         )}

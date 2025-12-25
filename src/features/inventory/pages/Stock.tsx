@@ -103,12 +103,10 @@ const Stock: React.FC = () => {
 
     return (
         <PageContainer>
-            <Breadcrumbs />
-            <div className="h-full flex flex-col bg-gray-50/50 animate-fade-in">
+            <div className="h-full flex flex-col bg-summo-bg animate-fade-in">
                 {/* Header Stack */}
-                <div className="flex-shrink-0 bg-white border-b border-gray-200 z-20 shadow-sm rounded-2xl mb-6">
+                <div className="flex-shrink-0 bg-summo-surface border-b border-summo-border z-20 shadow-sm rounded-2xl mb-6">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 p-4">
-                        <h2 className="text-xl lg:text-3xl font-bold text-summo-dark hidden lg:block tracking-tight">Gestão de Estoque</h2>
                         <div className="flex flex-col gap-3 w-full lg:w-auto">
                             <div className="flex gap-2 bg-gray-50 p-1 rounded-xl border border-gray-200 overflow-x-auto no-scrollbar">
                                 <button onClick={() => setActiveTab('OVERVIEW')} className={`flex-shrink-0 px-3 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'OVERVIEW' ? 'bg-white text-summo-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><TrendingUp size={18} /> Finanças</button>

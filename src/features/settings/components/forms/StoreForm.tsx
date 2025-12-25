@@ -57,8 +57,8 @@ export const StoreForm: React.FC<SettingsFormProps> = ({ settings, onChange }) =
     return (
         <div className="space-y-6 animate-fade-in">
             <div className={cardClass}>
-                <h4 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"><Building2 size={20} /> Dados Cadastrais (Fiscal)</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Informações legais da empresa para notas fiscais e relatórios.</p>
+                <h4 className="font-bold text-slate-800 flex items-center gap-2"><Building2 size={20} /> Dados Cadastrais (Fiscal)</h4>
+                <p className="text-xs text-slate-500">Informações legais da empresa para notas fiscais e relatórios.</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div><label className={labelClass}>Razão Social</label><input type="text" name="company.legalName" value={settings.company?.legalName || ''} onChange={onChange} className={inputClass} placeholder="Razão Social Ltda" /></div>
@@ -83,7 +83,7 @@ export const StoreForm: React.FC<SettingsFormProps> = ({ settings, onChange }) =
                                 {isLoadingCNPJ ? 'Buscando...' : 'Buscar'}
                             </button>
                         </div>
-                        <p className="text-xs text-summo-primary dark:text-summo-primary/80 mt-1 flex items-center gap-1">
+                        <p className="text-xs text-summo-primary mt-1 flex items-center gap-1">
                             <Sparkles size={12} />
                             Digite o CNPJ e clique em "Buscar" para preencher automaticamente
                         </p>
@@ -97,8 +97,8 @@ export const StoreForm: React.FC<SettingsFormProps> = ({ settings, onChange }) =
 
             {/* FINANCIAL INTELLIGENCE SETTINGS - NEW */}
             <div className={cardClass}>
-                <h4 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"><Calculator size={20} /> Inteligência de Precificação</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Dados usados para calcular sugestões de preços e margens reais.</p>
+                <h4 className="font-bold text-slate-800 flex items-center gap-2"><Calculator size={20} /> Inteligência de Precificação</h4>
+                <p className="text-xs text-slate-500">Dados usados para calcular sugestões de preços e margens reais.</p>
 
                 <div className="grid grid-cols-1 gap-4">
                     <div>
@@ -110,7 +110,7 @@ export const StoreForm: React.FC<SettingsFormProps> = ({ settings, onChange }) =
             </div>
 
             <div className={cardClass}>
-                <h4 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"><MapPin size={20} /> Localização e Contato</h4>
+                <h4 className="font-bold text-slate-800 flex items-center gap-2"><MapPin size={20} /> Localização e Contato</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div><label className={labelClass}>Telefone Principal</label><input type="text" name="company.phone" value={settings.company?.phone || ''} onChange={onChange} className={inputClass} /></div>
                     <div>
@@ -132,15 +132,15 @@ export const StoreForm: React.FC<SettingsFormProps> = ({ settings, onChange }) =
             </div>
 
             <div className={cardClass}>
-                <h4 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"><Lock size={20} /> Segurança e Acesso da Conta</h4>
+                <h4 className="font-bold text-slate-800 flex items-center gap-2"><Lock size={20} /> Segurança e Acesso da Conta</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className={labelClass}>Email do Admin</label>
-                        <input type="email" disabled value="admin@loja.com" className="w-full p-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 cursor-not-allowed" />
+                        <input type="email" disabled value="admin@loja.com" className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed" />
                     </div>
                     <div>
                         <label className={labelClass}>Alterar Senha</label>
-                        <button className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 text-left flex justify-between items-center group">
+                        <button className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-100:bg-slate-700 text-left flex justify-between items-center group">
                             <span>********</span> <Edit3 size={16} className="text-slate-400 group-hover:text-summo-primary" />
                         </button>
                     </div>

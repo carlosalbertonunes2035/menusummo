@@ -122,7 +122,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ localSettings, update
         try {
             const productsToUpdate = products.filter(p => {
                 const channel = p.channels.find(c => c.channel === 'digital-menu');
-                const currentCat = (channel?.category || p.category).trim();
+                const currentCat = (channel?.category || p.category || '').trim();
                 return currentCat === oldName;
             });
 
@@ -194,31 +194,31 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ localSettings, update
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Info Box about Categories */}
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-xl border border-yellow-200 dark:border-yellow-800 flex items-start gap-3">
-                <Info className="text-yellow-600 dark:text-yellow-500 mt-1 flex-shrink-0" size={20} />
+            <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200 flex items-start gap-3">
+                <Info className="text-yellow-600 mt-1 flex-shrink-0" size={20} />
                 <div>
-                    <h4 className="font-bold text-yellow-800 dark:text-yellow-400 text-sm">Como criar novas categorias?</h4>
-                    <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                    <h4 className="font-bold text-yellow-800 text-sm">Como criar novas categorias?</h4>
+                    <p className="text-xs text-yellow-700 mt-1">
                         As categorias são criadas automaticamente quando você cadastra um produto.
                         Para adicionar uma nova seção (ex: "Sobremesas"), clique em "Novo Produto" e digite o nome da categoria desejada.
                     </p>
                 </div>
                 <button
                     onClick={() => menuEditorLogic.handleOpenCreator('Nova Categoria')}
-                    className="ml-auto bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-100 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-yellow-200 dark:hover:bg-yellow-700 transition whitespace-nowrap"
+                    className="ml-auto bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-yellow-200:bg-yellow-700 transition whitespace-nowrap"
                 >
                     <Plus size={14} className="inline mr-1" /> Criar Produto
                 </button>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
-                    <h3 className="font-bold text-slate-800 dark:text-slate-100">Organização Visual</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Arraste para definir a ordem de exibição no cardápio. (Salvamento Global)</p>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-4 bg-slate-50 border-b border-slate-100">
+                    <h3 className="font-bold text-slate-800">Organização Visual</h3>
+                    <p className="text-xs text-slate-500">Arraste para definir a ordem de exibição no cardápio. (Salvamento Global)</p>
                 </div>
                 <div className="p-4 space-y-2">
                     {orderedCategories.length === 0 ? (
-                        <div className="text-center py-8 text-slate-400 dark:text-slate-500">
+                        <div className="text-center py-8 text-slate-400">
                             <p>Nenhuma categoria encontrada.</p>
                             <p className="text-xs">Cadastre produtos para começar.</p>
                         </div>
@@ -250,7 +250,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ localSettings, update
                             }}
                             className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all group shrink-0 ${draggingOverCategory === cat
                                 ? 'border-summo-primary bg-summo-bg scale-[1.02] shadow-lg z-10'
-                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm'
+                                : 'bg-white border-slate-200 shadow-sm'
                                 } cursor-grab active:cursor-grabbing hover:border-summo-primary/50 relative overflow-hidden`}
                         >
                             {draggingOverCategory === cat && (
@@ -261,12 +261,12 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ localSettings, update
                                     </div>
                                 </div>
                             )}
-                            <div className="p-2 bg-slate-50 dark:bg-slate-700 rounded-lg text-slate-400 group-hover:text-summo-primary cursor-grab">
+                            <div className="p-2 bg-slate-50 rounded-lg text-slate-400 group-hover:text-summo-primary cursor-grab">
                                 <GripVertical size={20} />
                             </div>
 
                             {/* Category Image - Now Circular to match Public Menu (Exact 64px) */}
-                            <div className="relative group/img h-16 w-16 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-600 flex items-center justify-center shrink-0">
+                            <div className="relative group/img h-16 w-16 bg-slate-100 rounded-full overflow-hidden border-2 border-slate-200 flex items-center justify-center shrink-0">
                                 {uploadingCategory === cat ? (
                                     <div className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-[1px]">
                                         <Loader2 size={24} className="text-summo-primary animate-spin" />
@@ -274,7 +274,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ localSettings, update
                                 ) : categoryImages[cat] ? (
                                     <img src={categoryImages[cat]} alt={cat} className="w-full h-full object-cover" />
                                 ) : (
-                                    <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xs text-center p-1">
+                                    <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs text-center p-1">
                                         {cat.charAt(0)}
                                     </div>
                                 )}
@@ -299,7 +299,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ localSettings, update
                             </div>
 
                             <div className="flex flex-col">
-                                <span className="font-bold text-slate-700 dark:text-slate-200">{cat}</span>
+                                <span className="font-bold text-slate-700">{cat}</span>
                                 <button
                                     onClick={() => {
                                         const newName = window.prompt(`Renomear categoria "${cat}" na Vitrine Digital?`, cat);
@@ -314,10 +314,10 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ localSettings, update
                             </div>
 
                             <div className="ml-auto flex items-center gap-1">
-                                <span className="text-xs text-slate-400 font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded mr-2 hidden sm:inline-block">
+                                <span className="text-xs text-slate-400 font-mono bg-slate-100 px-2 py-1 rounded mr-2 hidden sm:inline-block">
                                     {products.filter(p => {
                                         const channel = p.channels.find(c => c.channel === 'digital-menu');
-                                        return (channel?.category || p.category).trim() === cat;
+                                        return (channel?.category || p.category || '').trim() === cat;
                                     }).length} itens
                                 </span>
 
@@ -326,7 +326,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ localSettings, update
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleMove(index, 'UP'); }}
                                         disabled={index === 0}
-                                        className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-500 hover:bg-summo-primary hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-slate-50 disabled:hover:text-slate-500"
+                                        className="p-1.5 rounded-lg bg-slate-50 text-slate-500 hover:bg-summo-primary hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-slate-50 disabled:hover:text-slate-500"
                                         title="Mover para cima"
                                     >
                                         <ChevronUp size={16} />
@@ -334,7 +334,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ localSettings, update
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleMove(index, 'DOWN'); }}
                                         disabled={index === orderedCategories.length - 1}
-                                        className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-500 hover:bg-summo-primary hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-slate-50 disabled:hover:text-slate-500"
+                                        className="p-1.5 rounded-lg bg-slate-50 text-slate-500 hover:bg-summo-primary hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-slate-50 disabled:hover:text-slate-500"
                                         title="Mover para baixo"
                                     >
                                         <ChevronDown size={16} />

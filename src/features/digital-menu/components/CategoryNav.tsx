@@ -18,7 +18,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
     };
 
     return (
-        <nav className="flex gap-4 overflow-x-auto no-scrollbar px-4 py-4 bg-white dark:bg-gray-900 sticky top-0 z-40 border-b border-gray-100 dark:border-gray-800">
+        <nav className="flex gap-4 overflow-x-auto no-scrollbar px-4 py-4 bg-white sticky top-0 z-40 border-b border-gray-100">
             {categories.map((cat) => {
                 const isActive = activeCategory === cat;
                 const isPromo = cat === '🔥 Promoções';
@@ -34,12 +34,12 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
                             w-[72px] h-[72px] rounded-full p-[3px] transition-all duration-300
                             ${isActive
                                 ? 'bg-gradient-to-tr from-yellow-400 via-orange-500 to-red-600 scale-105 shadow-md'
-                                : 'bg-transparent border-2 border-gray-200 dark:border-gray-700 group-hover:border-gray-400'
+                                : 'bg-transparent border-2 border-gray-200 group-hover:border-gray-400'
                             }
                         `}>
-                            <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 p-[3px] overflow-hidden relative">
+                            <div className="w-full h-full rounded-full bg-white p-[3px] overflow-hidden relative">
                                 {isPromo ? (
-                                    <div className="w-full h-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 font-bold">
+                                    <div className="w-full h-full bg-red-50 flex items-center justify-center text-red-500 font-bold">
                                         <Percent size={28} />
                                     </div>
                                 ) : (
@@ -55,7 +55,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
                                             );
                                         }
                                         return (
-                                            <div className="w-full h-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-xl uppercase">
+                                            <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-400 font-bold text-xl uppercase">
                                                 {cat.charAt(0)}
                                             </div>
                                         );
@@ -65,7 +65,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
                         </div>
                         <span className={`
                             text-[10px] font-medium text-center truncate w-20
-                            ${isActive ? 'text-gray-900 dark:text-white font-bold' : 'text-gray-500 dark:text-gray-400'}
+                            ${isActive ? 'text-gray-900 font-bold' : 'text-gray-500'}
                         `}>
                             {getCategoryName(cat)}
                         </span>

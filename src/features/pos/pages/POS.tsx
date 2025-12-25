@@ -2,7 +2,8 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Product, Order, OrderStatus, OrderType, PaymentMethod } from '@/types';
 import { Search, Wand2, CheckCircle2, Loader2, Banknote, Unlock, Receipt, X, ChevronUp } from 'lucide-react';
-import { parseOrderText } from '@/services/geminiService';
+import { httpsCallable } from '@firebase/functions';
+import { functions } from '@/lib/firebase/client';
 import { searchMatch } from '@/lib/utils';
 import { useDebounce } from '@/lib/hooks';
 import { useData } from '@/contexts/DataContext';
@@ -90,7 +91,9 @@ const POS: React.FC = () => {
     const handleAiOrder = async () => {
         if (!aiInputText) return; setIsProcessingAi(true);
         try {
-            const items = await parseOrderText(aiInputText, products);
+            const parseOrderFn = httpsCallable(functions, 'parseOrder');
+            const { data } = await parseOrderFn({ text: aiInputText, products });
+            const items = data as any[];
             let addedCount = 0;
             for (const aiItem of items) {
                 const prod = products.find(p => p.id === aiItem.productId);

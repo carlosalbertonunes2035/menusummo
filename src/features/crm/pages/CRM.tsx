@@ -37,7 +37,7 @@ const CRM: React.FC = () => {
         <div className="h-full flex flex-col animate-fade-in bg-gray-50/50">
             {/* Header Toggle */}
             <div className="p-4 border-b border-gray-200 bg-white shadow-sm flex-shrink-0 flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><Users className="text-indigo-500" /> Gestão de Clientes (CRM)</h2>
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><Users className="text-orange-500" /> Gestão de Clientes (CRM)</h2>
                 <div className="bg-gray-100 p-1 rounded-lg flex">
                     <button onClick={() => setViewMode('LIST')} className={`px - 4 py - 2 rounded - md text - xs font - bold transition ${viewMode === 'LIST' ? 'bg-white shadow text-indigo-600' : 'text-gray-500'} `}>Lista Completa</button>
                     <button onClick={() => setViewMode('STRATEGY')} className={`px - 4 py - 2 rounded - md text - xs font - bold transition ${viewMode === 'STRATEGY' ? 'bg-white shadow text-indigo-600' : 'text-gray-500'} `}>Estratégia (Growth)</button>

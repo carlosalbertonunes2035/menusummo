@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import {
     Search, Plus, Image as ImageIcon, Power, Edit3, TrendingUp,
-    LayoutTemplate, AlertCircle, Check, Loader2
+    LayoutTemplate, AlertCircle, Check, Loader2, Wand2, Import
 } from 'lucide-react';
 import { searchMatch } from '../../../lib/utils';
 import { useData } from '../../../contexts/DataContext';
@@ -12,6 +12,7 @@ import { useMenuEditor } from '../hooks/useMenuEditor';
 import { storageService } from '../../../lib/firebase/storageService';
 import ErrorBoundary from '../../../components/ui/ErrorBoundary';
 import ProductEditor from '../components/menu/ProductEditor';
+import MenuImportModal from '../components/menu/MenuImportModal';
 import { Product } from '../../../types';
 
 // --- SUB-COMPONENT: PRODUCT CARD ---
@@ -112,6 +113,12 @@ const MenuProductCard: React.FC<{
 
             {/* Image Header */}
             <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
+                {/* Combo Badge */}
+                {product.type === 'COMBO' && (
+                    <div className="absolute top-2 left-2 z-10 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
+                        🎁 COMBO
+                    </div>
+                )}
                 {posChannel.image ? (
                     <div className="w-full h-full relative overflow-hidden">
                         {/* Blurred background filling for portrait/wide icons */}
@@ -225,6 +232,13 @@ const MenuEngineering: React.FC = () => {
     const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
     const [searchQuery, setSearchQuery] = useState('');
     const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+    const handleImportSuccess = () => {
+        // Force refresh or just close modal, data context should handle subscriptions
+        // Ideally show success toast which is done inside modal
+        // window.location.reload(); // Optional if subscription is not live
+    };
 
     // Categories for the Capsule Header
     const categories = useMemo(() => {
@@ -328,8 +342,8 @@ const MenuEngineering: React.FC = () => {
             {/* MAIN CONTENT GRID */}
             <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {filteredProducts.map(product => (
-                        <ErrorBoundary key={product.id} scope={`Card: ${product.name}`}>
+                    {filteredProducts.map((product, index) => (
+                        <ErrorBoundary key={product.id || `product-${index}`} scope={`Card: ${product.name}`} fallback={<div className="p-4 bg-red-50 rounded-xl text-red-600 text-sm">Erro ao carregar produto</div>}>
                             <MenuProductCard
                                 product={product}
                                 onOpenEditor={openEditor}
@@ -341,12 +355,25 @@ const MenuEngineering: React.FC = () => {
 
                     {/* Empty State */}
                     {filteredProducts.length === 0 && (
-                        <div className="col-span-full py-20 text-center text-gray-400 flex flex-col items-center">
-                            <div className="bg-gray-100 p-6 rounded-full mb-4">
-                                <Search size={40} className="opacity-20" />
+                        <div className="col-span-full py-20 text-center text-gray-400 flex flex-col items-center max-w-md mx-auto">
+                            <div className="bg-gray-100 p-6 rounded-full mb-6">
+                                <Wand2 size={48} className="text-purple-500 opacity-80" />
                             </div>
-                            <p className="text-lg font-medium">Nenhum produto encontrado.</p>
-                            <p className="text-sm">Tente mudar a categoria ou sua busca.</p>
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">Comece seu Cardápio</h3>
+                            <p className="text-sm text-gray-500 mb-8">
+                                Você ainda não tem produtos cadastrados. Que tal usar nossa IA para importar tudo automaticamente?
+                            </p>
+
+                            <button
+                                onClick={() => setIsImportModalOpen(true)}
+                                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-purple-200 hover:shadow-2xl hover:-translate-y-1 transition-all flex items-center justify-center gap-3 mb-4"
+                            >
+                                <Import size={20} /> Importar Cardápio (iFood/PDF)
+                            </button>
+
+                            <button onClick={() => setIsTypeModalOpen(true)} className="text-sm font-bold text-gray-500 hover:text-gray-700 underline">
+                                Criar manualmente
+                            </button>
                         </div>
                     )}
                 </div>
@@ -380,15 +407,15 @@ const MenuEngineering: React.FC = () => {
 
                             <button
                                 onClick={() => handleCreateType('COMBO')}
-                                className="flex flex-col items-center p-6 rounded-2xl border-2 border-gray-100 bg-gray-50 hover:bg-white hover:border-purple-500 hover:shadow-xl transition-all group"
+                                className="flex flex-col items-center p-6 rounded-2xl border-2 border-gray-100 bg-gray-50 hover:bg-white hover:border-orange-500 hover:shadow-xl transition-all group"
                             >
                                 <div className="w-16 h-16 bg-white rounded-full shadow-md flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                                     <div className="flex gap-1">
-                                        <div className="w-4 h-6 bg-purple-500 rounded-sm" />
+                                        <div className="w-4 h-6 bg-orange-500 rounded-sm" />
                                         <div className="w-4 h-4 bg-orange-400 rounded-full self-end" />
                                     </div>
                                 </div>
-                                <span className="font-bold text-lg text-gray-800 group-hover:text-purple-600">Combo</span>
+                                <span className="font-bold text-lg text-gray-800 group-hover:text-orange-600">Combo</span>
                                 <span className="text-xs text-gray-500 text-center mt-2">Conjunto de produtos com preço promocional.</span>
                             </button>
                         </div>
@@ -402,6 +429,12 @@ const MenuEngineering: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <MenuImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onSuccess={handleImportSuccess}
+            />
 
         </div>
     );

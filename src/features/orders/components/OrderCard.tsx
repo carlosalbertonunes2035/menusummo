@@ -33,7 +33,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
 
                         {/* Digital Origin Tag */}
                         {order.origin === 'DIGITAL' && (
-                            <span className="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 border border-purple-200">
+                            <span className="bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 border border-orange-200">
                                 <Smartphone size={10} /> App
                             </span>
                         )}

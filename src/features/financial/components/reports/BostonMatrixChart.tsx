@@ -54,8 +54,8 @@ const BostonMatrixChart: React.FC<BostonMatrixChartProps> = ({ data, thresholds 
             <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 pointer-events-none">
                 {/* Top Left: PUZZLE (High Margin, Low Sales) */}
                 <div className="bg-gradient-to-br from-violet-50 to-white flex flex-col items-center justify-center border-r border-b border-dashed border-gray-200">
-                    <span className="text-violet-200 font-black text-5xl opacity-20 rotate-12 select-none">?</span>
-                    <span className="text-violet-400 text-xs font-bold uppercase tracking-widest mt-2">Quebra-Cabeça</span>
+                    <span className="text-orange-200 font-black text-5xl opacity-20 rotate-12 select-none">?</span>
+                    <span className="text-orange-400 text-xs font-bold uppercase tracking-widest mt-2">Quebra-Cabeça</span>
                 </div>
 
                 {/* Top Right: STAR (High Margin, High Sales) */}

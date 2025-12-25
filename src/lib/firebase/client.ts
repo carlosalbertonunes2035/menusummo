@@ -2,19 +2,32 @@
 import { initializeApp } from '@firebase/app';
 import { getAuth } from '@firebase/auth';
 import {
-  getFirestore,
-  enableIndexedDbPersistence,
-  clearIndexedDbPersistence
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
 } from '@firebase/firestore';
 import { getStorage } from '@firebase/storage';
 
+// Helper to get environment variables in both Vite and Node contexts
+const getEnv = (key: string) => {
+  // Vite / Browser
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+    return import.meta.env[key];
+  }
+  // Node / Scripts
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key];
+  }
+  return '';
+};
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: getEnv('VITE_FIREBASE_API_KEY'),
+  authDomain: getEnv('VITE_FIREBASE_AUTH_DOMAIN'),
+  projectId: getEnv('VITE_FIREBASE_PROJECT_ID'),
+  storageBucket: getEnv('VITE_FIREBASE_STORAGE_BUCKET'),
+  messagingSenderId: getEnv('VITE_FIREBASE_MESSAGING_SENDER_ID'),
+  appId: getEnv('VITE_FIREBASE_APP_ID')
 };
 
 export const app = initializeApp(firebaseConfig);
@@ -22,27 +35,32 @@ export const auth = getAuth(app);
 
 // Use getFirestore instead of initializeFirestore to avoid "Unexpected state" errors
 // The default configuration handles persistence automatically
-export const db = getFirestore(app);
-
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
 export const storage = getStorage(app);
+import { getFunctions, connectFunctionsEmulator } from '@firebase/functions';
+import { connectFirestoreEmulator } from '@firebase/firestore';
+import { connectAuthEmulator } from '@firebase/auth';
 
-// Enable offline persistence with error handling
-(async () => {
+// Initialize Cloud Functions (using Brazil region)
+export const functions = getFunctions(app, 'southamerica-east1');
+
+// Connect to emulators in development
+if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true') {
+  console.log('🔧 Connecting to Firebase Emulators...');
   try {
-    await enableIndexedDbPersistence(db, {
-      forceOwnership: true
-    });
-    console.log('✅ Firebase: Persistência offline habilitada');
-  } catch (err: any) {
-    if (err.code === 'failed-precondition') {
-      console.warn('⚠️ Firestore: Múltiplas abas abertas, persistência desabilitada');
-    } else if (err.code === 'unimplemented') {
-      console.warn('⚠️ Firestore: Persistência não disponível neste navegador');
-    } else {
-      console.error('❌ Firestore: Erro ao habilitar persistência:', err);
-    }
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+    console.log('✅ Connected to Firebase Emulators');
+  } catch (error) {
+    console.warn('⚠️ Failed to connect to emulators:', error);
   }
-})();
+}
+
 
 /**
  * Limpa o cache do Firestore em caso de erro crítico
@@ -50,9 +68,10 @@ export const storage = getStorage(app);
  */
 export const clearFirestoreCache = async (): Promise<boolean> => {
   try {
-    console.log('[Firestore] Limpando cache...');
-    await clearIndexedDbPersistence(db);
-    console.log('✅ [Firestore] Cache limpo com sucesso');
+    console.log('[Firestore] Limpando cache (Legacy)...');
+    // Deprecated in new SDK versions using persistentLocalCache
+    // await clearIndexedDbPersistence(db);
+    console.log('✅ [Firestore] Cache legacy ignorado (usando persistentLocalCache)');
     return true;
   } catch (error) {
     console.error('❌ [Firestore] Erro ao limpar cache:', error);

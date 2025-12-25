@@ -3,8 +3,7 @@ import { useAuth } from '../../auth/context/AuthContext';
 import { useApp } from '@/contexts/AppContext';
 import { SystemUser } from '@/types';
 import { fetchCNPJData, formatCNPJ, validateCNPJ } from '@/services/cnpjService';
-import { doc, updateDoc } from '@firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { userService } from '@/services/userService';
 import { updateProfile, updateEmail, updatePassword } from '@firebase/auth';
 import {
     User, Building2, Mail, Phone, MapPin, Hash, Save, Loader2,
@@ -100,9 +99,8 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                 photoURL: formData.profileImage || undefined
             });
 
-            // Update Firestore user document
-            const userRef = doc(db, 'users', user.uid);
-            await updateDoc(userRef, {
+            // Update Firestore user document via service
+            await userService.updateProfile(user.uid, {
                 name: formData.name,
                 phone: formData.phone,
                 profileImage: formData.profileImage
@@ -122,8 +120,7 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
 
         setLoading(true);
         try {
-            const userRef = doc(db, 'users', user.uid);
-            await updateDoc(userRef, {
+            await userService.updateCompanyData(user.uid, {
                 businessName: formData.businessName,
                 cnpj: formData.cnpj
             });
@@ -176,22 +173,22 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-            <div className="bg-white dark:bg-summo-dark rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden animate-scale-in">
+            <div className="bg-white rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden animate-scale-in">
                 {/* Header */}
-                <div className="p-6 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-summo-primary/10 to-orange-100 dark:from-summo-primary/20 dark:to-orange-900/20">
+                <div className="p-6 border-b border-gray-200800 bg-gradient-to-r from-summo-primary/10 to-orange-100/20900/20">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="p-3 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+                            <div className="p-3 bg-white800 rounded-xl shadow-lg">
                                 <Shield className="text-summo-primary" size={24} />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Meu Perfil</h2>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Usuário Master - Acesso Total</p>
+                                <h2 className="text-2xl font-bold text-gray-900">Meu Perfil</h2>
+                                <p className="text-sm text-gray-600400">Usuário Master - Acesso Total</p>
                             </div>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50 transition"
+                            className="p-2 rounded-lg hover:bg-white/50:bg-gray-800/50 transition"
                         >
                             <X size={24} />
                         </button>
@@ -210,8 +207,8 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as any)}
                                     className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${activeTab === tab.id
-                                        ? 'bg-white dark:bg-gray-800 text-summo-primary shadow-lg'
-                                        : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-800/50'
+                                        ? 'bg-white800 text-summo-primary shadow-lg'
+                                        : 'text-gray-600400 hover:bg-white/50:bg-gray-800/50'
                                         }`}
                                 >
                                     <Icon size={16} />
@@ -240,7 +237,7 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                                     </button>
                                 </div>
                                 <div className="flex-1">
-                                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label className="block text-sm font-bold text-gray-700300 mb-2">
                                         URL da Foto
                                     </label>
                                     <input
@@ -248,14 +245,14 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                                         value={formData.profileImage}
                                         onChange={(e) => handleInputChange('profileImage', e.target.value)}
                                         placeholder="https://exemplo.com/foto.jpg"
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-summo-primary outline-none"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-300600 bg-white800 focus:ring-2 focus:ring-summo-primary outline-none"
                                     />
                                 </div>
                             </div>
 
                             {/* Name */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-sm font-bold text-gray-700300 mb-2">
                                     <User size={16} className="inline mr-2" />
                                     Nome Completo
                                 </label>
@@ -263,13 +260,13 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                                     type="text"
                                     value={formData.name}
                                     onChange={(e) => handleInputChange('name', e.target.value)}
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-summo-primary outline-none"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300600 bg-white800 focus:ring-2 focus:ring-summo-primary outline-none"
                                 />
                             </div>
 
                             {/* Email */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-sm font-bold text-gray-700300 mb-2">
                                     <Mail size={16} className="inline mr-2" />
                                     Email
                                 </label>
@@ -277,14 +274,14 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                                     type="email"
                                     value={formData.email}
                                     disabled
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-900 text-gray-500 cursor-not-allowed"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300600 bg-gray-100900 text-gray-500 cursor-not-allowed"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Email não pode ser alterado por segurança</p>
                             </div>
 
                             {/* Phone */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-sm font-bold text-gray-700300 mb-2">
                                     <Phone size={16} className="inline mr-2" />
                                     Telefone
                                 </label>
@@ -293,7 +290,7 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                                     value={formData.phone}
                                     onChange={(e) => handleInputChange('phone', e.target.value)}
                                     placeholder="(11) 99999-9999"
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-summo-primary outline-none"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300600 bg-white800 focus:ring-2 focus:ring-summo-primary outline-none"
                                 />
                             </div>
 
@@ -311,10 +308,10 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                     {/* Company Tab */}
                     {activeTab === 'company' && (
                         <div className="space-y-6">
-                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                            <div className="bg-blue-50900/20 border border-blue-200800 rounded-xl p-4">
                                 <div className="flex items-start gap-3">
-                                    <AlertCircle className="text-blue-600 dark:text-blue-400 flex-shrink-0" size={20} />
-                                    <div className="text-sm text-blue-800 dark:text-blue-300">
+                                    <AlertCircle className="text-blue-600400 flex-shrink-0" size={20} />
+                                    <div className="text-sm text-blue-800300">
                                         <strong>Dica:</strong> Use a busca automática de CNPJ para preencher os dados da empresa rapidamente.
                                     </div>
                                 </div>
@@ -322,7 +319,7 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
 
                             {/* CNPJ with Lookup */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-sm font-bold text-gray-700300 mb-2">
                                     <Hash size={16} className="inline mr-2" />
                                     CNPJ
                                 </label>
@@ -332,7 +329,7 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                                         value={formData.cnpj}
                                         onChange={(e) => handleInputChange('cnpj', formatCNPJ(e.target.value))}
                                         placeholder="00.000.000/0000-00"
-                                        className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-summo-primary outline-none"
+                                        className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300600 bg-white800 focus:ring-2 focus:ring-summo-primary outline-none"
                                     />
                                     <button
                                         onClick={handleCNPJLookup}
@@ -347,7 +344,7 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
 
                             {/* Business Name */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-sm font-bold text-gray-700300 mb-2">
                                     <Building2 size={16} className="inline mr-2" />
                                     Nome Fantasia
                                 </label>
@@ -356,7 +353,7 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                                     value={formData.businessName}
                                     onChange={(e) => handleInputChange('businessName', e.target.value)}
                                     placeholder="Nome da sua empresa"
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-summo-primary outline-none"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300600 bg-white800 focus:ring-2 focus:ring-summo-primary outline-none"
                                 />
                             </div>
 
@@ -374,10 +371,10 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                     {/* Security Tab */}
                     {activeTab === 'security' && (
                         <div className="space-y-6">
-                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                            <div className="bg-amber-50900/20 border border-amber-200800 rounded-xl p-4">
                                 <div className="flex items-start gap-3">
-                                    <Lock className="text-amber-600 dark:text-amber-400 flex-shrink-0" size={20} />
-                                    <div className="text-sm text-amber-800 dark:text-amber-300">
+                                    <Lock className="text-amber-600400 flex-shrink-0" size={20} />
+                                    <div className="text-sm text-amber-800300">
                                         <strong>Atenção:</strong> Por segurança, você pode precisar fazer login novamente após alterar a senha.
                                     </div>
                                 </div>
@@ -385,7 +382,7 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
 
                             {/* New Password */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-sm font-bold text-gray-700300 mb-2">
                                     Nova Senha
                                 </label>
                                 <input
@@ -393,13 +390,13 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                                     value={formData.newPassword}
                                     onChange={(e) => handleInputChange('newPassword', e.target.value)}
                                     placeholder="Mínimo 6 caracteres"
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-summo-primary outline-none"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300600 bg-white800 focus:ring-2 focus:ring-summo-primary outline-none"
                                 />
                             </div>
 
                             {/* Confirm Password */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-sm font-bold text-gray-700300 mb-2">
                                     Confirmar Nova Senha
                                 </label>
                                 <input
@@ -407,7 +404,7 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                                     value={formData.confirmPassword}
                                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                                     placeholder="Digite a senha novamente"
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-summo-primary outline-none"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300600 bg-white800 focus:ring-2 focus:ring-summo-primary outline-none"
                                 />
                             </div>
 
@@ -421,12 +418,12 @@ export const MasterUserProfile: React.FC<MasterUserProfileProps> = ({ isOpen, on
                             </button>
 
                             {/* Role Info (Read-only) */}
-                            <div className="mt-8 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl">
+                            <div className="mt-8 p-4 bg-orange-50 border border-orange-200 rounded-xl">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <Shield className="text-purple-600 dark:text-purple-400" size={20} />
-                                    <span className="font-bold text-purple-900 dark:text-purple-300">Cargo e Permissões</span>
+                                    <Shield className="text-orange-600" size={20} />
+                                    <span className="font-bold text-orange-900">Cargo e Permissões</span>
                                 </div>
-                                <div className="text-sm text-purple-800 dark:text-purple-300">
+                                <div className="text-sm text-orange-800">
                                     <strong>Cargo:</strong> Dono (OWNER) - Acesso Total<br />
                                     <strong>Permissões:</strong> Todas (*)<br />
                                     <em className="text-xs opacity-75">Este cargo não pode ser alterado por segurança.</em>

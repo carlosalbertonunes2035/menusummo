@@ -6,30 +6,29 @@ import { Clock, CheckCircle2, Truck, User, PlayCircle } from 'lucide-react';
 interface KDSCardProps {
     order: Order;
     advanceOrder: (order: Order) => void;
-    isHighContrast?: boolean;
 }
 
-const KDSCard: React.FC<KDSCardProps> = ({ order, advanceOrder, isHighContrast }) => {
+const KDSCard: React.FC<KDSCardProps> = ({ order, advanceOrder }) => {
     // eslint-disable-next-line react-hooks/purity
     const elapsedMinutes = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000);
     const isLate = elapsedMinutes > 15;
 
-    // High Contrast Styles
-    const cardBg = isHighContrast ? 'bg-gray-800' : 'bg-white';
-    const textPrimary = isHighContrast ? 'text-white' : 'text-gray-800';
-    const textSecondary = isHighContrast ? 'text-gray-300' : 'text-gray-600';
-    const noteBg = isHighContrast ? 'bg-red-600 text-white' : 'bg-red-500 text-white';
+    // Light theme brand styles
+    const cardBg = 'bg-white';
+    const textPrimary = 'text-gray-800';
+    const textSecondary = 'text-gray-600';
+    const noteBg = 'bg-red-500 text-white';
     const borderColor = isLate ? 'border-red-500' : 'border-summo-primary';
 
     // Timer Badge Logic
     const timerBg = isLate
-        ? (isHighContrast ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-600')
-        : (isHighContrast ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-500');
+        ? 'bg-red-100 text-red-600'
+        : 'bg-gray-100 text-gray-500';
 
     // Type Badge Logic
     const typeBadge = order.type === OrderType.DELIVERY
-        ? (isHighContrast ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-600')
-        : (isHighContrast ? 'bg-orange-900 text-orange-200' : 'bg-orange-100 text-orange-600');
+        ? 'bg-blue-100 text-blue-600'
+        : 'bg-orange-100 text-orange-600';
 
     return (
         <div className={`${cardBg} p-4 rounded-xl shadow-sm border-l-4 ${borderColor} animate-fade-in flex flex-col gap-3 render-auto`}>
@@ -54,11 +53,11 @@ const KDSCard: React.FC<KDSCardProps> = ({ order, advanceOrder, isHighContrast }
             </p>
 
             {/* Items */}
-            <div className={`space-y-2 border-t pt-2 ${isHighContrast ? 'border-gray-700' : 'border-gray-100'}`}>
+            <div className="space-y-2 border-t pt-2 border-gray-100">
                 {order.items.map((item: any, i: number) => (
                     <div key={i} className={`text-sm pb-1 last:pb-0 ${textPrimary}`}>
                         <div className="flex items-start gap-2">
-                            <span className={`font-bold whitespace-nowrap ${isHighContrast ? 'text-summo-primary' : 'text-summo-dark'}`}>{item.quantity}x</span>
+                            <span className="font-bold whitespace-nowrap text-summo-dark">{item.quantity}x</span>
                             <span className="leading-tight">{item.productName}</span>
                         </div>
                         {item.notes && <p className={`text-xs px-2 py-1 rounded mt-1 font-bold inline-block ${noteBg}`}>{item.notes}</p>}

@@ -5,7 +5,7 @@ import { inputClass, labelClass, cardClass } from './shared';
 export const OperationForm: React.FC<SettingsFormProps> = ({ settings, onChange }) => (
     <div className={`${cardClass} animate-fade-in`}>
         <div>
-            <h4 className="font-bold text-slate-800 dark:text-slate-100">Tempo de Cozinha (KDS Inteligente)</h4>
+            <h4 className="font-bold text-slate-800">Tempo de Cozinha (KDS Inteligente)</h4>
             <div className="grid grid-cols-2 gap-4 mt-2">
                 <div>
                     <label className={labelClass}>Tempo de Preparo (min)</label>
@@ -28,12 +28,12 @@ export const OperationForm: React.FC<SettingsFormProps> = ({ settings, onChange 
             { mode: 'staff', label: 'Refeição Colaborador (Staff)' }
         ].map((m) => (
             <div key={m.mode}>
-                <h4 className="font-bold text-slate-800 dark:text-slate-100">{m.label}</h4>
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl mt-2">
-                    <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">Ativar</span>
+                <h4 className="font-bold text-slate-800">{m.label}</h4>
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl mt-2">
+                    <span className="font-bold text-slate-700 text-sm">Ativar</span>
                     <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" name={`orderModes.${m.mode}.enabled`} checked={(settings.orderModes as any)?.[m.mode]?.enabled || false} onChange={onChange} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                     </label>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mt-2">
@@ -44,13 +44,13 @@ export const OperationForm: React.FC<SettingsFormProps> = ({ settings, onChange 
         ))}
 
         {/* Scheduling Section */}
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-            <h4 className="font-bold text-slate-800 dark:text-slate-100">Agendamento de Pedidos (Pre-Order)</h4>
-            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl mt-2">
-                <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">Ativar Agendamentos</span>
+        <div className="pt-4 border-t border-slate-100">
+            <h4 className="font-bold text-slate-800">Agendamento de Pedidos (Pre-Order)</h4>
+            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl mt-2">
+                <span className="font-bold text-slate-700 text-sm">Ativar Agendamentos</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" name="orderModes.scheduling.enabled" checked={settings.orderModes.scheduling?.enabled || false} onChange={onChange} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                 </label>
             </div>
             <div className={`grid grid-cols-2 gap-4 mt-2 ${!settings.orderModes.scheduling?.enabled ? 'opacity-50 pointer-events-none' : ''}`}>

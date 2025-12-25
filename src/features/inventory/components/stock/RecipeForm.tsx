@@ -107,7 +107,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ existingRecipe, onClose 
     return (
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 flex flex-col h-[90vh] max-h-[800px] animate-slide-in-up overflow-hidden">
             {/* Header */}
-            <div className="p-6 bg-gray-900 text-white flex justify-between items-center shrink-0">
+            <div className="p-6 bg-gradient-to-r from-orange-500 to-amber-600 text-white flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-4">
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
                         <ArrowLeft size={20} />

@@ -2,7 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import { Order, Driver, OrderStatus, OrderType } from '../../../types';
 import { MapPin, Send, MessageCircle, UserCheck, Navigation, Loader2, ExternalLink, CheckSquare, Square, Route, Map as MapIcon } from 'lucide-react';
-import { getDeliveryRouteInfo, optimizeDeliveryRoute } from '../../../services/geminiService';
+import { functions } from '@/lib/firebase/client';
+import { httpsCallable } from '@firebase/functions';
 import { generateWhatsAppLink, generateGoogleMapsRouteLink, generateDriverManifest } from '../../../lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { useOrders } from '@/hooks/useOrders';
@@ -67,8 +68,13 @@ const Logistics: React.FC = () => {
         if (!order.deliveryAddress) { showToast?.("Endereço de entrega não definido", 'error'); return; }
         setAnalyzingRoute(true); setRouteAnalysis(null);
         try {
-            const response: any = await getDeliveryRouteInfo(settings.address, order.deliveryAddress);
-            setRouteAnalysis({ text: response.text || "Sem informações de rota.", chunks: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] });
+            const getDeliveryRouteInfoFn = httpsCallable(functions, 'getDeliveryRouteInfoFn');
+            const { data } = await getDeliveryRouteInfoFn({
+                origin: settings.address,
+                destination: order.deliveryAddress
+            });
+            const response = data as any;
+            setRouteAnalysis({ text: response.text || "Sem informações de rota.", chunks: [] });
         } catch (e) { console.error(e); showToast?.("Erro ao calcular rota", 'error'); } finally { setAnalyzingRoute(false); }
     };
 
@@ -91,12 +97,12 @@ const Logistics: React.FC = () => {
         setIsOptimizingBatch(true); setOptimizedBatch(null); setOptimizedOrderSequence([]);
         try {
             // Pass Coordinates to prefer Local Algorithm
-            const result = await optimizeDeliveryRoute(
-                settings.address,
-                addresses,
-                knownCoords.length === addresses.length ? knownCoords : undefined,
-                knownCoords.length === addresses.length ? originCoords : undefined
-            );
+            const optimizeDeliveryRouteFn = httpsCallable(functions, 'optimizeDeliveryRouteFn');
+            const { data } = await optimizeDeliveryRouteFn({
+                origin: settings.address,
+                destinations: addresses
+            });
+            const result = data as any;
 
             if (result && result.optimizedSequence) {
                 const sortedAddresses: string[] = [];

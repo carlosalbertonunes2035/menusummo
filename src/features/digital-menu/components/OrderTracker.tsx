@@ -46,7 +46,7 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ orderId, onClose, onNewOrde
             case OrderStatus.PENDING: return { title: 'Pedido Recebido!', sub: 'Aguardando confirmação do restaurante.', color: 'bg-blue-600' };
             case OrderStatus.PREPARING: return { title: 'Sendo Preparado', sub: 'A cozinha já está trabalhando no seu pedido.', color: 'bg-orange-500' };
             case OrderStatus.READY: return { title: 'Pronto!', sub: 'Aguardando retirada ou entregador.', color: 'bg-green-500' };
-            case OrderStatus.DELIVERING: return { title: order.type === OrderType.DELIVERY ? 'Saiu para Entrega' : 'Pronto para Retirada', sub: order.type === OrderType.DELIVERY ? 'O entregador está a caminho.' : 'Pode vir buscar no balcão.', color: 'bg-purple-600' };
+            case OrderStatus.DELIVERING: return { title: order.type === OrderType.DELIVERY ? 'Saiu para Entrega' : 'Pronto para Retirada', sub: order.type === OrderType.DELIVERY ? 'O entregador está a caminho.' : 'Pode vir buscar no balcão.', color: 'bg-orange-600' };
             case OrderStatus.COMPLETED: return { title: 'Pedido Entregue', sub: 'Bom apetite! 😍', color: 'bg-green-600' };
             case OrderStatus.CANCELLED: return { title: 'Pedido Cancelado', sub: 'Entre em contato com o estabelecimento.', color: 'bg-red-500' };
             default: return { title: 'Processando...', sub: 'Atualizando status.', color: 'bg-gray-600' };

@@ -27,9 +27,19 @@ export const ProductSchema = z.object({
         quantity: z.number().min(1, "Quantidade mínima de 1"),
         overridePrice: z.number().optional()
     })).optional(),
-    name: z.string().min(2, "O nome do produto deve ter pelo menos 2 caracteres"),
-    category: z.string().min(1, "A categoria é obrigatória"),
-    cost: z.number().min(0, "O custo não pode ser negativo"),
+    comboSteps: z.array(z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        min: z.number(),
+        max: z.number(),
+        items: z.array(z.object({
+            productId: z.string(),
+            overridePrice: z.number().optional()
+        }))
+    })).optional(),
+    name: z.string().min(2, "O nome do produto deve ter pelo menos 2 caracteres").nullish().default('Produto Sem Nome'),
+    category: z.string().min(1, "A categoria é obrigatória").nullish().default('Geral'),
+    cost: z.number().min(0, "O custo não pode ser negativo").nullish().default(0),
     tags: z.array(z.string()).default([]),
     ingredients: z.array(z.object({
         ingredientId: z.string(),
@@ -37,6 +47,13 @@ export const ProductSchema = z.object({
     })).default([]),
     optionGroupIds: z.array(z.string()).default([]),
     channels: z.array(ChannelConfigSchema).default([]),
+    image: z.string().optional(),
+    description: z.string().optional(),
+    realCost: z.number().optional(),
+    recipeId: z.string().optional(),
+    preparationTime: z.number().optional(),
+    likes: z.number().optional(),
+    tenantId: z.string().optional(),
     slug: z.string().optional(),
     seoTitle: z.string().max(60).optional(),
     seoDescription: z.string().max(160).optional(),
@@ -141,9 +158,18 @@ export const IngredientSchema = z.object({
     id: z.string(),
     name: z.string(),
     unit: z.string(),
-    currentStock: z.number().default(0),
-    minStock: z.number().optional(),
-    cost: z.number()
+    currentStock: z.number().nullish().default(0),
+    minStock: z.number().nullish().default(0),
+    cost: z.number().nullish().default(0),
+    // Enhanced fields
+    costPerUnit: z.number().optional(),
+    isActive: z.boolean().optional(),
+    supplier: z.string().optional(),
+    averageCost: z.number().optional(),
+    lastPurchasePrice: z.number().optional(),
+    category: z.string().optional(),
+    purchaseUnit: z.string().optional(),
+    conversionFactor: z.number().optional()
 });
 
 // --- SECURITY SCHEMAS (Phase 2) ---

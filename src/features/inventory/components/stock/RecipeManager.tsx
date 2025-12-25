@@ -26,10 +26,10 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ externalSearch, on
     const setSearchTerm = onSearchChange ?? setLocalSearch;
 
     const filteredRecipes = (recipes || []).filter((r: Recipe) => {
-        const matchesName = r.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesName = r.name?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesIngredient = r.ingredients.some(ri => {
             const ing = ingredients.find(i => i.id === ri.ingredientId);
-            return ing?.name.toLowerCase().includes(searchTerm.toLowerCase());
+            return ing?.name?.toLowerCase().includes(searchTerm.toLowerCase());
         });
         return matchesName || matchesIngredient;
     });
@@ -158,7 +158,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ externalSearch, on
             )}
 
             {/* AI Optimization Insight */}
-            <div className="bg-gray-900 rounded-3xl p-8 text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-8 border border-white/5 shadow-2xl">
+            <div className="bg-gradient-to-r from-orange-500 to-amber-600 rounded-3xl p-8 text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-8 border border-orange-400/20 shadow-2xl">
                 <div className="absolute top-[-50%] left-[-10%] w-96 h-96 bg-summo-primary/10 rounded-full blur-3xl"></div>
 
                 <div className="bg-white/5 p-6 rounded-full shrink-0 relative z-10">

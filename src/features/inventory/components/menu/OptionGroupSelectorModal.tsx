@@ -33,7 +33,7 @@ const OptionGroupSelectorModal: React.FC<OptionGroupSelectorModalProps> = ({ isO
         if (!optionGroups) return [];
         return optionGroups.filter(group =>
             !existingGroupIds.includes(group.id) &&
-            group.title.toLowerCase().includes(searchTerm.toLowerCase())
+            String(group.title || '').toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [optionGroups, existingGroupIds, searchTerm]);
 
@@ -89,12 +89,12 @@ const OptionGroupSelectorModal: React.FC<OptionGroupSelectorModalProps> = ({ isO
     if (!isOpen) return null;
 
     return (
-        <div onClick={onClose} className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-            <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl w-full max-w-2xl h-[85vh] shadow-2xl flex flex-col overflow-hidden animate-slide-in-up">
+        <div onClick={onClose} className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" aria-hidden="false">
+            <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl w-full max-w-2xl h-[85vh] shadow-2xl flex flex-col overflow-hidden animate-slide-in-up" role="dialog" aria-modal="true" aria-labelledby="modal-title-og">
                 {/* Header */}
                 <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                    <h3 className="font-bold text-lg text-gray-800">Adicionar Grupo de Opções</h3>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-lg text-gray-500"><X size={20} /></button>
+                    <h3 id="modal-title-og" className="font-bold text-lg text-gray-800">Adicionar Grupo de Opções</h3>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-lg text-gray-500" aria-label="Fechar"><X size={20} /></button>
                 </div>
 
                 {/* Tabs */}

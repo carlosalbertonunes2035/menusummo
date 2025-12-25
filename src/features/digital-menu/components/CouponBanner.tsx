@@ -18,7 +18,7 @@ const CouponBanner: React.FC<CouponBannerProps> = ({ coupons, onSelect }) => {
                     <div
                         key={coupon.id}
                         onClick={() => onSelect(coupon)}
-                        className="flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-0 flex overflow-hidden min-w-[240px] cursor-pointer relative group active:scale-95 transition-transform"
+                        className="flex-shrink-0 bg-white rounded-xl border border-gray-100 shadow-sm p-0 flex overflow-hidden min-w-[240px] cursor-pointer relative group active:scale-95 transition-transform"
                     >
                         {/* Visual Ticket Stub Effect */}
                         <div className="bg-summo-primary w-2 h-full absolute left-0 top-0"></div>
@@ -26,7 +26,7 @@ const CouponBanner: React.FC<CouponBannerProps> = ({ coupons, onSelect }) => {
                             <Ticket className="text-summo-primary" size={20} />
                         </div>
                         <div className="p-3 flex-1">
-                            <p className="font-bold text-summo-dark dark:text-white text-sm">Cupom Especial</p>
+                            <p className="font-bold text-summo-dark text-sm">Cupom Especial</p>
                             <p className="text-[10px] text-gray-500 mt-0.5">Mínimo: R$ {(coupon.minOrderValue || 0).toFixed(2)}</p>
                             <div className="mt-2 flex justify-between items-center">
                                 <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wide">{coupon.code}</span>

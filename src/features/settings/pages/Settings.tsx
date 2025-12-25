@@ -5,7 +5,8 @@ import { TENANTS, GET_DEFAULT_SETTINGS } from '@/constants';
 import {
     Save, Printer, Store as StoreIcon, Clock, Truck,
     Bike, AlertTriangle, CreditCard, LayoutGrid, Monitor,
-    Plus, Trash2, ChevronRight, Bell, Activity, Building2, Check, Briefcase, SlidersHorizontal, Cpu, Users, Shield, Lock, Plug, Key, LogOut, Smartphone, Loader2
+    Plus, Trash2, ChevronRight, Bell, Activity, Building2, Check, Briefcase, SlidersHorizontal, Cpu, Users, Shield, Lock, Plug, Key, LogOut, Smartphone, Loader2,
+    Wand2, Info
 } from 'lucide-react';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useApp } from '@/contexts/AppContext';
@@ -26,11 +27,11 @@ import { PageContainer } from '@/components/layouts/PageContainer';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
 
+import { MenuImporter } from '../../../scripts/menu-importer/importer';
 
 const Settings: React.FC = () => {
-    const { data: drivers } = useDrivers();
     const { settings: contextSettings, setSettings: setContextSettings, handleAction, showToast, tenantId, switchTenant } = useApp();
-    const { logout, user, role } = useAuth();
+    const { logout, user, role, systemUser } = useAuth();
     const isMockMode = false;
 
     const [activeTab, setActiveTab] = useState('STORE');
@@ -160,6 +161,26 @@ const Settings: React.FC = () => {
         setHasChanges(true);
     };
 
+    const { data: drivers } = useDrivers();
+    const [isImporting, setIsImporting] = useState(false);
+
+    const handleImportMenu = async () => {
+        if (!systemUser?.tenantId) return; // Fix: use systemUser.tenantId
+        if (!window.confirm("Isso importará dados de exemplo do JC Espetaria. Deseja continuar?")) return;
+
+        setIsImporting(true);
+        try {
+            const importer = new MenuImporter(systemUser.tenantId);
+            await importer.runImport();
+            showToast("Importação Inteligente concluída com sucesso!", "success");
+        } catch (error) {
+            console.error(error);
+            showToast("Erro na importação.", "error");
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
     const handleAddDriver = (driver: { name: string; phone: string; vehicle: string }) => {
         if (!driver.name || !driver.phone) return showToast("Nome e telefone são obrigatórios.", "error");
         handleAction('drivers', 'add', undefined, driver);
@@ -184,12 +205,12 @@ const Settings: React.FC = () => {
                 <div className="relative mb-6">
                     <div className="absolute inset-0 bg-gradient-to-tr from-[#FF6B00] to-orange-400 rounded-full blur-2xl opacity-30 animate-pulse"></div>
                     <Shield size={64} className="text-[#FF6B00] relative z-10" />
-                    <div className="absolute -bottom-2 -right-2 bg-white dark:bg-slate-900 rounded-full p-1.5 shadow-lg">
+                    <div className="absolute -bottom-2 -right-2 bg-white900 rounded-full p-1.5 shadow-lg">
                         <Loader2 size={20} className="text-[#FF6B00] animate-spin" />
                     </div>
                 </div>
-                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Validando Permissões...</h3>
-                <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-xs mx-auto">Conectando ao núcleo do sistema para verificar suas credenciais.</p>
+                <h3 className="text-xl font-bold text-slate-800">Validando Permissões...</h3>
+                <p className="text-slate-500 mt-2 max-w-xs mx-auto">Conectando ao núcleo do sistema para verificar suas credenciais.</p>
             </div>
         );
     }
@@ -251,8 +272,8 @@ const Settings: React.FC = () => {
     };
 
     return (
-        <PageContainer>
-            <Breadcrumbs className="mb-4" />
+        <PageContainer className="h-full flex flex-col">
+
             <div className="h-full flex flex-col md:flex-row bg-gray-50/50 animate-fade-in relative">
                 {/* Mobile View */}
                 <div className="md:hidden flex flex-col h-full">
@@ -309,6 +330,34 @@ const Settings: React.FC = () => {
                                 )
                             })}
                         </div>
+                        <div className="pt-8 border-t border-gray-200">
+                            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <Wand2 className="text-purple-500" /> Ferramentas de IA (Beta)
+                            </h3>
+                            <div className="bg-purple-50 p-6 rounded-xl border border-purple-100">
+                                <div className="flex justify-between items-center mb-4">
+                                    <div>
+                                        <h4 className="font-bold text-gray-800">Importador Inteligente de Cardápio</h4>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            Engenharia reversa de cardápios (iFood/PDF) para gerar produtos, receitas e insumos automaticamente.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleImportMenu}
+                                        disabled={isImporting}
+                                        className="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-purple-700 transition flex items-center gap-2 disabled:opacity-50"
+                                    >
+                                        {isImporting ? <Loader2 className="animate-spin" /> : <Wand2 size={18} />}
+                                        Importar "JC Espetaria"
+                                    </button>
+                                </div>
+                                <div className="text-xs text-purple-600 bg-purple-100 p-3 rounded-lg flex items-center gap-2">
+                                    <Info size={14} />
+                                    <span>Isso irá popular seu sistema com 20+ produtos, insumos e receitas simuladas do JC Espetaria.</span>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
                     {/* Form Panel (Secondary View) */}

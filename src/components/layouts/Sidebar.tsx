@@ -4,6 +4,7 @@ import { LayoutDashboard, ShoppingCart, ChefHat, Package, Truck, Settings, Rocke
 import { useApp } from '../../contexts/AppContext';
 import { useAuth } from '../../features/auth/context/AuthContext';
 
+
 export const ALL_MODULES = [
     { id: 'launchpad', label: 'Início', icon: Rocket, gradient: 'from-orange-400 to-red-500', description: 'Visão Geral' },
     { id: 'marketing', label: 'Marketing & Vitrine', icon: Megaphone, gradient: 'from-rose-400 to-red-500', description: 'Loja, Cupons e IA' },
@@ -13,7 +14,7 @@ export const ALL_MODULES = [
     { id: 'finance', label: 'Dinheiro', icon: DollarSign, gradient: 'from-yellow-400 to-amber-500', description: 'Contas' },
     { id: 'stock', label: 'Estoque', icon: Package, gradient: 'from-green-500 to-emerald-700', description: 'Insumos' },
     { id: 'menu', label: 'Cardápio', icon: BookOpen, gradient: 'from-pink-500 to-rose-500', description: 'Produtos' },
-    { id: 'crm', label: 'Clientes', icon: Users, gradient: 'from-indigo-500 to-violet-600', description: 'Fidelidade' },
+    { id: 'crm', label: 'Clientes', icon: Users, gradient: 'from-orange-500 to-amber-600', description: 'Fidelidade' },
     { id: 'logistics', label: 'Entregas', icon: Truck, gradient: 'from-cyan-500 to-blue-600', description: 'Rotas' },
     { id: 'driver', label: 'Motoboy', icon: CarFront, gradient: 'from-slate-500 to-slate-700', description: 'App' },
     { id: 'waiter', label: 'Garçom', icon: Utensils, gradient: 'from-orange-500 to-amber-600', description: 'Mesas' },
@@ -124,7 +125,7 @@ const Sidebar: React.FC = () => {
     return (
         <>
             {MobileDock}
-            <div className={`hidden md:flex ${isCollapsed ? 'w-24' : 'w-72'} bg-white border-r border-gray-200 flex-col h-full z-40 flex-shrink-0 animate-fade-in relative transition-all duration-300`}>
+            <div className={`hidden md:flex ${isCollapsed ? 'w-24' : 'w-72'} bg-summo-surface border-r border-summo-border flex-col h-full z-40 flex-shrink-0 animate-fade-in relative transition-all duration-300`}>
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     className="absolute -right-3 top-24 bg-white border border-gray-200 rounded-full p-1.5 shadow-sm hover:bg-gray-50 z-50 text-gray-500 hover:text-summo-primary transition-colors"
@@ -140,8 +141,8 @@ const Sidebar: React.FC = () => {
                     </div>
                     {!isCollapsed && (
                         <div className="ml-4 overflow-hidden animate-fade-in">
-                            <h1 className="font-bold text-gray-800 text-lg leading-tight whitespace-nowrap tracking-tight">SUMMO</h1>
-                            <p className="text-xs text-gray-400 truncate w-40">{settings.brandName || 'Sua Loja'}</p>
+                            <h1 className="font-bold text-summo-text text-lg leading-tight whitespace-nowrap tracking-tight">SUMMO</h1>
+                            <p className="text-xs text-summo-text-muted truncate w-40">{settings.brandName || 'Sua Loja'}</p>
                         </div>
                     )}
                 </div>
@@ -182,7 +183,7 @@ const Sidebar: React.FC = () => {
                             <NavLink
                                 key={item.id}
                                 to={`/app/${item.id}`}
-                                className={({ isActive }) => `w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} p-3 rounded-xl transition-all duration-200 group active:scale-95 ${isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+                                className={({ isActive }) => `w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} p-3 rounded-xl transition-all duration-200 group active:scale-95 ${isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900:bg-gray-800:text-gray-200'}`}
                                 title={item.label}
                             >
                                 <Icon size={isCollapsed ? 24 : 20} />

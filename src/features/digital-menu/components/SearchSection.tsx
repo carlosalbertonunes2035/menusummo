@@ -31,7 +31,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                     const channel = getProductChannel(p, 'digital-menu');
                     return (
                         <div key={p.id} className="bg-summo-surface rounded-xl overflow-hidden shadow-sm border border-summo-border" onClick={() => handleProductCta(p)}>
-                            <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
+                            <div className="aspect-square bg-gray-100 relative">
                                 {channel.image && <img src={channel.image} className="w-full h-full object-cover" alt={p.name} />}
                                 <button className="absolute bottom-2 right-2 bg-summo-surface p-1.5 rounded-full shadow-md border border-summo-border">
                                     <Plus size={16} className="text-summo-primary" />
@@ -39,7 +39,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                             </div>
                             <div className="p-2">
                                 <p className="font-bold text-sm truncate text-summo-text">{p.name}</p>
-                                <p className="text-xs text-green-600 dark:text-green-400 font-bold">R$ {(channel.promotionalPrice || channel.price || 0).toFixed(2)}</p>
+                                <p className="text-xs text-green-600 font-bold">R$ {(channel.promotionalPrice || channel.price || 0).toFixed(2)}</p>
                             </div>
                         </div>
                     );

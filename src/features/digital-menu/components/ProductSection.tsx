@@ -48,8 +48,8 @@ export const ProductSection: React.FC<ProductSectionProps> = ({
                     if (categoryProducts.length === 0) return null;
                     return (
                         <div key={cat} ref={el => { categoryRefs.current[cat] = el; }} id={`cat-${cat}`} className="mb-8 scroll-mt-48">
-                            <div className="sticky top-0 z-20 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm py-3 px-4 md:px-0 transition-colors duration-300">
-                                <h3 className={`text-xl font-bold ${isPromo ? 'text-red-600 dark:text-red-400 flex items-center gap-2' : 'text-summo-text'}`}>
+                            <div className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm py-3 px-4 md:px-0 transition-colors duration-300">
+                                <h3 className={`text-xl font-bold ${isPromo ? 'text-red-600 flex items-center gap-2' : 'text-summo-text'}`}>
                                     {settings?.digitalMenu?.categories?.[cat]?.displayName || cat} {isPromo && <Percent size={20} />}
                                 </h3>
                             </div>

@@ -86,7 +86,7 @@ const SocialMediaCard: React.FC<SocialMediaCardProps> = ({ product, onAdd, onOpe
     const isVideo = videoUrl && videoUrl.length > 5;
 
     return (
-        <article className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 md:border md:rounded-xl md:mb-8 md:shadow-sm pb-4 last:border-0">
+        <article className="bg-white border-b border-gray-100 md:border md:rounded-xl md:mb-8 md:shadow-sm pb-4 last:border-0">
             {/* Header do Post */}
             <div className="flex justify-between items-center px-4 py-3">
                 <div className="flex items-center gap-3">
@@ -96,17 +96,17 @@ const SocialMediaCard: React.FC<SocialMediaCardProps> = ({ product, onAdd, onOpe
                         </div>
                     </div>
                     <div className="leading-tight">
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 cursor-pointer">{settings.brandName || 'Sua Loja'}</p>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400">{product.category}</p>
+                        <p className="text-sm font-bold text-gray-900 cursor-pointer">{settings.brandName || 'Sua Loja'}</p>
+                        <p className="text-[10px] text-gray-500">{product.category}</p>
                     </div>
                 </div>
-                <button className="text-gray-500 dark:text-gray-400">
+                <button className="text-gray-500">
                     <MoreHorizontal size={20} />
                 </button>
             </div>
 
             {/* Mídia (Imagem/Vídeo) - Full Bleed Logic: Simply use width-full as parent has no padding now */}
-            <div onDoubleClick={handleLike} className="relative w-full aspect-[4/5] bg-gray-100 dark:bg-gray-700 overflow-hidden">
+            <div onDoubleClick={handleLike} className="relative w-full aspect-[4/5] bg-gray-100 overflow-hidden">
                 {isVideo ? (
                     <img src={videoUrl} loading="lazy" className="w-full h-full object-cover" alt={displayName} onClick={handleLike} />
                 ) : (
@@ -140,14 +140,14 @@ const SocialMediaCard: React.FC<SocialMediaCardProps> = ({ product, onAdd, onOpe
                 >
                     <div
                         onClick={(e) => { e.stopPropagation(); onAdd(); }}
-                        className="pointer-events-auto bg-white/95 dark:bg-gray-800/90 backdrop-blur-md rounded-lg p-2 pr-4 shadow-lg border border-white/20 flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform"
+                        className="pointer-events-auto bg-white/95 backdrop-blur-md rounded-lg p-2 pr-4 shadow-lg border border-white/20 flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform"
                     >
-                        <div className="bg-gray-100 dark:bg-gray-700 rounded-md w-10 h-10 overflow-hidden flex-shrink-0">
+                        <div className="bg-gray-100 rounded-md w-10 h-10 overflow-hidden flex-shrink-0">
                             <img src={getProductImage(product)} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-xs font-medium text-gray-900 dark:text-white line-clamp-1">{displayName}</span>
-                            <span className="text-sm font-bold text-gray-900 dark:text-white">R$ {currentPrice?.toFixed(2)}</span>
+                            <span className="text-xs font-medium text-gray-900 line-clamp-1">{displayName}</span>
+                            <span className="text-sm font-bold text-gray-900">R$ {currentPrice?.toFixed(2)}</span>
                         </div>
                         <div className="bg-summo-primary text-white p-1.5 rounded-full ml-2">
                             <ShoppingBag size={14} />
@@ -160,16 +160,16 @@ const SocialMediaCard: React.FC<SocialMediaCardProps> = ({ product, onAdd, onOpe
             <div className="px-4 pt-3">
                 <div className="flex justify-between items-center mb-3">
                     <div className="flex gap-4">
-                        <button onClick={handleLike} className={`transition-transform active:scale-125 ${isLiked ? 'text-red-500' : 'text-gray-800 dark:text-gray-200 hover:text-gray-500'}`}>
+                        <button onClick={handleLike} className={`transition-transform active:scale-125 ${isLiked ? 'text-red-500' : 'text-gray-800 hover:text-gray-500'}`}>
                             <Heart size={24} fill={isLiked ? "currentColor" : "none"} strokeWidth={isLiked ? 0 : 2} />
                         </button>
                         {showComments && (
-                            <button onClick={onOpenComments} className="text-gray-800 dark:text-gray-200 hover:text-gray-500 transition active:scale-90">
+                            <button onClick={onOpenComments} className="text-gray-800 hover:text-gray-500 transition active:scale-90">
                                 <MessageCircle size={24} strokeWidth={2} className="-rotate-90" />
                             </button>
                         )}
                         {showShare && (
-                            <button onClick={handleShare} className="text-gray-800 dark:text-gray-200 hover:text-gray-500 transition active:scale-90">
+                            <button onClick={handleShare} className="text-gray-800 hover:text-gray-500 transition active:scale-90">
                                 <Share2 size={24} strokeWidth={2} />
                             </button>
                         )}
@@ -182,13 +182,13 @@ const SocialMediaCard: React.FC<SocialMediaCardProps> = ({ product, onAdd, onOpe
                 </div>
 
                 {/* Likes Count */}
-                <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
+                <p className="text-sm font-bold text-gray-900 mb-2">
                     {product.likes ? (product.likes + (isLiked ? 1 : 0)).toLocaleString() : (isLiked ? 1 : 0)} curtidas
                 </p>
 
                 {/* Legenda */}
-                <div className="text-sm text-gray-800 dark:text-gray-300 leading-relaxed mb-2">
-                    <span className="font-bold mr-2 text-gray-900 dark:text-white text-sm">
+                <div className="text-sm text-gray-800 leading-relaxed mb-2">
+                    <span className="font-bold mr-2 text-gray-900 text-sm">
                         {settings.brandName?.toLowerCase().replace(/\s/g, '_') || 'loja'}
                     </span>
                     {description}

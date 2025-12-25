@@ -13,7 +13,7 @@ export const DeliveryForm: React.FC<SettingsFormProps> = ({ settings, onChange }
             {/* Delivery Radius Map Visualization */}
             {apiKey && mapsEnabled && settings.address ? (
                 <div className={cardClass}>
-                    <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+                    <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                         <MapPin size={18} /> Visualização do Raio de Entrega
                     </h4>
                     <DeliveryRadiusMap
@@ -25,15 +25,15 @@ export const DeliveryForm: React.FC<SettingsFormProps> = ({ settings, onChange }
                     />
                 </div>
             ) : (
-                <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-xl p-4">
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
                     <div className="flex items-start gap-3">
                         <MapPin className="text-summo-primary flex-shrink-0 mt-0.5" size={20} />
                         <div>
-                            <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm">Mapa de Raio de Entrega Indisponível</h4>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                            <h4 className="font-bold text-slate-800 text-sm">Mapa de Raio de Entrega Indisponível</h4>
+                            <p className="text-xs text-slate-600 mt-1">
                                 Para visualizar o mapa interativo, você precisa:
                             </p>
-                            <ul className="text-xs text-slate-600 dark:text-slate-400 mt-2 space-y-1 list-disc list-inside">
+                            <ul className="text-xs text-slate-600 mt-2 space-y-1 list-disc list-inside">
                                 {!apiKey && <li>Configurar a <b>API Key do Google</b> em Integrações</li>}
                                 {!mapsEnabled && <li>Habilitar <b>Google Maps API</b> em Integrações</li>}
                                 {!settings.address && <li>Preencher o <b>Endereço da Loja</b> em Dados da Empresa</li>}
@@ -45,7 +45,7 @@ export const DeliveryForm: React.FC<SettingsFormProps> = ({ settings, onChange }
 
             {/* Delivery Settings */}
             <div className={cardClass}>
-                <h4 className="font-bold text-slate-800 dark:text-slate-100 italic">Regras de Logística e Entrega</h4>
+                <h4 className="font-bold text-slate-800 italic">Regras de Logística e Entrega</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className={labelClass}>Taxa Base (R$)</label>

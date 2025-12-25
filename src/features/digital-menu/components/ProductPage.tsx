@@ -89,7 +89,7 @@ const ProductPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex justify-center">
+        <div className="min-h-screen bg-gray-50 flex justify-center">
             <Helmet>
                 <title>{seoTitle} | {settings.brandName}</title>
                 <meta name="description" content={seoDescription} />
@@ -102,7 +102,7 @@ const ProductPage: React.FC = () => {
                 </script>
             </Helmet>
 
-            <div className="w-full max-w-lg bg-white dark:bg-gray-900 shadow-xl min-h-screen flex flex-col relative">
+            <div className="w-full max-w-lg bg-white shadow-xl min-h-screen flex flex-col relative">
                 <ProductDetailView
                     product={product}
                     onAddToCart={handleAddToCart}

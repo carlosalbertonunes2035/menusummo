@@ -115,13 +115,13 @@ export const PrinterForm: React.FC<SettingsFormProps> = ({ settings, onChange })
     return (
         <div className="space-y-6 animate-fade-in pb-20">
             {/* Agent Status Banner */}
-            <div className={`p-4 rounded-xl border flex flex-col md:flex-row items-center justify-between gap-4 transition-all ${agentStatus === 'ONLINE' ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800'}`}>
+            <div className={`p-4 rounded-xl border flex flex-col md:flex-row items-center justify-between gap-4 transition-all ${agentStatus === 'ONLINE' ? 'bg-emerald-50 border-emerald-200' : 'bg-orange-50 border-orange-200'}`}>
                 <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-full ${agentStatus === 'ONLINE' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-orange-500 text-white animate-pulse shadow-lg shadow-orange-500/20'}`}>
                         {agentStatus === 'ONLINE' ? <Wifi size={20} /> : <WifiOff size={20} />}
                     </div>
                     <div>
-                        <h4 className={`font-bold text-sm ${agentStatus === 'ONLINE' ? 'text-emerald-800 dark:text-emerald-300' : 'text-orange-800 dark:text-orange-300'}`}>
+                        <h4 className={`font-bold text-sm ${agentStatus === 'ONLINE' ? 'text-emerald-800' : 'text-orange-800'}`}>
                             {agentStatus === 'ONLINE' ? 'Agente SUMMO Conectado' : 'Agente SUMMO não detectado'}
                         </h4>
                         <div className="flex flex-col gap-1">
@@ -161,14 +161,14 @@ export const PrinterForm: React.FC<SettingsFormProps> = ({ settings, onChange })
             {/* Printers List */}
             <div className="space-y-4">
                 <div className="flex justify-between items-center px-1">
-                    <h3 className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2"><Printer size={20} /> Impressoras Cadastradas</h3>
+                    <h3 className="font-bold text-slate-700 flex items-center gap-2"><Printer size={20} /> Impressoras Cadastradas</h3>
                     <button onClick={handleAddPrinter} className="flex items-center gap-2 text-sm font-bold bg-summo-primary text-white px-3 py-1.5 rounded-lg hover:bg-summo-dark transition shadow-sm">
                         <Plus size={16} /> Adicionar
                     </button>
                 </div>
 
                 {(!settings.printer.devices || settings.printer.devices.length === 0) ? (
-                    <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                    <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200">
                         <Printer className="mx-auto text-slate-300 mb-2" size={48} />
                         <p className="text-slate-500 text-sm font-medium">Nenhuma impressora configurada.</p>
                         <button onClick={handleAddPrinter} className="mt-4 text-summo-primary font-bold text-sm">Clique para adicionar a primeira</button>
@@ -176,15 +176,15 @@ export const PrinterForm: React.FC<SettingsFormProps> = ({ settings, onChange })
                 ) : (
                     <div className="grid grid-cols-1 gap-6">
                         {settings.printer.devices.map((device: PrinterDevice, idx: number) => (
-                            <div key={device.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col group">
-                                <div className="p-4 bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                            <div key={device.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group">
+                                <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center font-bold text-summo-primary shadow-sm">{idx + 1}</div>
+                                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center font-bold text-summo-primary shadow-sm">{idx + 1}</div>
                                         <input
                                             type="text"
                                             value={device.name}
                                             onChange={(e) => updatePrinter(device.id, 'name', e.target.value)}
-                                            className="bg-transparent font-bold text-slate-800 dark:text-slate-100 outline-none border-b border-transparent focus:border-summo-primary pr-2"
+                                            className="bg-transparent font-bold text-slate-800 outline-none border-b border-transparent focus:border-summo-primary pr-2"
                                             placeholder="Ex: Cozinha"
                                         />
                                     </div>
@@ -192,7 +192,7 @@ export const PrinterForm: React.FC<SettingsFormProps> = ({ settings, onChange })
                                         <button onClick={() => handleTestPrint(device)} className="p-2 text-slate-400 hover:text-summo-primary transition" title="Teste de Impressão">
                                             <Zap size={16} />
                                         </button>
-                                        <button onClick={() => handleRemovePrinter(device.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition opacity-0 group-hover:opacity-100">
+                                        <button onClick={() => handleRemovePrinter(device.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50:bg-red-900/20 rounded-lg transition opacity-0 group-hover:opacity-100">
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
@@ -244,23 +244,23 @@ export const PrinterForm: React.FC<SettingsFormProps> = ({ settings, onChange })
                                         <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Estilo</h5>
                                         <div>
                                             <label className={labelClass}>Fonte</label>
-                                            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                                            <div className="flex bg-slate-100 p-1 rounded-xl">
                                                 {['NORMAL', 'LARGE'].map(size => (
                                                     <button
                                                         key={size}
                                                         onClick={() => updatePrinter(device.id, 'fontSize', size)}
-                                                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition ${device.fontSize === size ? 'bg-white dark:bg-slate-700 text-summo-primary shadow-sm' : 'text-slate-500'}`}
+                                                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition ${device.fontSize === size ? 'bg-white text-summo-primary shadow-sm' : 'text-slate-500'}`}
                                                     >
                                                         {size}
                                                     </button>
                                                 ))}
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
                                             <span className="text-[10px] font-bold text-slate-500 uppercase">Auto-Imprimir</span>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" checked={device.autoPrint} onChange={(e) => updatePrinter(device.id, 'autoPrint', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-8 h-4 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                                                <div className="w-8 h-4 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
                                             </label>
                                         </div>
                                     </div>
@@ -277,7 +277,7 @@ export const PrinterForm: React.FC<SettingsFormProps> = ({ settings, onChange })
                                                         onClick={() => toggleCategory(device.id, cat)}
                                                         className={`px-2 py-1 rounded-md text-[10px] font-bold transition border ${device.categoryIds?.includes(cat)
                                                             ? 'bg-summo-primary/10 text-summo-primary border-summo-primary/20'
-                                                            : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-700'}`}
+                                                            : 'bg-white text-slate-400 border-slate-200'}`}
                                                     >
                                                         {cat}
                                                     </button>
@@ -285,7 +285,7 @@ export const PrinterForm: React.FC<SettingsFormProps> = ({ settings, onChange })
                                             )}
                                         </div>
                                         {(!device.categoryIds || device.categoryIds.length === 0) && (
-                                            <div className="flex items-center gap-1 text-[9px] text-orange-600 bg-orange-50 dark:bg-orange-900/20 p-2 rounded-lg border border-orange-100 dark:border-orange-800/50">
+                                            <div className="flex items-center gap-1 text-[9px] text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-100">
                                                 <AlertTriangle size={10} />
                                                 Imprimir tudo (Geral)
                                             </div>

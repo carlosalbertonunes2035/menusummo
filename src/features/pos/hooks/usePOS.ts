@@ -172,7 +172,7 @@ export const usePOS = () => {
 
     const deliveryFee = useMemo(() => {
         if (orderType !== OrderType.DELIVERY) return 0;
-        if (settings && cartTotal >= settings.delivery.freeShippingThreshold) return 0;
+        if (settings?.delivery && cartTotal >= settings.delivery.freeShippingThreshold) return 0;
         return calculatedFee;
     }, [orderType, cartTotal, settings, calculatedFee]);
 

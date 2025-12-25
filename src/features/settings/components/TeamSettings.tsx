@@ -52,37 +52,52 @@ export const TeamSettings: React.FC = () => {
 
     // Modals
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+    const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
     const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
     const [isMasterProfileOpen, setIsMasterProfileOpen] = useState(false);
 
     // Editing State
     const [editingRole, setEditingRole] = useState<Role | null>(null);
+    const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
 
     // Forms
     const [inviteForm, setInviteForm] = useState({ name: '', email: '', roleId: 'MANAGER' });
+    const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', roleId: '' });
     const [roleForm, setRoleForm] = useState<Partial<Role>>({
         name: '', description: '', permissions: []
     });
 
+    // STABILIZE FETCHING: Dependency on ID, not object
     useEffect(() => {
         if (systemUser?.tenantId) {
             fetchData();
         } else {
-            console.warn('[TeamSettings] Aguardando systemUser com tenantId...');
             setLoading(false);
         }
-    }, [systemUser]);
+    }, [systemUser?.id, systemUser?.tenantId]);
 
     const fetchData = async () => {
         try {
             setLoading(true);
-            if (!systemUser?.tenantId) return;
+            if (!systemUser?.tenantId) {
+                console.warn('[TeamSettings] Attempted fetchData without tenantId');
+                return;
+            }
+
+            console.log('[TeamSettings] Fetching team for tenant:', systemUser.tenantId);
 
             // Fetch Team Members from system_users collection
             const systemUsersRef = collection(db, 'system_users');
             const systemUsersQuery = query(systemUsersRef, where('tenantId', '==', systemUser.tenantId));
             const systemUsersSnap = await getDocs(systemUsersQuery);
-            const systemUsersData = systemUsersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as SystemUser));
+
+            // USE A MAP TO AVOID DUPLICATES IN STATE (Fixes warning)
+            const userMap = new Map();
+            systemUsersSnap.docs.forEach(doc => {
+                const data = doc.data();
+                userMap.set(doc.id, { id: doc.id, ...data } as SystemUser);
+            });
+            const systemUsersData = Array.from(userMap.values());
 
             // Fetch Custom Roles
             const rolesRef = collection(db, `tenants/${systemUser.tenantId}/roles`);
@@ -100,10 +115,14 @@ export const TeamSettings: React.FC = () => {
             }));
 
             setUsers(enrichedUsers);
+            console.log(`[TeamSettings] Loaded ${enrichedUsers.length} users`);
 
-        } catch (error) {
-            console.error("Error fetching team:", error);
-            showToast('Erro ao carregar equipe', 'error');
+        } catch (error: any) {
+            console.error("Error fetching team details:", error);
+            if (error.code === 'permission-denied') {
+                console.warn('[TeamSettings] Permission denied. Possible propagation delay or rule issue.');
+            }
+            showToast('Erro ao carregar equipe. Verifique permissões.', 'error');
         } finally {
             setLoading(false);
         }
@@ -205,7 +224,10 @@ export const TeamSettings: React.FC = () => {
                 profileImage: `https://ui-avatars.com/api/?name=${inviteForm.name}&background=random`
             };
 
-            await setDoc(doc(db, 'system_users', newUser.id), newUser);
+            await setDoc(doc(db, 'system_users', newUser.id), {
+                ...newUser,
+                createdAt: new Date().toISOString()
+            });
             setUsers(prev => [...prev, newUser]);
             setIsUserModalOpen(false);
             setInviteForm({ name: '', email: '', roleId: '' });
@@ -217,7 +239,57 @@ export const TeamSettings: React.FC = () => {
         }
     };
 
+    const handleOpenEditUserModal = (user: SystemUser) => {
+        setEditingUser(user);
+        setEditForm({
+            name: user.name || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            roleId: user.roleId || ''
+        });
+        setIsEditUserModalOpen(true);
+    };
+
+    const handleUpdateUser = async () => {
+        if (!editingUser || !systemUser?.tenantId) return;
+
+        try {
+            const selectedRole = allRoles.find(r => r.id === editForm.roleId);
+
+            const updatedData = {
+                name: editForm.name,
+                email: editForm.email,
+                phone: editForm.phone,
+                roleId: editForm.roleId,
+                permissions: selectedRole?.permissions || editingUser.permissions,
+                updatedAt: new Date().toISOString()
+            };
+
+            const userRef = doc(db, 'system_users', editingUser.id);
+            await updateDoc(userRef, updatedData);
+
+            // Also update core users collection if editing self
+            if (editingUser.id === user?.uid) {
+                await updateDoc(doc(db, 'users', editingUser.id), {
+                    name: editForm.name,
+                    roleId: editForm.roleId
+                });
+            }
+
+            showToast('Dados do membro atualizados!', 'success');
+            setIsEditUserModalOpen(false);
+            fetchData();
+        } catch (error) {
+            console.error("Error updating user:", error);
+            showToast('Erro ao atualizar membro', 'error');
+        }
+    };
+
     const handleDeleteUser = async (userId: string) => {
+        if (userId === user?.uid) {
+            showToast('Você não pode excluir seu próprio perfil!', 'error');
+            return;
+        }
         if (!window.confirm("Remover este usuário da equipe?")) return;
         try {
             await deleteDoc(doc(db, 'system_users', userId));
@@ -270,7 +342,7 @@ export const TeamSettings: React.FC = () => {
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                                 <h3 className="font-bold text-gray-700 flex items-center gap-2"><Users size={20} /> Colaboradores ({users.length})</h3>
-                                <button onClick={() => setIsUserModalOpen(true)} className="px-4 py-2 bg-gray-900 text-white rounded-lg font-bold text-sm hover:bg-black transition flex items-center gap-2 shadow-lg shadow-gray-200">
+                                <button onClick={() => setIsUserModalOpen(true)} className="px-4 py-2 bg-orange-600 text-white rounded-lg font-bold text-sm hover:bg-orange-700 transition flex items-center gap-2 shadow-lg shadow-orange-200">
                                     <Plus size={16} /> Adicionar Membro
                                 </button>
                             </div>
@@ -289,20 +361,31 @@ export const TeamSettings: React.FC = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-50">
-                                            {users.map(u => (
-                                                <tr key={u.id} className="group hover:bg-gray-50 transition-colors">
+                                            {users.map((u, index) => (
+                                                <tr key={`${u.id}-${index}`} className="group hover:bg-gray-50 transition-colors">
                                                     <td className="py-4 px-6">
                                                         <div className="flex items-center gap-3">
-                                                            <img src={u.profileImage || `https://ui-avatars.com/api/?name=${u.name}`} className="w-10 h-10 rounded-full border border-gray-200" alt="" />
+                                                            <div className="relative">
+                                                                <img src={u.profileImage || `https://ui-avatars.com/api/?name=${u.name}`} className="w-10 h-10 rounded-full border border-gray-200" alt="" />
+                                                                <button
+                                                                    onClick={() => handleOpenEditUserModal(u)}
+                                                                    className="absolute -bottom-1 -right-1 p-1 bg-white border border-gray-200 rounded-full shadow-sm text-gray-500 hover:text-summo-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                >
+                                                                    <Edit size={10} />
+                                                                </button>
+                                                            </div>
                                                             <div>
-                                                                <div className="font-bold text-gray-800">{u.name}</div>
+                                                                <div className="font-bold text-gray-800 flex items-center gap-2">
+                                                                    {u.name}
+                                                                    {u.id === user?.uid && <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 rounded uppercase font-bold">Você</span>}
+                                                                </div>
                                                                 <div className="text-xs text-gray-500">{u.email}</div>
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="py-4 px-6">
                                                         <div className="flex items-center gap-2">
-                                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${u.role?.id === 'OWNER' ? 'bg-purple-50 text-purple-700 border-purple-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${u.role?.id === 'OWNER' ? 'bg-orange-50 text-orange-700 border-orange-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                                                                 {u.role?.id === 'OWNER' && <Shield size={10} />}
                                                                 {u.role?.name || 'Sem cargo'}
                                                             </span>
@@ -319,23 +402,27 @@ export const TeamSettings: React.FC = () => {
                                                         </span>
                                                     </td>
                                                     <td className="py-4 px-6 text-right">
-                                                        {u.isMasterUser && (
+                                                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <button
-                                                                onClick={() => setIsMasterProfileOpen(true)}
-                                                                className="p-2 text-summo-primary hover:bg-summo-primary/10 rounded-lg transition"
-                                                                title="Editar meu perfil"
+                                                                onClick={() => handleOpenEditUserModal(u)}
+                                                                className="p-2 text-gray-400 hover:text-summo-primary hover:bg-white rounded-lg transition border border-transparent hover:border-gray-200"
+                                                                title="Editar membro"
                                                             >
                                                                 <Edit size={18} />
                                                             </button>
-                                                        )}
-                                                        {u.role?.id !== 'OWNER' && !u.isMasterUser && (
-                                                            <button onClick={() => handleDeleteUser(u.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
-                                                                <Trash2 size={18} />
-                                                            </button>
-                                                        )}
-                                                        {(u.role?.id === 'OWNER' || u.isMasterUser) && !u.isMasterUser && (
-                                                            <span className="text-xs text-gray-400 italic">Protegido</span>
-                                                        )}
+                                                            {u.role?.id !== 'OWNER' && !u.isMasterUser && (
+                                                                <button
+                                                                    onClick={() => handleDeleteUser(u.id)}
+                                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                                                                    title="Remover da equipe"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            )}
+                                                            {(u.role?.id === 'OWNER' || u.isMasterUser) && !u.isMasterUser && u.id !== user?.uid && (
+                                                                <span className="p-2 text-xs text-gray-400 italic flex items-center"><Lock size={14} className="mr-1" /> Protegido</span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -351,7 +438,7 @@ export const TeamSettings: React.FC = () => {
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                                 <h3 className="font-bold text-gray-700 flex items-center gap-2"><Shield size={20} /> Cargos Personalizados ({customRoles.length})</h3>
-                                <button onClick={() => handleOpenRoleModal()} className="px-4 py-2 bg-gray-900 text-white rounded-lg font-bold text-sm hover:bg-black transition flex items-center gap-2 shadow-lg shadow-gray-200">
+                                <button onClick={() => handleOpenRoleModal()} className="px-4 py-2 bg-orange-600 text-white rounded-lg font-bold text-sm hover:bg-orange-700 transition flex items-center gap-2 shadow-lg shadow-orange-200">
                                     <Plus size={16} /> Criar Cargo
                                 </button>
                             </div>
@@ -363,7 +450,7 @@ export const TeamSettings: React.FC = () => {
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <h4 className="font-bold text-gray-800 text-lg">{role.name}</h4>
-                                                    {role.id === 'OWNER' && <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold border border-purple-200">Sistema</span>}
+                                                    {role.id === 'OWNER' && <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded font-bold border border-orange-200">Sistema</span>}
                                                     {role.isSystem && role.id !== 'OWNER' && <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded font-bold">Padrão</span>}
                                                 </div>
                                                 <p className="text-sm text-gray-500 mt-1">{role.description}</p>
@@ -390,7 +477,7 @@ export const TeamSettings: React.FC = () => {
                                                 <span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded text-gray-500">+{role.permissions.length - 5}</span>
                                             )}
                                             {role.permissions.includes('*') && (
-                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-100 border border-purple-200 px-2 py-1 rounded text-purple-600">Acesso Total</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-orange-100 border border-orange-200 px-2 py-1 rounded text-orange-600">Acesso Total</span>
                                             )}
                                         </div>
                                     </div>
@@ -431,9 +518,55 @@ export const TeamSettings: React.FC = () => {
                                     <button
                                         onClick={handleInviteUser}
                                         disabled={!inviteForm.name || !inviteForm.email || !inviteForm.roleId}
-                                        className="w-full py-4 bg-gray-900 text-white font-bold rounded-xl shadow-lg mt-4 hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                        className="w-full py-4 bg-orange-600 text-white font-bold rounded-xl shadow-lg mt-4 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                     >
                                         Adicionar à Equipe
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* --- MODAL: EDIT USER --- */}
+                    {isEditUserModalOpen && editingUser && (
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+                            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 relative animate-scale-in">
+                                <button onClick={() => setIsEditUserModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><XCircle size={24} /></button>
+                                <h3 className="text-xl font-bold text-gray-900 mb-6">Editar Membro</h3>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome</label>
+                                        <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 font-medium focus:ring-2 focus:ring-summo-primary outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
+                                        <input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 font-medium focus:ring-2 focus:ring-summo-primary outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Telefone</label>
+                                        <input type="text" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 font-medium focus:ring-2 focus:ring-summo-primary outline-none" placeholder="(00) 00000-0000" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cargo</label>
+                                        <select
+                                            value={editForm.roleId}
+                                            onChange={e => setEditForm({ ...editForm, roleId: e.target.value })}
+                                            className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 font-medium focus:ring-2 focus:ring-summo-primary outline-none"
+                                            disabled={editingUser.roleId === 'OWNER'}
+                                        >
+                                            {allRoles.map((r: Role) => (
+                                                <option key={r.id} value={r.id}>{r.name}</option>
+                                            ))}
+                                        </select>
+                                        {editingUser.roleId === 'OWNER' && <p className="text-[10px] text-gray-400 mt-1 italic">* Cargos de Proprietário não podem ser alterados.</p>}
+                                    </div>
+
+                                    <button
+                                        onClick={handleUpdateUser}
+                                        className="w-full py-4 bg-orange-600 text-white font-bold rounded-xl shadow-lg mt-4 hover:bg-orange-700 transition-all"
+                                    >
+                                        Salvar Alterações
                                     </button>
                                 </div>
                             </div>
@@ -443,9 +576,9 @@ export const TeamSettings: React.FC = () => {
                     {/* --- MODAL: CREATE/EDIT ROLE --- */}
                     {isRoleModalOpen && (
                         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-                            <div className="bg-white dark:bg-summo-dark rounded-2xl w-full max-w-5xl shadow-2xl p-0 relative animate-scale-in flex flex-col max-h-[90vh]">
-                                <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
-                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">{editingRole ? 'Editar Cargo' : 'Criar Novo Cargo'}</h3>
+                            <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl p-0 relative animate-scale-in flex flex-col max-h-[90vh]">
+                                <div className="p-6 border-b border-gray-100800 flex justify-between items-center bg-gray-50900/50">
+                                    <h3 className="text-xl font-bold text-gray-900">{editingRole ? 'Editar Cargo' : 'Criar Novo Cargo'}</h3>
                                     <button onClick={() => setIsRoleModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                                         <XCircle size={24} />
                                     </button>
@@ -455,11 +588,11 @@ export const TeamSettings: React.FC = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Cargo</label>
-                                            <input type="text" value={roleForm.name} onChange={e => setRoleForm({ ...roleForm, name: e.target.value })} className="w-full p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 font-bold focus:ring-2 focus:ring-summo-primary outline-none" placeholder="Ex: Supervisor de Loja" />
+                                            <input type="text" value={roleForm.name} onChange={e => setRoleForm({ ...roleForm, name: e.target.value })} className="w-full p-3 bg-gray-50900 rounded-xl border border-gray-200700 font-bold focus:ring-2 focus:ring-summo-primary outline-none" placeholder="Ex: Supervisor de Loja" />
                                         </div>
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição</label>
-                                            <input type="text" value={roleForm.description} onChange={e => setRoleForm({ ...roleForm, description: e.target.value })} className="w-full p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 font-medium focus:ring-2 focus:ring-summo-primary outline-none" placeholder="Breve descrição das responsabilidades" />
+                                            <input type="text" value={roleForm.description} onChange={e => setRoleForm({ ...roleForm, description: e.target.value })} className="w-full p-3 bg-gray-50900 rounded-xl border border-gray-200700 font-medium focus:ring-2 focus:ring-summo-primary outline-none" placeholder="Breve descrição das responsabilidades" />
                                         </div>
                                     </div>
 
@@ -471,8 +604,8 @@ export const TeamSettings: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 flex justify-end gap-3 rounded-b-2xl">
-                                    <button onClick={() => setIsRoleModalOpen(false)} className="px-6 py-3 font-bold text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 transition">Cancelar</button>
+                                <div className="p-6 border-t border-gray-100800 bg-gray-50900/50 flex justify-end gap-3 rounded-b-2xl">
+                                    <button onClick={() => setIsRoleModalOpen(false)} className="px-6 py-3 font-bold text-gray-500 hover:text-gray-800:text-gray-300 transition">Cancelar</button>
                                     <button onClick={handleSaveRole} disabled={!roleForm.name} className="px-8 py-3 bg-summo-primary text-white font-bold rounded-xl shadow-lg hover:bg-orange-600 disabled:opacity-50 transition-all">Salvar Cargo</button>
                                 </div>
                             </div>

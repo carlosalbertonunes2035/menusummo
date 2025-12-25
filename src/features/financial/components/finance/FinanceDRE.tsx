@@ -76,7 +76,7 @@ const FinanceDRE: React.FC<FinanceDREProps> = ({ revenue, cmv, expenses, netProf
                     <p className="text-xs font-bold text-gray-400 uppercase mb-2">Resumo Contábil</p>
                     <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                            <span className="text-sm font-bold text-gray-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500"></div> Receita</span>
+                            <span className="text-sm font-bold text-gray-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-orange-500"></div> Receita</span>
                             <span className="font-mono font-bold text-gray-800">R$ {revenue.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between items-center">

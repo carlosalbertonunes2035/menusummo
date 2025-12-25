@@ -8,7 +8,7 @@ import { z } from 'zod';
 /**
  * Recursively converts Firestore Timestamps to JavaScript Dates
  */
-const convertTimestamps = (data: any): any => {
+const convertTimestamps = (data: unknown): any => {
     if (data === null || data === undefined) return data;
 
     // Handle Firestore Timestamp
@@ -23,9 +23,10 @@ const convertTimestamps = (data: any): any => {
 
     // Handle Objects
     if (typeof data === 'object') {
-        const converted: any = {};
+        const converted: Record<string, any> = {};
         for (const key in data) {
-            converted[key] = convertTimestamps(data[key]);
+            // @ts-ignore - we know it's an object key iteration
+            converted[key] = convertTimestamps((data as Record<string, unknown>)[key]);
         }
         return converted;
     }
@@ -36,7 +37,7 @@ const convertTimestamps = (data: any): any => {
 /**
  * Query Cache System
  */
-const queryCache = new Map<string, { data: any; timestamp: number }>();
+const queryCache = new Map<string, { data: unknown; timestamp: number }>();
 const DEFAULT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export const getCachedQuery = <T>(key: string, ttl: number = DEFAULT_CACHE_TTL): T[] | null => {
@@ -120,7 +121,7 @@ export const useFirestoreCollection = <T>(
             if (cached) {
                 setData(cached);
                 setLoading(false);
-                return;
+                // Do NOT return here. We still want to listen for live updates
             }
         }
 

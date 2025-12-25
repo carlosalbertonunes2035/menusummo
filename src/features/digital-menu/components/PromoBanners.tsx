@@ -42,7 +42,7 @@ const PromoBanners: React.FC<PromoBannersProps> = ({ banners, rotationSeconds, f
                 style={{ scrollPaddingLeft: '1rem', scrollPaddingRight: '1rem' }}
             >
                 {activeBanners.map(banner => (
-                    <div key={banner.id} className="flex-shrink-0 w-[85vw] sm:w-[400px] snap-center bg-gray-100 dark:bg-gray-800 rounded-2xl overflow-hidden relative aspect-[2/1] text-white shadow-md transform transition-transform">
+                    <div key={banner.id} className="flex-shrink-0 w-[85vw] sm:w-[400px] snap-center bg-gray-100 rounded-2xl overflow-hidden relative aspect-[2/1] text-white shadow-md transform transition-transform">
                         <img
                             src={banner.imageUrl || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800&auto=format&fit=crop'}
                             className="w-full h-full object-cover"

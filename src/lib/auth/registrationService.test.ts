@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { registrationService } from './registrationService';
 import { auth, db } from '@/lib/firebase/client';
 import { createUserWithEmailAndPassword } from '@firebase/auth';
-import { runTransaction, getDocs } from '@firebase/firestore';
+import { runTransaction, getDocs, getDoc } from '@firebase/firestore';
 
 // Mock Firebase
 vi.mock('@/lib/firebase/client', () => ({
@@ -18,11 +18,11 @@ vi.mock('@firebase/auth', () => ({
 vi.mock('@firebase/firestore', () => ({
     doc: vi.fn(),
     setDoc: vi.fn(),
-    getDoc: vi.fn(),
+    getDoc: vi.fn().mockResolvedValue({ exists: () => false }), // Default: doc not found
     collection: vi.fn(),
     query: vi.fn(),
     where: vi.fn(),
-    getDocs: vi.fn(),
+    getDocs: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
     runTransaction: vi.fn(),
     serverTimestamp: vi.fn(() => new Date())
 }));
@@ -39,7 +39,7 @@ describe('registrationService - Enterprise Version', () => {
 
     describe('generateUniqueTenantId', () => {
         it('should generate slug from business name', async () => {
-            vi.mocked(getDocs).mockResolvedValue({ empty: true } as any);
+            vi.mocked(getDoc).mockResolvedValue({ exists: () => false } as any);
 
             const slug = await registrationService.generateUniqueTenantId('Hamburgueria do João');
 
@@ -47,7 +47,9 @@ describe('registrationService - Enterprise Version', () => {
         });
 
         it('should add suffix if slug already exists', async () => {
-            vi.mocked(getDocs).mockResolvedValue({ empty: false } as any);
+            vi.mocked(getDoc)
+                .mockResolvedValueOnce({ exists: () => true } as any) // First attempt exists
+                .mockResolvedValue({ exists: () => false } as any);   // Suffix attempt available
 
             const slug = await registrationService.generateUniqueTenantId('Test Store');
 
@@ -55,7 +57,7 @@ describe('registrationService - Enterprise Version', () => {
         });
 
         it('should handle empty business name', async () => {
-            vi.mocked(getDocs).mockResolvedValue({ empty: true } as any);
+            vi.mocked(getDoc).mockResolvedValue({ exists: () => false } as any);
 
             const slug = await registrationService.generateUniqueTenantId('');
 

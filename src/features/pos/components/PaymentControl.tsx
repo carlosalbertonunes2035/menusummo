@@ -29,7 +29,7 @@ const PaymentControl: React.FC<PaymentControlProps> = ({
     const paymentMethods = [
         { id: PaymentMethod.PIX, icon: Smartphone, label: 'Pix', color: 'text-teal-600 border-teal-200 bg-teal-50' },
         { id: PaymentMethod.DEBIT_CARD, icon: CreditCard, label: 'Débito', color: 'text-blue-600 border-blue-200 bg-blue-50' },
-        { id: PaymentMethod.CREDIT_CARD, icon: CreditCard, label: 'Crédito', color: 'text-indigo-600 border-indigo-200 bg-indigo-50' },
+        { id: PaymentMethod.CREDIT_CARD, icon: CreditCard, label: 'Crédito', color: 'text-orange-600 border-orange-200 bg-orange-50' },
         { id: PaymentMethod.MEAL_VOUCHER, icon: Ticket, label: 'Vale Ref.', color: 'text-orange-600 border-orange-200 bg-orange-50' },
     ];
 

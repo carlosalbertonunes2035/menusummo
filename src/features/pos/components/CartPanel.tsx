@@ -6,7 +6,8 @@ import {
     Navigation, Loader2, CheckCircle2, ShoppingBag, Utensils, Receipt, ArrowLeft, Phone, AlertTriangle
 } from 'lucide-react';
 import { useApp } from '../../../contexts/AppContext';
-import { calculateShippingFee } from '../../../services/geminiService';
+import { functions } from '@/lib/firebase/client';
+import { httpsCallable } from '@firebase/functions';
 import { useDebounce } from '../../../lib/hooks';
 import PaymentControl from './PaymentControl';
 import AddressAutocomplete from '../../../components/ui/AddressAutocomplete';
@@ -75,7 +76,13 @@ const CartPanel: React.FC<CartPanelProps> = ({
         if (settings) {
             setIsCalculatingFee(true);
             try {
-                const feeResult = await calculateShippingFee(settings.address, result.address, settings);
+                const calculateShippingFeeFn = httpsCallable(functions, 'calculateShippingFeeFn');
+                const { data } = await calculateShippingFeeFn({
+                    origin: settings.address,
+                    destination: result.address,
+                    settings
+                });
+                const feeResult = data as any;
                 setCalculatedFee(feeResult.fee);
                 setRouteInfo({ dist: feeResult.distance, dur: feeResult.duration });
             } catch (e) {

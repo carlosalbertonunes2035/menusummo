@@ -99,39 +99,47 @@ export const StockOverview: React.FC = () => {
                         <TrendingUp size={18} className="text-summo-primary" />
                         Distribuição Financeira por Categoria
                     </h4>
-                    <div className="h-80 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={categoryData} layout="vertical" margin={{ left: 40, right: 40 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                                <XAxis type="number" hide />
-                                <YAxis
-                                    dataKey="name"
-                                    type="category"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }}
-                                />
-                                <Tooltip
-                                    formatter={(value: any) => [formatCurrency(value as number), 'Valor']}
-                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                />
-                                <Bar
-                                    dataKey="value"
-                                    fill="#6366f1"
-                                    radius={[0, 10, 10, 0]}
-                                    barSize={24}
-                                >
-                                    {categoryData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div className="h-80 w-full flex items-center justify-center">
+                        {categoryData.length > 0 ? (
+                            <ResponsiveContainer width="99%" height="100%">
+                                <BarChart data={categoryData} layout="vertical" margin={{ left: 40, right: 40, top: 0, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                                    <XAxis type="number" hide />
+                                    <YAxis
+                                        dataKey="name"
+                                        type="category"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }}
+                                        width={100}
+                                    />
+                                    <Tooltip
+                                        formatter={(value: any) => [formatCurrency(value as number), 'Valor']}
+                                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                    />
+                                    <Bar
+                                        dataKey="value"
+                                        fill="#6366f1"
+                                        radius={[0, 10, 10, 0]}
+                                        barSize={24}
+                                    >
+                                        {categoryData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center text-gray-400 gap-2">
+                                <Sparkles size={32} className="opacity-20" />
+                                <p className="text-sm">Sem dados para exibir o gráfico.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* AI INSIGHTS CARD */}
-                <div className="bg-gray-900 rounded-3xl p-6 text-white relative overflow-hidden shadow-xl">
+                <div className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-3xl p-6 text-white relative overflow-hidden shadow-xl">
                     <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-summo-primary/20 rounded-full blur-3xl"></div>
 
                     <div className="relative z-10 h-full flex flex-col">

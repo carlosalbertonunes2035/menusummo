@@ -20,7 +20,7 @@ const OptionGroupManager: React.FC<OptionGroupManagerProps> = ({ isOpen, onClose
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredGroups = useMemo(() =>
-        (optionGroups || []).filter(g => g.title.toLowerCase().includes(searchTerm.toLowerCase())),
+        (optionGroups || []).filter(g => String(g.title || '').toLowerCase().includes(searchTerm.toLowerCase())),
         [optionGroups, searchTerm]);
 
     const handleEdit = (group: OptionGroup) => setIsEditing(group);
@@ -107,7 +107,7 @@ const OptionGroupManager: React.FC<OptionGroupManagerProps> = ({ isOpen, onClose
                                 const isLinked = existingGroupIds.includes(group.id);
                                 return (
                                     <div key={group.id} className={`p-4 border rounded-xl flex justify-between items-center transition ${isLinked ? 'bg-green-50 border-green-200' : 'bg-white hover:border-gray-300'}`}>
-                                        <div><p className="font-bold text-gray-800">{group.title}</p><p className="text-xs text-gray-500 mt-1">{group.options.length} opções</p></div>
+                                        <div><p className="font-bold text-gray-800">{group.title}</p><p className="text-xs text-gray-500 mt-1">{group.options?.length || 0} opções</p></div>
                                         <div className="flex gap-2">
                                             <button onClick={() => handleEdit(group)} className="p-2 bg-white text-gray-500 rounded-lg border shadow-sm hover:text-summo-primary"><Edit3 size={14} /></button>
                                             <button onClick={() => handleDelete(group.id)} className="p-2 bg-white text-gray-500 rounded-lg border shadow-sm hover:text-red-500"><Trash2 size={14} /></button>

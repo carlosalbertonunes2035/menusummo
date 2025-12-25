@@ -48,15 +48,15 @@ export const SummoModal: React.FC<SummoModalProps> = ({
                 onClick={onClose}
             />
             <div className={`
-                relative bg-white dark:bg-gray-900 w-full rounded-2xl shadow-2xl 
+                relative bg-white w-full rounded-2xl shadow-2xl 
                 flex flex-col max-h-[90vh] animate-scale-in
                 ${sizeClasses[size]}
             `}>
-                <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
-                    {title ? <h3 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h3> : <div />}
+                <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                    {title ? <h3 className="text-xl font-bold text-gray-900">{title}</h3> : <div />}
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors"
+                        className="p-2 rounded-lg hover:bg-gray-100:bg-gray-800 text-gray-500 transition-colors"
                     >
                         <X size={20} />
                     </button>
@@ -67,7 +67,7 @@ export const SummoModal: React.FC<SummoModalProps> = ({
                 </div>
 
                 {footer && (
-                    <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl">
+                    <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
                         {footer}
                     </div>
                 )}

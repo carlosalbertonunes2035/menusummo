@@ -18,17 +18,36 @@ vi.mock('@/features/auth/context/AuthContext', () => ({
     useAuth: vi.fn()
 }));
 
-vi.mock('@/services/geminiService', () => ({
-    generateSeoContent: vi.fn(),
-    generateSocialMediaContent: vi.fn()
+vi.mock('@/hooks/useOrders', () => ({
+    useOrders: vi.fn(() => ({ data: [] }))
+}));
+
+vi.mock('@/lib/firebase/storageService', () => ({
+    storageService: {
+        uploadFile: vi.fn()
+    }
+}));
+
+vi.mock('@/services/slugService', () => ({
+    generateUniqueSlug: vi.fn()
 }));
 
 const mockSettings = {
     brandName: 'Pizzaria Original',
     logoUrl: '',
+    address: 'Rua Teste, 123',
     storefront: { slug: 'pizza-original' },
-    digitalMenu: { branding: { primaryColor: '#000000', backgroundColor: '#ffffff' }, layout: 'LIST' },
-    seo: { title: '', description: '', keywords: [] }
+    digitalMenu: {
+        branding: {
+            primaryColor: '#000000',
+            backgroundColor: '#ffffff',
+            promoBanners: [],
+            bannerRotationSeconds: 5
+        },
+        layout: 'LIST'
+    },
+    seo: { title: '', description: '', keywords: [] },
+    analytics: { googleAnalyticsId: '', metaPixelId: '' }
 };
 
 describe('Marketing Component', () => {

@@ -6,7 +6,8 @@ import { usePublicData } from '../../../contexts/PublicDataContext';
 import { useApp } from '../../../contexts/AppContext';
 import { useFirestoreCollection } from '../../../lib/firebase/hooks';
 import { getProductChannel } from '../../../lib/utils';
-import { calculateShippingFee } from '../../../services/geminiService';
+import { functions } from '@/lib/firebase/client';
+import { httpsCallable } from '@firebase/functions';
 import { useDigitalMenuContext } from '../context/DigitalMenuContext';
 import { RobotService } from '../../../services/robotService';
 
@@ -266,8 +267,50 @@ export const useDigitalMenu = () => {
     useEffect(() => {
         if (orderMode === OrderType.DELIVERY && user.address && userLocation) {
             const originStr = `${userLocation.lat},${userLocation.lng}`;
-            calculateShippingFee(originStr, user.address, settings).then(result => {
-                if (result && typeof result.fee === 'number') setCalculatedDeliveryFee(result.fee);
+            // NEW: Pass destination as coords if available so the Backend Script (Haversine) works
+            // If userLocation is the destination (User's device), we use it.
+            // Wait, originStr IS set to userLocation above?
+            // Re-reading logic: 
+            // - If Delivery: Store -> User.
+            // - Code says `originStr = userLocation`. This implies userLocation is the Origin? 
+            // - If userLocation comes from navigator.geolocation, that's the User.
+            // - So Origin = User? No, that's for "Distance to Store" (Maybe "Retirada"?).
+            // - For Delivery, Origin should be Store. Destination should be User.
+            // - Current code: origin=originStr, dest=user.address.
+            // - If `userLocation` is User GPS, then `originStr` is User GPS. This assumes we are calculating distance FROM User TO Store?
+            // - Let's swap/fix this logic for the Script. 
+            // - Store Location should be in `settings`. if settings.company.location exists.
+            // - Let's pass: origin="lat,lng" (Store), destination="lat,lng" (User).
+
+            // Fix: Store Location is Origin. User Location is Destination.
+            const storeLoc = settings.company?.location;
+            const originCoord = storeLoc ? `${storeLoc.lat},${storeLoc.lng}` : '';
+            // Fallback (if no store loc known, we cannot calc exact math): Just send empty or user loc and handle in backend?
+            // Actually, let's keep existing flow but ensure we pass coords for *both* ends if possible.
+
+            // To minimize breakage: The backend expects (Origin, Dest).
+            // Let's assume standard flow: Origin = Store, Dest = User.
+            // Previous code passed `originStr` as first arg. `originStr` was `userLocation`.
+            // So previous code calculated User -> ... something?
+            // `calculateShippingFee(originStr, user.address)`
+            // This is confusing. Usually shipping is Store -> User.
+            // If originStr (User GPS) was passed as Origin, then the destination (User Address Text) was passed as Destination.
+            // That means distance(User, UserAddress). That returns ~0. 
+            // Unless `geminiService` knew `originStr` was meant to be Store? No.
+
+            // Let's FIX IT properly:
+            // 1. Origin = Store Location (from settings)
+            // 2. Destination = User Location (from GPS `userLocation` variable)
+
+            const storeCoords = settings.company?.location ? `${settings.company.location.lat},${settings.company.location.lng}` : '';
+            const userCoords = `${userLocation.lat},${userLocation.lng}`;
+
+            // If we have both, we send both coords.
+            const validOrigin = storeCoords || originStr; // Fallback to whatever was there if store missing
+            const validDest = userCoords; // User GPS is precise
+
+            calculateShippingFeeFn({ origin: validOrigin, destination: validDest, settings }).then(({ data }: any) => {
+                if (data && typeof data.fee === 'number') setCalculatedDeliveryFee(data.fee);
             });
         }
     }, [orderMode, user.address, userLocation, settings]);
@@ -296,7 +339,7 @@ export const useDigitalMenu = () => {
         if (hasUpsell) {
             // 1. Identify Category
             const channel = getProductChannel(item.product, 'digital-menu');
-            const category = (channel.category || item.product.category).toLowerCase();
+            const category = (channel.category || item.product.category || '').toLowerCase();
 
             // 2. Define Rules
             let targetCategory = '';
@@ -306,7 +349,7 @@ export const useDigitalMenu = () => {
             if (category.includes('lanche') || category.includes('combo') || category.includes('burger')) {
                 // Check if user already has a drink
                 const hasDrink = cart.some(c => {
-                    const cCat = (getProductChannel(c.product, 'digital-menu').category || c.product.category).toLowerCase();
+                    const cCat = (getProductChannel(c.product, 'digital-menu').category || c.product.category || '').toLowerCase();
                     return cCat.includes('bebida') || cCat.includes('refrigerante');
                 });
 
@@ -327,9 +370,9 @@ export const useDigitalMenu = () => {
                 // Try to find specific term first
                 suggestedProduct = products.find(p => {
                     const pChan = getProductChannel(p, 'digital-menu');
-                    const pCat = (pChan.category || p.category).toLowerCase();
+                    const pCat = (pChan.category || p.category || '').toLowerCase();
                     return pCat.includes(targetCategory) &&
-                        p.name.toLowerCase().includes(targetTerm.toLowerCase()) &&
+                        (p.name || '').toLowerCase().includes(targetTerm.toLowerCase()) &&
                         pChan.isAvailable;
                 });
 
@@ -337,7 +380,7 @@ export const useDigitalMenu = () => {
                 if (!suggestedProduct) {
                     suggestedProduct = products.find(p => {
                         const pChan = getProductChannel(p, 'digital-menu');
-                        const pCat = (pChan.category || p.category).toLowerCase();
+                        const pCat = (pChan.category || p.category || '').toLowerCase();
                         return pCat.includes(targetCategory) && pChan.isAvailable;
                     });
                 }
@@ -348,7 +391,7 @@ export const useDigitalMenu = () => {
                 const suggestedTerm = RobotService.getRuleBasedUpsell(item.product.category);
                 if (suggestedTerm) {
                     suggestedProduct = products.find(p =>
-                        p.name.toLowerCase().includes(suggestedTerm.toLowerCase()) &&
+                        (p.name || '').toLowerCase().includes(suggestedTerm.toLowerCase()) &&
                         getProductChannel(p, 'digital-menu').isAvailable
                     );
                 }

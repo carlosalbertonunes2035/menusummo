@@ -20,11 +20,11 @@ const OptionGroupAccordion: React.FC<{
     const [isOpen, setIsOpen] = useState<boolean>(true);
 
     return (
-        <div className={`py-4 border-b border-gray-100 dark:border-gray-800 ${isUnmet ? 'bg-red-50/50 dark:bg-red-900/10 px-2 -mx-2 rounded-lg' : ''}`}>
+        <div className={`py-4 border-b border-gray-100800 ${isUnmet ? 'bg-red-50/50900/10 px-2 -mx-2 rounded-lg' : ''}`}>
             <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-start text-left">
                 <div className="flex-1 pr-4">
-                    <h4 className="font-bold text-base text-gray-800 dark:text-gray-200">{group.title}</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <h4 className="font-bold text-base text-gray-800200">{group.title}</h4>
+                    <p className="text-xs text-gray-500400 mt-1">
                         {group.type === 'SINGLE' ? 'Escolha 1 opção' : `Escolha até ${group.maxSelection || group.options.length}`}
                         {group.required && <span className="text-summo-primary font-bold ml-1">* Obrigatório</span>}
                     </p>
@@ -40,7 +40,7 @@ const OptionGroupAccordion: React.FC<{
                         return (
                             <div key={option.id} onClick={() => onSelect(option.id)} className="flex justify-between items-center cursor-pointer group active:scale-[0.98] transition-transform">
                                 <div className="flex-1 pr-4">
-                                    <span className={`text-sm font-medium block ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>{option.name}</span>
+                                    <span className={`text-sm font-medium block ${isSelected ? 'text-gray-900' : 'text-gray-600300'}`}>{option.name}</span>
                                     {option.price > 0 && <span className="text-sm text-gray-500 font-normal">+ R$ {option.price.toFixed(2)}</span>}
                                 </div>
                                 <div className="flex items-center">
@@ -172,7 +172,7 @@ const SingleProductDetailView: React.FC<ProductDetailViewProps> = ({ product, on
     };
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-gray-900">
+        <div className="flex flex-col h-full bg-white900">
             {/* Content Scrollable */}
             <div className="flex-1 overflow-y-auto custom-scrollbar pb-36 overscroll-contain relative">
                 {/* Back Button (Absolute) */}
@@ -194,22 +194,22 @@ const SingleProductDetailView: React.FC<ProductDetailViewProps> = ({ product, on
                 <div className="px-5 py-6">
                     {/* Header Info */}
                     <div className="mb-6">
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight mb-2">{channelConfig.displayName}</h2>
+                        <h2 className="text-2xl font-bold text-gray-900 leading-tight mb-2">{channelConfig.displayName}</h2>
                         <div className="flex items-end gap-2 mb-3">
-                            <span className="text-xl font-bold text-green-600 dark:text-green-400">R$ {basePrice.toFixed(2)}</span>
+                            <span className="text-xl font-bold text-green-600400">R$ {basePrice.toFixed(2)}</span>
                             {hasPromo && <span className="text-sm text-gray-400 line-through mb-1">R$ {originalPrice.toFixed(2)}</span>}
                         </div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">{channelConfig.description}</p>
+                        <p className="text-gray-600400 text-sm leading-relaxed">{channelConfig.description}</p>
                     </div>
 
                     {/* Divider */}
-                    <div className="h-2 bg-gray-50 dark:bg-gray-800 -mx-5 mb-6"></div>
+                    <div className="h-2 bg-gray-50800 -mx-5 mb-6"></div>
 
                     {/* Options */}
                     <div className="space-y-2">
                         {relevantOptionGroups.length > 0 && (
                             <div className="mb-4">
-                                <h3 className="font-bold text-gray-800 dark:text-gray-200">Escolha os complementos</h3>
+                                <h3 className="font-bold text-gray-800200">Escolha os complementos</h3>
                                 <p className="text-xs text-gray-500">Selecione as opções para o seu pedido.</p>
                             </div>
                         )}
@@ -227,14 +227,14 @@ const SingleProductDetailView: React.FC<ProductDetailViewProps> = ({ product, on
 
                     {/* Observations */}
                     <div className="mt-8">
-                        <h4 className="font-bold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
+                        <h4 className="font-bold text-gray-800200 mb-2 flex items-center gap-2">
                             Alguma observação? <span className="text-xs font-normal text-gray-400">(Opcional)</span>
                         </h4>
                         <textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder="Ex: Tirar a cebola, maionese à parte..."
-                            className="w-full p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-summo-primary outline-none resize-none"
+                            className="w-full p-3 bg-gray-50800 border border-gray-200700 rounded-xl text-sm focus:ring-2 focus:ring-summo-primary outline-none resize-none"
                             rows={3}
                         />
                     </div>
@@ -242,11 +242,11 @@ const SingleProductDetailView: React.FC<ProductDetailViewProps> = ({ product, on
             </div>
 
             {/* Bottom Action Bar */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-safe z-20">
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white900 border-t border-gray-100800 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-safe z-20">
                 <div className="flex flex-col gap-4 max-w-lg mx-auto">
 
                     {/* KIOSK STYLE COUNTER */}
-                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-2 rounded-2xl border border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center justify-between bg-gray-50800/50 p-2 rounded-2xl border border-gray-100700">
                         <button
                             onClick={() => {
                                 if (quantity > 1) {
@@ -254,12 +254,12 @@ const SingleProductDetailView: React.FC<ProductDetailViewProps> = ({ product, on
                                     if (navigator.vibrate) navigator.vibrate(10);
                                 }
                             }}
-                            className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all active:scale-95 ${quantity > 1 ? 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-300'}`}
+                            className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all active:scale-95 ${quantity > 1 ? 'bg-gray-200700 text-gray-600' : 'bg-gray-100800 text-gray-300'}`}
                         >
                             <Minus size={28} />
                         </button>
 
-                        <span className="text-4xl font-black text-gray-900 dark:text-white font-mono tracking-tighter">
+                        <span className="text-4xl font-black text-gray-900 font-mono tracking-tighter">
                             {quantity}
                         </span>
 

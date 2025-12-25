@@ -18,10 +18,10 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({ product, onAdd }) => 
     return (
         <div
             onClick={onAdd}
-            className="group bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col h-full"
+            className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col h-full"
         >
             {/* Image Container */}
-            <div className="aspect-square relative overflow-hidden bg-gray-50 dark:bg-gray-800">
+            <div className="aspect-square relative overflow-hidden bg-gray-50">
                 <img
                     src={getProductImage(product)}
                     alt={product.name}
@@ -44,7 +44,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({ product, onAdd }) => 
 
             {/* Info Container */}
             <div className="p-3 flex flex-col flex-1">
-                <h4 className="font-bold text-gray-800 dark:text-gray-100 text-sm line-clamp-2 mb-1">{product.name}</h4>
+                <h4 className="font-bold text-gray-800 text-sm line-clamp-2 mb-1">{product.name}</h4>
                 <div className="mt-auto">
                     {hasPromo && (
                         <span className="text-[10px] text-gray-400 line-through block">

@@ -89,9 +89,9 @@ export const PermissionBuilder: React.FC<PermissionBuilderProps> = ({
     return (
         <div className="space-y-6">
             {/* Header with Stats */}
-            <div className="bg-gradient-to-r from-summo-primary/10 to-orange-100 dark:from-summo-primary/20 dark:to-orange-900/20 rounded-2xl p-6 border border-summo-primary/20">
+            <div className="bg-gradient-to-r from-summo-primary/10 to-orange-100/20900/20 rounded-2xl p-6 border border-summo-primary/20">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                         <Shield className="text-summo-primary" size={24} />
                         Construtor de Permissões
                     </h3>
@@ -120,7 +120,7 @@ export const PermissionBuilder: React.FC<PermissionBuilderProps> = ({
 
             {/* Templates */}
             <div>
-                <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-gray-700300 mb-3 flex items-center gap-2">
                     <Sparkles size={16} className="text-summo-primary" />
                     Templates Rápidos
                 </h4>
@@ -131,11 +131,11 @@ export const PermissionBuilder: React.FC<PermissionBuilderProps> = ({
                             onClick={() => applyTemplate(key)}
                             className={`p-3 rounded-xl border-2 text-left transition-all ${selectedTemplate === key
                                     ? 'border-summo-primary bg-summo-primary/5'
-                                    : 'border-gray-200 dark:border-gray-700 hover:border-summo-primary/50'
+                                    : 'border-gray-200700 hover:border-summo-primary/50'
                                 }`}
                         >
-                            <div className="font-bold text-sm text-gray-900 dark:text-white">{template.name}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{template.description}</div>
+                            <div className="font-bold text-sm text-gray-900">{template.name}</div>
+                            <div className="text-xs text-gray-500400 mt-1">{template.description}</div>
                             <div className="text-xs text-summo-primary font-bold mt-2">
                                 {template.permissions.length} permissões
                             </div>
@@ -153,13 +153,13 @@ export const PermissionBuilder: React.FC<PermissionBuilderProps> = ({
                         placeholder="Buscar permissões..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-summo-primary outline-none"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300600 bg-white800 focus:ring-2 focus:ring-summo-primary outline-none"
                     />
                 </div>
                 <select
                     value={filterRisk || ''}
                     onChange={(e) => setFilterRisk(e.target.value || null)}
-                    className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-summo-primary outline-none"
+                    className="px-4 py-2.5 rounded-xl border border-gray-300600 bg-white800 focus:ring-2 focus:ring-summo-primary outline-none"
                 >
                     <option value="">Todos os Níveis</option>
                     <option value="low">Baixo Risco</option>
@@ -177,16 +177,16 @@ export const PermissionBuilder: React.FC<PermissionBuilderProps> = ({
                     const allSelected = selectedInGroup === groupPermissions.length;
 
                     return (
-                        <div key={group.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div key={group.id} className="bg-white800 rounded-xl border border-gray-200700 overflow-hidden">
                             {/* Group Header */}
-                            <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                            <div className="p-4 bg-gray-50900/50 border-b border-gray-200700">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <h5 className="font-bold text-gray-900 dark:text-white">{group.label}</h5>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{group.description}</p>
+                                        <h5 className="font-bold text-gray-900">{group.label}</h5>
+                                        <p className="text-xs text-gray-500400 mt-1">{group.description}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        <span className="text-xs text-gray-500400">
                                             {selectedInGroup}/{groupPermissions.length}
                                         </span>
                                         <button
@@ -211,12 +211,12 @@ export const PermissionBuilder: React.FC<PermissionBuilderProps> = ({
                                             key={permission.id}
                                             className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${isSelected
                                                     ? 'border-summo-primary bg-summo-primary/5'
-                                                    : 'border-gray-200 dark:border-gray-700 hover:border-summo-primary/30'
+                                                    : 'border-gray-200700 hover:border-summo-primary/30'
                                                 }`}
                                         >
                                             <div className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isSelected
                                                     ? 'bg-summo-primary border-summo-primary'
-                                                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'
+                                                    : 'bg-white800 border-gray-300600'
                                                 }`}>
                                                 {isSelected && <Check size={14} className="text-white" />}
                                             </div>
@@ -227,11 +227,11 @@ export const PermissionBuilder: React.FC<PermissionBuilderProps> = ({
                                                 className="hidden"
                                             />
                                             <div className="flex-1 min-w-0">
-                                                <div className="font-medium text-sm text-gray-900 dark:text-white">
+                                                <div className="font-medium text-sm text-gray-900">
                                                     {permission.label}
                                                 </div>
                                                 <div className="flex items-center gap-2 mt-1">
-                                                    <code className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400">
+                                                    <code className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100900 text-gray-600400">
                                                         {permission.id}
                                                     </code>
                                                     {permission.risk && (

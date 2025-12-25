@@ -2,7 +2,8 @@ import React from 'react';
 import { Product } from '@/types';
 import { ImageIcon, Loader2, Plus, Trash2, Wand2, X } from 'lucide-react';
 import { useImageUpload } from '../../../hooks/useImageUpload';
-import { generateProductImage } from '@/services/geminiService';
+import { functions } from '@/lib/firebase/client';
+import { httpsCallable } from '@firebase/functions';
 
 interface ProductImageManagerProps {
     product: Product;
@@ -89,7 +90,9 @@ export const ProductImageManager: React.FC<ProductImageManagerProps> = ({
 
         setIsGeneratingAI(true);
         try {
-            const imgBase64 = await generateProductImage(productName);
+            const generateImageFn = httpsCallable(functions, 'generateImage');
+            const { data } = await generateImageFn({ productName });
+            const imgBase64 = data as string;
             if (imgBase64) {
                 const res = await fetch(imgBase64);
                 const blob = await res.blob();
@@ -184,7 +187,7 @@ export const ProductImageManager: React.FC<ProductImageManagerProps> = ({
             <button
                 onClick={handleGenerateAI}
                 disabled={isGeneratingAI || isUploading || !product.id}
-                className="w-full p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-bold text-sm shadow-lg"
+                className="w-full p-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-bold text-sm shadow-lg"
             >
                 {isGeneratingAI ? (
                     <>

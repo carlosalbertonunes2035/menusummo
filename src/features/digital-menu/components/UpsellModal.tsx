@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Product } from '@/types';
 import { X, Sparkles, Check, ShoppingBag, Loader2 } from 'lucide-react';
-import { suggestUpsell } from '@/services/geminiService';
+import { functions } from '@/lib/firebase/client';
+import { httpsCallable } from '@firebase/functions';
 import { getProductChannel } from '@/lib/utils';
 
 interface UpsellModalProps {
@@ -25,7 +26,10 @@ const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, addedProduct
                 const fetchSuggestion = async () => {
                     setIsLoading(true);
                     try {
-                        const suggestedId = await suggestUpsell(addedProduct, allProducts);
+                        const suggestUpsellFn = httpsCallable(functions, 'suggestUpsellFn');
+                        const { data } = await suggestUpsellFn({ addedProduct, allProducts });
+                        const result = data as any;
+                        const suggestedId = result.suggestedProductId;
                         if (suggestedId) {
                             const product = allProducts.find(p => p.id === suggestedId);
                             setSuggestedProduct(product || null);
@@ -45,22 +49,22 @@ const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, addedProduct
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl animate-scale-in">
+            <div className="bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl animate-scale-in">
                 {/* Header */}
                 <div className="p-6 pb-2 flex justify-between items-start">
-                    <div className="bg-orange-100 dark:bg-orange-500/20 p-2 rounded-xl text-orange-600 dark:text-orange-400">
+                    <div className="bg-orange-100 p-2 rounded-xl text-orange-600">
                         <Sparkles size={20} />
                     </div>
-                    <button onClick={() => onClose(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition text-gray-400">
+                    <button onClick={() => onClose(null)} className="p-2 hover:bg-gray-100:bg-gray-800 rounded-full transition text-gray-400">
                         <X size={20} />
                     </button>
                 </div>
 
                 {/* Content */}
                 <div className="p-6 pt-2 text-center">
-                    <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2 leading-tight">Boa escolha!</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 px-4">
-                        Você adicionou <span className="font-bold text-gray-900 dark:text-white">{addedProduct.name}</span> ao carrinho.
+                    <h3 className="text-xl font-black text-gray-900 mb-2 leading-tight">Boa escolha!</h3>
+                    <p className="text-sm text-gray-500 px-4">
+                        Você adicionou <span className="font-bold text-gray-900">{addedProduct.name}</span> ao carrinho.
                     </p>
 
                     {isLoading ? (
@@ -74,8 +78,8 @@ const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, addedProduct
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-summo-primary text-white text-[10px] font-bold px-3 py-1 rounded-full z-10 shadow-lg">
                                     QUE TAL ACOMPANHAR COM?
                                 </div>
-                                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-[24px] border border-gray-100 dark:border-gray-700 flex flex-col items-center gap-3">
-                                    <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg border-4 border-white dark:border-gray-700">
+                                <div className="p-4 bg-gray-50 rounded-[24px] border border-gray-100 flex flex-col items-center gap-3">
+                                    <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg border-4 border-white">
                                         <img
                                             src={getProductChannel(suggestedProduct, 'digital-menu').image || 'https://placehold.co/200x200'}
                                             className="w-full h-full object-cover"
@@ -83,7 +87,7 @@ const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, addedProduct
                                         />
                                     </div>
                                     <div className="text-center">
-                                        <h4 className="font-bold text-gray-900 dark:text-white line-clamp-1">{suggestedProduct.name}</h4>
+                                        <h4 className="font-bold text-gray-900 line-clamp-1">{suggestedProduct.name}</h4>
                                         <p className="text-summo-primary font-black">
                                             + R$ {(getProductChannel(suggestedProduct, 'digital-menu').price || 0).toFixed(2)}
                                         </p>
@@ -103,7 +107,7 @@ const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, addedProduct
                                 </button>
                                 <button
                                     onClick={() => onClose(null)}
-                                    className="w-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 py-2 text-sm font-bold transition"
+                                    className="w-full text-gray-400 hover:text-gray-600:text-gray-200 py-2 text-sm font-bold transition"
                                 >
                                     Não, obrigado
                                 </button>

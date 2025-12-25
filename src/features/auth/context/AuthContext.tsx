@@ -3,11 +3,13 @@ import { auth } from '@/lib/firebase/client';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from '@firebase/auth';
 import { SystemUser, Role } from '@/types';
 import { registrationService, RegistrationData } from '@/lib/auth/registrationService';
-import { db } from '@/lib/firebase/client';
-import { doc, getDoc, setDoc, collection, query, where, getDocs } from '@firebase/firestore';
 import { securityLogger } from '@/lib/security';
-import { STANDARD_ROLES } from '@/constants/roles';
 import { sessionManager } from '@/lib/auth/sessionManager';
+
+// QSA Refactor Imports
+import { logger } from '@/lib/logger';
+import { MOCK_ADMIN_USER, MOCK_SYSTEM_USER } from '@/lib/mocks/userData';
+import { userService } from '@/services/userService';
 
 interface AuthContextType {
     user: User | null;
@@ -22,43 +24,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// --- DADOS MOCKADOS PARA SIMULAÇÃO ---
-const MOCK_ADMIN_USER = {
-    uid: 'mock-admin-uid-001',
-    email: 'admin@summo.demo',
-    displayName: 'Admin User',
-    emailVerified: true,
-    isAnonymous: false,
-    metadata: {},
-    providerData: [],
-    refreshToken: '',
-    tenantId: null,
-    delete: async () => { },
-    getIdToken: async () => 'mock-token',
-    getIdTokenResult: async () => ({} as any),
-    reload: async () => { },
-    toJSON: () => ({}),
-    phoneNumber: null,
-    photoURL: null,
-} as unknown as User;
-
-// Convert STANDARD_ROLES array to Record for easy lookup
-const ROLES_MAP: Record<string, Role> = STANDARD_ROLES.reduce((acc, role) => {
-    acc[role.id] = role;
-    return acc;
-}, {} as Record<string, Role>);
-
-const MOCK_SYSTEM_USER: SystemUser = {
-    id: 'mock-admin-uid-001',
-    name: 'Admin User',
-    email: 'admin@summo.demo',
-    tenantId: '',
-    roleId: 'OWNER',
-    role: ROLES_MAP['OWNER'],
-    permissions: ROLES_MAP['OWNER'].permissions,
-    active: true
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [systemUser, setSystemUser] = useState<SystemUser | null>(null);
@@ -68,30 +33,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loginAttempts, setLoginAttempts] = useState<{ count: number, lastAttempt: number }>({ count: 0, lastAttempt: 0 });
 
     useEffect(() => {
-        // 1. Check if we should force Mock Mode due to invalid API Key
+        // Check if we should force Mock Mode due to invalid API Key
         const apiKey = auth.app.options.apiKey;
         const isInvalidKey = !apiKey || apiKey === "AIzaSyDMoFirhePgU3lm91hyNVFugDEIjao93lY";
 
         if (isInvalidKey) {
-            console.warn("OFFLINE MODE ACTIVATED: Invalid Firebase API Key detected.");
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+            logger.warn("OFFLINE MODE ACTIVATED: Invalid Firebase API Key detected.");
             setIsMockMode(true);
 
-            // Check for existing mock session
             const isMockSession = localStorage.getItem('summo_mock_session') === 'true';
             if (isMockSession) {
                 setUser(MOCK_ADMIN_USER);
                 setSystemUser(MOCK_SYSTEM_USER);
-                setRole(ROLES_MAP['OWNER']);
+                setRole(userService.getRole('OWNER'));
             }
             setLoading(false);
             return;
         }
 
-        // 2. Real Firebase Connection - ENTERPRISE VERSION
+        // Real Firebase Connection - ENTERPRISE VERSION
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (!firebaseUser) {
-                // User logged out
                 setUser(null);
                 setSystemUser(null);
                 setRole(null);
@@ -100,145 +62,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             setUser(firebaseUser);
-            console.log('[AuthContext] User authenticated:', firebaseUser.uid);
+            logger.info('User authenticated', { uid: firebaseUser.uid });
 
             try {
-                // STEP 1: Fetch from users collection (RBAC)
-                const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+                // Try to get complete system profile using our new service
+                const profile = await userService.getSystemUser(firebaseUser);
 
-                if (!userDoc.exists()) {
-                    console.error('[AuthContext] ❌ CRITICAL: User authenticated but no document in users collection');
-                    console.error('[AuthContext] UID:', firebaseUser.uid, 'Email:', firebaseUser.email);
+                if (profile) {
+                    setSystemUser(profile.systemUser);
+                    setRole(profile.role);
+                    logger.info('User profile loaded', { email: profile.systemUser.email, tenant: profile.systemUser.tenantId });
+                } else {
+                    // Profile not found - attempted recovery logic
+                    logger.error('CRITICAL: User authenticated but profile missing/incomplete');
 
-                    // Try recovery from pending registration
                     const pendingTenantId = localStorage.getItem('summo_pending_tenant_id');
 
                     if (pendingTenantId) {
-                        console.log('[AuthContext] Found pending registration, attempting recovery...');
+                        logger.info('Found pending registration, attempting recovery...');
+                        const recovered = await userService.recoverUser(firebaseUser, pendingTenantId);
 
-                        // Create missing user document
-                        const recoveryUserData = {
-                            id: firebaseUser.uid,
-                            name: firebaseUser.displayName || 'Usuário',
-                            email: firebaseUser.email || '',
-                            tenantId: pendingTenantId,
-                            roleId: 'OWNER',
-                            active: true,
-                            createdAt: new Date().toISOString()
-                        };
+                        if (recovered) {
+                            localStorage.removeItem('summo_pending_tenant_id');
+                            localStorage.setItem(`summo_tenant_id_${firebaseUser.uid}`, pendingTenantId);
+                            logger.info('Recovery successful, reloading...');
+                            window.location.reload();
+                            return;
+                        }
+                    }
 
-                        await setDoc(doc(db, 'users', firebaseUser.uid), recoveryUserData);
-                        await setDoc(doc(db, 'system_users', firebaseUser.uid), {
-                            ...recoveryUserData,
-                            createdAt: new Date().toISOString()
-                        });
-
-                        localStorage.removeItem('summo_pending_tenant_id');
-                        localStorage.setItem(`summo_tenant_id_${firebaseUser.uid}`, pendingTenantId);
-
-                        console.log('[AuthContext] ✅ Recovery successful, reloading...');
+                    // Attempt TenantId Recovery from localStorage
+                    const storedTenantId = localStorage.getItem(`summo_tenant_id_${firebaseUser.uid}`);
+                    if (storedTenantId) {
+                        logger.info('Found tenantId in localStorage, updating profile...');
+                        await userService.updateUserTenant(firebaseUser.uid, storedTenantId);
                         window.location.reload();
                         return;
                     }
 
-                    // No recovery possible - force logout
-                    console.error('[AuthContext] No recovery possible, forcing logout');
+                    // If all fails
+                    logger.error('No recovery possible, forcing logout');
                     await signOut(auth);
-                    alert('Erro: Dados de usuário não encontrados. Por favor, registre-se novamente.');
-                    setLoading(false);
-                    return;
+                    alert('Erro: Dados de usuário não encontrados ou corrompidos. Por favor, entre em contato com o suporte.');
                 }
-
-                const userData = userDoc.data();
-                console.log('[AuthContext] User document loaded:', userData.email);
-
-                // STEP 2: Validate tenantId (CRITICAL)
-                if (!userData.tenantId) {
-                    console.error('[AuthContext] ❌ CRITICAL: User has no tenantId');
-
-                    // Try to recover from localStorage
-                    const storedTenantId = localStorage.getItem(`summo_tenant_id_${firebaseUser.uid}`) ||
-                        localStorage.getItem('summo_pending_tenant_id');
-
-                    if (storedTenantId) {
-                        console.log('[AuthContext] Found tenantId in localStorage, updating Firestore...');
-
-                        await setDoc(doc(db, 'users', firebaseUser.uid), {
-                            tenantId: storedTenantId
-                        }, { merge: true });
-
-                        await setDoc(doc(db, 'system_users', firebaseUser.uid), {
-                            tenantId: storedTenantId
-                        }, { merge: true });
-
-                        userData.tenantId = storedTenantId;
-                        localStorage.setItem(`summo_tenant_id_${firebaseUser.uid}`, storedTenantId);
-
-                        console.log('[AuthContext] ✅ tenantId recovered and updated');
-                    } else {
-                        // No tenantId found anywhere - critical error
-                        console.error('[AuthContext] No tenantId found in localStorage either');
-                        await signOut(auth);
-                        alert('Erro: Nenhum tenant associado. Entre em contato com o suporte.');
-                        setLoading(false);
-                        return;
-                    }
-                }
-
-                console.log('[AuthContext] tenantId validated:', userData.tenantId);
-
-                // STEP 3: Fetch role
-                let role = ROLES_MAP['OWNER']; // Fallback
-                if (userData.roleId) {
-                    try {
-                        const roleDoc = await getDoc(doc(db, `tenants/${userData.tenantId}/roles`, userData.roleId));
-                        if (roleDoc.exists()) {
-                            role = roleDoc.data() as Role;
-                            console.log('[AuthContext] Custom role loaded:', role.name);
-                        } else if (ROLES_MAP[userData.roleId]) {
-                            role = ROLES_MAP[userData.roleId];
-                            console.log('[AuthContext] System role loaded:', role.name);
-                        }
-                    } catch (roleError) {
-                        console.warn('[AuthContext] Error loading role, using fallback:', roleError);
-                    }
-                }
-
-                // STEP 4: Fetch system_users data (optional, for profile)
-                let systemUserData = null;
-                try {
-                    const systemUserDoc = await getDoc(doc(db, 'system_users', firebaseUser.uid));
-                    if (systemUserDoc.exists()) {
-                        systemUserData = systemUserDoc.data();
-                        console.log('[AuthContext] system_users document loaded');
-                    } else {
-                        console.warn('[AuthContext] No system_users document, will be created by Cloud Function');
-                    }
-                } catch (systemUserError) {
-                    console.warn('[AuthContext] Error loading system_users:', systemUserError);
-                }
-
-                // STEP 5: Set systemUser with ALL validated data
-                const finalSystemUser: SystemUser = {
-                    id: firebaseUser.uid,
-                    tenantId: userData.tenantId, // GUARANTEED to exist now
-                    name: systemUserData?.name || userData.name || firebaseUser.displayName || userData.email,
-                    email: userData.email,
-                    roleId: userData.roleId,
-                    role,
-                    permissions: role.permissions,
-                    active: userData.active !== false,
-                    profileImage: systemUserData?.profileImage
-                };
-
-                setSystemUser(finalSystemUser);
-                setRole(role);
-                console.log('[AuthContext] ✅ User loaded successfully:', finalSystemUser.email, 'Tenant:', finalSystemUser.tenantId);
 
             } catch (error: any) {
-                console.error('[AuthContext] ❌ Error loading user:', error);
-
-                // On error, logout to prevent inconsistent state
+                logger.error('Error loading user session', error);
                 await signOut(auth);
                 alert(`Erro ao carregar dados: ${error.message}`);
                 setUser(null);
@@ -247,96 +116,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } finally {
                 setLoading(false);
             }
+        });
 
-            return () => unsubscribe();
-        }, []);
+        return () => unsubscribe();
+    }, []);
 
-        const signIn = async (email: string, pass: string) => {
-            // --- CLIENT-SIDE RATE LIMITING ---
-            const now = Date.now();
-            const cooldownMs = 60000; // 1 minute cooldown
-            const maxAttempts = 5;
+    const signIn = async (email: string, pass: string) => {
+        const now = Date.now();
+        const cooldownMs = 60000;
+        const maxAttempts = 5;
 
-            if (loginAttempts.count >= maxAttempts && now - loginAttempts.lastAttempt < cooldownMs) {
-                const waitTime = Math.ceil((cooldownMs - (now - loginAttempts.lastAttempt)) / 1000);
-                throw new Error(`Muitas tentativas. Por favor, aguarde ${waitTime} segundos.`);
-            }
-
-            // Reset attempts if cooldown passed
-            if (now - loginAttempts.lastAttempt >= cooldownMs) {
-                setLoginAttempts({ count: 1, lastAttempt: now });
-            } else {
-                setLoginAttempts(prev => ({ count: prev.count + 1, lastAttempt: now }));
-            }
-
-            // Reject login attempts in mock mode (development only)
-            if (isMockMode) {
-                throw new Error("Modo Simulado: Autenticação Firebase não disponível. Verifique a configuração da API Key.");
-            }
-
-            try {
-                // Authenticate with Firebase - no bypasses, no auto-creation
-                await signInWithEmailAndPassword(auth, email, pass);
-                // Log success
-                securityLogger.logLogin(email, true);
-            } catch (error: any) {
-                console.error("Login failed:", error);
-                securityLogger.logLogin(email, false, undefined, error.code || error.message);
-                throw error;
-            }
-        };
-
-        const signUp = async (data: RegistrationData) => {
-            if (isMockMode) {
-                alert("Modo Simulado: Não é possível criar novos negócios. (API Key inválida)");
-                return;
-            }
-            // Hint is now stored BEFORE user creation in registrationService
-            const result = await registrationService.registerNewBusiness(data);
-            return result;
-        };
-
-        const logout = async () => {
-            // CRITICAL SECURITY FIX: Clear ALL tenant-specific localStorage
-            // This prevents cross-tenant data leakage when switching between tenants
-            const currentTenantId = systemUser?.tenantId;
-
-            if (currentTenantId) {
-                console.log(`[Security] Clearing localStorage for tenant: ${currentTenantId}`);
-                sessionManager.purgeAllTenantData();
-                console.log(`[Security] Tenant data cleared successfully`);
-            }
-
-            // Clear session data
-            localStorage.removeItem('summo_mock_session');
-            localStorage.removeItem('summo_active_tenant');
-
-            // Reset state
-            setUser(null);
-            setSystemUser(null);
-            setRole(null);
-
-            // Sign out from Firebase
-            if (!isMockMode) {
-                try {
-                    await signOut(auth);
-                } catch (e) {
-                    console.warn("Sign out error", e);
-                }
-            }
-        };
-
-        return (
-            <AuthContext.Provider value={{ user, systemUser, role, loading, signIn, signUp, logout, isMockMode }}>
-                {children}
-            </AuthContext.Provider>
-        );
-    };
-
-    export const useAuth = () => {
-        const context = useContext(AuthContext);
-        if (context === undefined) {
-            throw new Error('useAuth must be used within an AuthProvider');
+        if (loginAttempts.count >= maxAttempts && now - loginAttempts.lastAttempt < cooldownMs) {
+            const waitTime = Math.ceil((cooldownMs - (now - loginAttempts.lastAttempt)) / 1000);
+            throw new Error(`Muitas tentativas. Por favor, aguarde ${waitTime} segundos.`);
         }
-        return context;
+
+        if (now - loginAttempts.lastAttempt >= cooldownMs) {
+            setLoginAttempts({ count: 1, lastAttempt: now });
+        } else {
+            setLoginAttempts(prev => ({ count: prev.count + 1, lastAttempt: now }));
+        }
+
+        if (isMockMode) {
+            throw new Error("Modo Simulado: Autenticação Firebase não disponível.");
+        }
+
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+            securityLogger.logLogin(email, true);
+        } catch (error: any) {
+            logger.error("Login failed", error);
+            securityLogger.logLogin(email, false, undefined, error.code || error.message);
+            throw error;
+        }
     };
+
+    const signUp = async (data: RegistrationData) => {
+        if (isMockMode) {
+            alert("Modo Simulado: Não é possível criar novos negócios.");
+            return;
+        }
+        const result = await registrationService.registerNewBusiness(data);
+        return result;
+    };
+
+    const logout = async () => {
+        const currentTenantId = systemUser?.tenantId;
+
+        if (currentTenantId) {
+            logger.info(`Clearing localStorage for tenant: ${currentTenantId}`);
+            sessionManager.purgeAllTenantData();
+        }
+
+        localStorage.removeItem('summo_mock_session');
+        localStorage.removeItem('summo_active_tenant');
+
+        setUser(null);
+        setSystemUser(null);
+        setRole(null);
+
+        if (!isMockMode) {
+            try {
+                await signOut(auth);
+            } catch (e) {
+                logger.warn("Sign out error", e);
+            }
+        }
+    };
+
+    return (
+        <AuthContext.Provider value={{ user, systemUser, role, loading, signIn, signUp, logout, isMockMode }}>
+            {children}
+        </AuthContext.Provider>
+    );
+};
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};

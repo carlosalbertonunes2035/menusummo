@@ -53,10 +53,10 @@ const CommentsModal: React.FC<CommentsModalProps> = ({ product, onClose, user, o
 
     return (
         <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex flex-col justify-end animate-fade-in" onClick={onClose}>
-            <div onClick={e => e.stopPropagation()} className="bg-white dark:bg-gray-800 rounded-t-[2rem] w-full max-w-md mx-auto h-[70vh] flex flex-col shadow-2xl animate-slide-in-up">
-                <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800 rounded-t-[2rem]">
-                    <div className="text-center w-full"><h3 className="font-bold text-gray-800 dark:text-gray-100">Comentários</h3><p className="text-xs text-gray-500 dark:text-gray-400">{product.name}</p></div>
-                    <button onClick={onClose} className="absolute right-4 p-2 bg-gray-200 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300"><X size={16} /></button>
+            <div onClick={e => e.stopPropagation()} className="bg-white rounded-t-[2rem] w-full max-w-md mx-auto h-[70vh] flex flex-col shadow-2xl animate-slide-in-up">
+                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-[2rem]">
+                    <div className="text-center w-full"><h3 className="font-bold text-gray-800">Comentários</h3><p className="text-xs text-gray-500">{product.name}</p></div>
+                    <button onClick={onClose} className="absolute right-4 p-2 bg-gray-200 rounded-full text-gray-600"><X size={16} /></button>
                 </div>
 
                 {step === 'LIST' ? (
@@ -65,22 +65,22 @@ const CommentsModal: React.FC<CommentsModalProps> = ({ product, onClose, user, o
                             {comments.map(c => (
                                 <div key={c.id} className="flex gap-3">
                                     <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-summo-primary to-summo-secondary flex items-center justify-center text-white font-bold text-xs">{c.userName.charAt(0).toUpperCase()}</div>
-                                    <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl rounded-tl-none p-3 flex-1"><p className="text-xs font-bold text-gray-900 dark:text-gray-100 mb-0.5">{c.userName}</p><p className="text-sm text-gray-700 dark:text-gray-300">{c.text}</p></div>
+                                    <div className="bg-gray-100 rounded-2xl rounded-tl-none p-3 flex-1"><p className="text-xs font-bold text-gray-900 mb-0.5">{c.userName}</p><p className="text-sm text-gray-700">{c.text}</p></div>
                                 </div>
                             ))}
                         </div>
-                        <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 pb-safe">
+                        <div className="p-4 border-t border-gray-100 bg-white pb-safe">
                             <div className="flex gap-2 items-center">
-                                <input className="flex-1 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-full px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-summo-primary transition" placeholder="Adicione um comentário..." value={newComment} onChange={e => setNewComment(e.target.value)} onKeyDown={e => e.key === 'Enter' && handlePost()} />
+                                <input className="flex-1 bg-gray-100 rounded-full px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-summo-primary transition" placeholder="Adicione um comentário..." value={newComment} onChange={e => setNewComment(e.target.value)} onKeyDown={e => e.key === 'Enter' && handlePost()} />
                                 <button onClick={handlePost} disabled={!newComment} className="p-3 bg-summo-primary text-white rounded-full disabled:opacity-50 disabled:bg-gray-300 transition"><Send size={18} /></button>
                             </div>
                         </div>
                     </>
                 ) : (
                     <div className="p-8 flex flex-col justify-center h-full space-y-4">
-                        <div className="text-center mb-4"><h2 className="text-xl font-bold text-summo-dark dark:text-white">Identifique-se</h2><p className="text-gray-500 dark:text-gray-400 text-sm">Para comentar, precisamos saber quem é você.</p></div>
-                        <input className="w-full p-4 bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-summo-primary" placeholder="Seu Nome" value={localName} onChange={e => setLocalName(e.target.value)} />
-                        <input className="w-full p-4 bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-summo-primary" placeholder="Seu WhatsApp" value={localPhone} onChange={e => setLocalPhone(e.target.value)} />
+                        <div className="text-center mb-4"><h2 className="text-xl font-bold text-summo-dark">Identifique-se</h2><p className="text-gray-500 text-sm">Para comentar, precisamos saber quem é você.</p></div>
+                        <input className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-summo-primary" placeholder="Seu Nome" value={localName} onChange={e => setLocalName(e.target.value)} />
+                        <input className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-summo-primary" placeholder="Seu WhatsApp" value={localPhone} onChange={e => setLocalPhone(e.target.value)} />
                         <button onClick={handleIdentify} className="w-full bg-summo-primary text-white py-4 rounded-xl font-bold shadow-lg hover:bg-summo-dark transition">Continuar</button>
                         <button onClick={() => setStep('LIST')} className="w-full text-gray-400 font-medium py-2">Cancelar</button>
                     </div>

@@ -54,8 +54,8 @@ const EngineeringTab: React.FC<EngineeringTabProps> = ({ orders, products }) => 
                         ))}
                     </div>
                 </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-t-4 border-t-violet-500">
-                    <h4 className="font-bold text-violet-600 mb-1">? Quebra-Cabeça</h4>
+                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-t-4 border-t-orange-500">
+                    <h4 className="font-bold text-orange-600 mb-1">? Quebra-Cabeça</h4>
                     <p className="text-xs text-gray-500 mb-2">Baixa Venda / Alta Margem</p>
                     <div className="max-h-40 overflow-y-auto custom-scrollbar">
                         {analyticsData.metrics.filter((m: BostonMetrics) => m.quadrant === 'PUZZLE').map((m: BostonMetrics) => (

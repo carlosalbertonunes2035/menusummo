@@ -25,7 +25,7 @@ interface AppContextProps {
     toasts: ToastMessage[];
     showToast: (message: string, type: ToastType) => void;
     removeToast: (id: string) => void;
-    handleAction: (collectionName: CollectionName, action: 'add' | 'update' | 'delete', id?: string, data?: any) => Promise<void>;
+    handleAction: (collectionName: CollectionName, action: 'add' | 'update' | 'delete', id?: string, data?: any) => Promise<string | undefined>;
     onPlaceOrder: (orderData: Omit<Order, 'id' | 'createdAt'> & { tableNumber?: string }) => Promise<string>;
     handleUpdateStatus: (orderId: string, status: OrderStatus) => Promise<void>;
     handleAssignDriver: (orderId: string, driverId: string) => Promise<void>;
@@ -54,8 +54,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     useEffect(() => {
         const loadInitialData = async () => {
             // CRITICAL SECURITY: Only load if we have a valid tenantId
+            // CRITICAL SECURITY: Only load if we have a valid tenantId
+            // Suppress warning during initial auth load
             if (!tenantId) {
-                console.warn('[AppContext] No tenantId, using default settings');
+                // Only warn if we have a user but no tenant (misconfiguration), not during initial load
+                // console.warn('[AppContext] No tenantId, using default settings'); 
                 setSettingsState(GET_DEFAULT_SETTINGS('global'));
                 setCashRegisterState(INITIAL_CASH_REGISTER);
                 return;
@@ -159,22 +162,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // --- DATA ACTIONS (Legacy + Generic) ---
     // --- DATA ACTIONS (Standardized) ---
-    const handleAction = useCallback(async (collectionName: CollectionName, action: 'add' | 'update' | 'delete', id?: string, data?: any): Promise<void> => {
+    const handleAction = useCallback(async (collectionName: CollectionName, action: 'add' | 'update' | 'delete', id?: string, data?: any): Promise<string | undefined> => {
         if (!tenantId) {
             showToast("Erro: Sessão inválida (Sem Tenant ID)", 'error');
             return;
         }
 
         try {
+            let resultId: string | undefined = id;
+
             switch (collectionName) {
                 case 'orders':
-                    if (action === 'add') await orders.save(data, tenantId);
-                    else if (action === 'update' && id) await orders.save({ ...data, id }, tenantId);
+                    if (action === 'add') resultId = await orders.save(data, tenantId);
+                    else if (action === 'update' && id) { await orders.save({ ...data, id }, tenantId); resultId = id; }
                     else if (action === 'delete' && id) await orders.remove(id, tenantId);
                     break;
                 case 'products':
-                    if (action === 'add') await products.save(data, tenantId);
-                    else if (action === 'update' && id) await products.save({ ...data, id }, tenantId);
+                    if (action === 'add') resultId = await products.save(data, tenantId);
+                    else if (action === 'update' && id) { await products.save({ ...data, id }, tenantId); resultId = id; }
                     else if (action === 'delete' && id) await products.remove(id, tenantId);
                     break;
                 case 'customers':
@@ -201,6 +206,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                         else if (action === 'delete' && id) await deleteDoc(doc(db, collectionName, id));
                     }
             }
+            return resultId;
         } catch (e) {
             console.error(`Error in handleAction(${collectionName}, ${action}):`, e);
             showToast("Erro ao processar ação nos dados.", 'error');
@@ -210,20 +216,68 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // --- REDACTED: updateCustomerFromOrder is now handled by Cloud Functions trigger (onOrderCreated) ---
 
+    // --- SECURE ORDER PLACEMENT ---
     const onPlaceOrder = useCallback(async (orderData: Omit<Order, 'id' | 'createdAt'>): Promise<string> => {
-        const orderId = Date.now().toString();
+        console.log(`[onPlaceOrder] Initiated. MockMode: ${isMockMode}`);
 
-        const newOrder: Order = {
-            ...orderData,
-            id: orderId,
-            createdAt: new Date(),
-            tenantId
-        };
-        await orders.save(newOrder, tenantId);
+        // 1. Mock Mode: Keep local logic
+        if (isMockMode === true) {
+            console.log('[onPlaceOrder] Executing Mock Mode Save...');
+            const orderId = Date.now().toString();
+            const newOrder: Order = {
+                ...orderData,
+                id: orderId,
+                createdAt: new Date(),
+                tenantId
+            };
+            // Ensure we are using the local repository logic
+            await orders.save(newOrder, tenantId);
+            console.log('[onPlaceOrder] Mock Save Complete');
+            return orderId;
+        }
 
-        // CRM Update is now handled by Cloud Functions onOrderCreated trigger
-        return orderId;
-    }, [orders, customers, tenantId]);
+        // 2. Production Mode: Call Secure Backend
+        // Explicit check to prevent fall-through
+        if (!isMockMode) {
+            try {
+                console.log('[onPlaceOrder] Calling secureCheckout (Production)...', orderData);
+
+                // Dynamic import to avoid circular dependencies if functions wasn't ready
+                const { functions } = await import('@/lib/firebase/client');
+                const { httpsCallable } = await import('@firebase/functions');
+
+                const secureCheckout = httpsCallable(functions, 'secureCheckout');
+
+                const payload = {
+                    ...orderData,
+                    tenantId,
+                    // Flattening complex objects if needed, but Order structure usually matches
+                    // Removing fields that backend will generate
+                    status: undefined,
+                    createdAt: undefined,
+                    id: undefined
+                };
+
+                const result = await secureCheckout(payload);
+                const data = result.data as any;
+
+                if (data.success) {
+                    console.log('[onPlaceOrder] Success:', data.orderId);
+                    return data.orderId;
+                } else {
+                    throw new Error(data.message || 'Falha desconhecida no checkout.');
+                }
+
+            } catch (error: any) {
+                console.error('[onPlaceOrder] Secure Checkout Error:', error);
+                // CRITICAL: Do NOT fallback to orders.save in production, as it is blocked by rules
+                showToast(`Erro no servidor: ${error.message || 'Tente novamente.'}`, 'error');
+                throw error;
+            }
+        }
+
+        throw new Error("Invalid execution state in onPlaceOrder");
+    }, [orders, tenantId, isMockMode, showToast]);
 
     const handleUpdateStatus = useCallback(async (orderId: string, status: OrderStatus) => {
         const order = await orders.getById(orderId, tenantId);

@@ -47,6 +47,7 @@ export const registrationService = {
      * Generates a unique tenantId slug from business name
      */
     async generateUniqueTenantId(businessName: string): Promise<string> {
+        console.log('[Registration] Generating unique tenantId for:', businessName);
         let slug = businessName
             .toLowerCase()
             .normalize('NFD')
@@ -57,14 +58,19 @@ export const registrationService = {
 
         if (!slug) slug = 'store-' + Math.random().toString(36).substring(2, 7);
 
-        // Check if exists
-        const q = query(collection(db, 'settings'), where('tenantId', '==', slug));
-        const snapshot = await getDocs(q);
+        // Check if exists using direct getDoc (more robust than query for existence check)
+        const settingsRef = doc(db, 'settings', slug);
+        const snapshot = await getDoc(settingsRef);
 
-        if (snapshot.empty) return slug;
+        if (!snapshot.exists()) {
+            console.log('[Registration] Slug available:', slug);
+            return slug;
+        }
 
         // If exists, add random suffix
-        return `${slug}-${Math.random().toString(36).substring(2, 5)}`;
+        const finalSlug = `${slug}-${Math.random().toString(36).substring(2, 5)}`;
+        console.log('[Registration] Slug exists, using suffix:', finalSlug);
+        return finalSlug;
     },
 
     /**
@@ -142,7 +148,7 @@ export const registrationService = {
                     isMasterUser: true
                 };
                 transaction.set(userRef, userData);
-                console.log('[Registration] Transaction: users document queued');
+                console.log('[Registration] Transaction: users document queued for UID:', user.uid);
 
                 // 6.2 Create System User Document (Profile)
                 const systemUserRef = doc(db, 'system_users', user.uid);

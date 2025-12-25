@@ -22,7 +22,7 @@ export abstract class BaseRepository<T extends { id: string; createdAt?: any; up
     }
 
     async create(data: T, tenantId: string): Promise<string> {
-        const id = data.id;
+        const id = data.id || `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const timestamp = this.now();
 
         if (this.isMockMode) {

@@ -39,13 +39,30 @@ const { mockOrders, mockHandleUpdateStatus, mockSettings } = vi.hoisted(() => {
 
 // Mock dependencies
 vi.mock('@/contexts/DataContext', () => ({
-    useData: () => ({ orders: mockOrders })
+    useData: () => ({
+        orders: mockOrders,
+        products: [] // Added products to match component usage
+    })
 }));
 
 vi.mock('@/contexts/AppContext', () => ({
     useApp: () => ({
         handleUpdateStatus: mockHandleUpdateStatus,
-        settings: mockSettings
+        settings: mockSettings,
+        tenantId: 'test-tenant'
+    })
+}));
+
+vi.mock('@/features/auth/context/AuthContext', () => ({
+    useAuth: () => ({
+        systemUser: { id: 'user1', tenantId: 'test-tenant' }
+    })
+}));
+
+vi.mock('@/hooks/useOrders', () => ({
+    useOrders: () => ({
+        data: mockOrders,
+        loading: false
     })
 }));
 

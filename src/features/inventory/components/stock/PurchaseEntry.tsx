@@ -54,7 +54,7 @@ export const PurchaseEntry: React.FC<{ onComplete: () => void }> = ({ onComplete
     return (
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden animate-slide-in-up">
             {/* Header */}
-            <div className="bg-gray-900 p-6 text-white flex justify-between items-center">
+            <div className="bg-gradient-to-r from-orange-500 to-amber-600 p-6 text-white flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <div className="bg-summo-primary/20 p-2 rounded-xl">
                         <Camera className="text-summo-primary" size={24} />

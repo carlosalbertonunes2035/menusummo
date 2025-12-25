@@ -130,11 +130,11 @@ export const AlertWidgets: React.FC<{ lateOrders: number, lowStock: number, onNa
 ));
 
 export const GrowthWidget: React.FC<{ atRisk: number, lost: number, onNavigate: (id: string) => void }> = memo(({ atRisk, lost, onNavigate }) => (
-    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 h-full flex flex-col relative overflow-hidden group cursor-pointer hover:shadow-xl hover:shadow-purple-100 hover:-translate-y-0.5 transition duration-300" onClick={() => onNavigate('crm')}>
+    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 h-full flex flex-col relative overflow-hidden group cursor-pointer hover:shadow-xl hover:shadow-orange-100 hover:-translate-y-0.5 transition duration-300" onClick={() => onNavigate('crm')}>
         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition">
             <Zap size={120} />
         </div>
-        <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2 mb-4"><Zap size={20} className="text-purple-600 fill-purple-600" /> Motor de Crescimento</h3>
+        <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2 mb-4"><Zap size={20} className="text-orange-600 fill-orange-600" /> Motor de Crescimento</h3>
 
         <div className="flex-1 space-y-3">
             {atRisk > 0 && (
@@ -163,7 +163,7 @@ export const GrowthWidget: React.FC<{ atRisk: number, lost: number, onNavigate: 
             )}
         </div>
 
-        <button className="w-full mt-4 bg-gray-50 text-gray-600 py-3 rounded-xl text-xs font-bold group-hover:bg-purple-600 group-hover:text-white transition-colors">
+        <button className="w-full mt-4 bg-gray-50 text-gray-600 py-3 rounded-xl text-xs font-bold group-hover:bg-orange-600 group-hover:text-white transition-colors">
             Acessar CRM e Agir
         </button>
     </div>

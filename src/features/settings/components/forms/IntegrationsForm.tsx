@@ -11,7 +11,7 @@ export const IntegrationsForm: React.FC<SettingsFormProps> = ({ settings, onChan
             <div className={cardClass}>
                 <div className="flex items-start gap-4">
                     <div className="bg-slate-100 p-3 rounded-xl text-slate-600"><MapPin size={24} /></div>
-                    <div><h4 className="font-bold text-slate-800 dark:text-slate-100">Google Maps & Places API</h4><p className="text-xs text-slate-500 dark:text-slate-400">Autocomplete de endereços e mapa de raio de entrega.</p></div>
+                    <div><h4 className="font-bold text-slate-800100">Google Maps & Places API</h4><p className="text-xs text-slate-500400">Autocomplete de endereços e mapa de raio de entrega.</p></div>
                 </div>
                 <div className="space-y-4">
                     <div>
@@ -23,18 +23,18 @@ export const IntegrationsForm: React.FC<SettingsFormProps> = ({ settings, onChan
                         <p className="text-[10px] text-slate-400 mt-1">Requer Places API e Maps JavaScript API habilitadas.</p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">Places API (Autocomplete)</span>
+                        <div className="flex items-center justify-between p-3 bg-slate-50800 rounded-xl">
+                            <span className="font-bold text-slate-700200 text-sm">Places API (Autocomplete)</span>
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" name="integrations.google.placesEnabled" checked={settings.integrations?.google?.placesEnabled ?? true} onChange={onChange} className="sr-only peer" />
-                                <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                <div className="w-11 h-6 bg-slate-200700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                             </label>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">Maps JavaScript API</span>
+                        <div className="flex items-center justify-between p-3 bg-slate-50800 rounded-xl">
+                            <span className="font-bold text-slate-700200 text-sm">Maps JavaScript API</span>
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" name="integrations.google.mapsEnabled" checked={settings.integrations?.google?.mapsEnabled ?? true} onChange={onChange} className="sr-only peer" />
-                                <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                <div className="w-11 h-6 bg-slate-200700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                             </label>
                         </div>
                     </div>
@@ -45,13 +45,13 @@ export const IntegrationsForm: React.FC<SettingsFormProps> = ({ settings, onChan
             <div className={cardClass}>
                 <div className="flex items-start gap-4">
                     <div className="bg-orange-50 p-3 rounded-xl text-summo-primary"><Sparkles size={24} /></div>
-                    <div><h4 className="font-bold text-slate-800 dark:text-slate-100">Inteligência Artificial (Gemini API)</h4><p className="text-xs text-slate-500 dark:text-slate-400">Conecte a IA do Google.</p></div>
+                    <div><h4 className="font-bold text-slate-800100">Inteligência Artificial (Gemini API)</h4><p className="text-xs text-slate-500400">Conecte a IA do Google.</p></div>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                    <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">Ativar Agente de IA</span>
+                <div className="flex items-center justify-between p-3 bg-slate-50800 rounded-xl">
+                    <span className="font-bold text-slate-700200 text-sm">Ativar Agente de IA</span>
                     <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" name="ai.isActive" checked={settings.ai?.isActive || false} onChange={onChange} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        <div className="w-11 h-6 bg-slate-200700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                     </label>
                 </div>
                 <div className={`space-y-4 ${!settings.ai?.isActive ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -80,13 +80,13 @@ export const IntegrationsForm: React.FC<SettingsFormProps> = ({ settings, onChan
             <div className={cardClass}>
                 <div className="flex items-start gap-4">
                     <div className="bg-emerald-100 p-3 rounded-xl text-emerald-600"><MessageCircle size={24} /></div>
-                    <div><h4 className="font-bold text-slate-800 dark:text-slate-100">WhatsApp</h4><p className="text-xs text-slate-500 dark:text-slate-400">Automatize respostas e notificações.</p></div>
+                    <div><h4 className="font-bold text-slate-800100">WhatsApp</h4><p className="text-xs text-slate-500400">Automatize respostas e notificações.</p></div>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                    <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">Notificações Ativas</span>
+                <div className="flex items-center justify-between p-3 bg-slate-50800 rounded-xl">
+                    <span className="font-bold text-slate-700200 text-sm">Notificações Ativas</span>
                     <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" name="whatsapp.isActive" checked={settings.whatsapp?.isActive || false} onChange={onChange} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        <div className="w-11 h-6 bg-slate-200700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                     </label>
                 </div>
                 <div className={`space-y-4 ${!settings.whatsapp?.isActive ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -99,13 +99,13 @@ export const IntegrationsForm: React.FC<SettingsFormProps> = ({ settings, onChan
             <div className={cardClass}>
                 <div className="flex items-start gap-4">
                     <div className="bg-red-100 p-3 rounded-xl text-red-600"><Tv size={24} /></div>
-                    <div><h4 className="font-bold text-slate-800 dark:text-slate-100">iFood</h4><p className="text-xs text-slate-500 dark:text-slate-400">Configuração de taxas e comissões.</p></div>
+                    <div><h4 className="font-bold text-slate-800100">iFood</h4><p className="text-xs text-slate-500400">Configuração de taxas e comissões.</p></div>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                    <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">Integração Ativa</span>
+                <div className="flex items-center justify-between p-3 bg-slate-50800 rounded-xl">
+                    <span className="font-bold text-slate-700200 text-sm">Integração Ativa</span>
                     <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" name="integrations.ifood.enabled" checked={settings.integrations?.ifood?.enabled} onChange={onChange} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        <div className="w-11 h-6 bg-slate-200700 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                     </label>
                 </div>
                 <div className={`space-y-4 ${!settings.integrations?.ifood?.enabled ? 'opacity-50 pointer-events-none' : ''}`}>

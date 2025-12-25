@@ -116,7 +116,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, ingredients, onAdd,
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 pb-24 lg:pb-0">
             {products.map((product, index) => (
                 <ProductCard
-                    key={product.id}
+                    key={product.id || `product-${index}`}
                     index={index}
                     product={product}
                     ingredients={ingredients}
