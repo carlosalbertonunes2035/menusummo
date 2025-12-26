@@ -38,17 +38,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const isInvalidKey = !apiKey || apiKey === "AIzaSyDMoFirhePgU3lm91hyNVFugDEIjao93lY";
 
         if (isInvalidKey) {
-            logger.warn("OFFLINE MODE ACTIVATED: Invalid Firebase API Key detected.");
-            setIsMockMode(true);
-
-            const isMockSession = localStorage.getItem('summo_mock_session') === 'true';
-            if (isMockSession) {
-                setUser(MOCK_ADMIN_USER);
-                setSystemUser(MOCK_SYSTEM_USER);
-                setRole(userService.getRole('OWNER'));
-            }
-            setLoading(false);
-            return;
+            logger.error("CRITICAL ERROR: Invalid Firebase API Key.");
+            // Do not enable Mock Mode. Fail hard as requested.
+            // setIsMockMode(true); 
+            // setLoading(false);
+            // return;
+            throw new Error("Invalid API Key. System Halted.");
         }
 
         // Real Firebase Connection - ENTERPRISE VERSION

@@ -175,6 +175,14 @@ export interface StoreSettings {
         isActive: boolean;
         messageTemplate: string;
     };
+    // Novo: Contexto de Negócio para IA e Inteligência
+    businessProfile?: {
+        segment?: string; // e.g. 'Pizzaria', 'Hamburgueria'
+        description?: string; // Breve descrição do negócio
+        toneOfVoice?: string; // e.g. 'Descolado', 'Formal'
+        targetAudience?: string; // e.g. 'Jovens', 'Família'
+        highlights?: string[]; // e.g. ['Artesanal', 'Forno a Lenha']
+    };
     interface?: {
         navigationMode?: 'SIDEBAR' | 'DOCK';
         theme?: 'LIGHT' | 'DARK';

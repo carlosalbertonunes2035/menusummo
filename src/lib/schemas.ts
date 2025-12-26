@@ -57,7 +57,8 @@ export const ProductSchema = z.object({
     slug: z.string().optional(),
     seoTitle: z.string().max(60).optional(),
     seoDescription: z.string().max(160).optional(),
-    keywords: z.array(z.string()).default([])
+    keywords: z.array(z.string()).default([]),
+    imageFit: z.enum(['contain', 'cover']).optional(),
 });
 
 // --- SETTINGS SCHEMA ---

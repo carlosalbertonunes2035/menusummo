@@ -1,130 +1,155 @@
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import { extractRawMenuFromMedia } from "../ai/agents/visionAgent";
-import { engineerProductRecipe } from "../ai/agents/engineerAgent";
-import { generateProductMarketing } from "../ai/agents/marketingAgent";
-import { createFullProductTree } from "../tools/tools";
+// Agents removed for Skeleton Loading Strategy
+// import { engineerProductRecipe } from "../ai/agents/engineerAgent";
+// import { generateProductMarketing } from "../ai/agents/marketingAgent";
+// import { createFullProductTree } from "../tools/tools";
 
 /**
  * Menu Import Orchestrator (The Gerente)
  * Triggered when a new job is created in tenants/{tenantId}/import_jobs/{jobId}
+ * Using v1 for stability in southamerica-east1
  */
-export const onMenuImportCreated = onDocumentCreated({
-    document: "tenants/{tenantId}/import_jobs/{jobId}",
-    timeoutSeconds: 540, // 9 minutes limit
-    memory: "2GiB",
-    region: "southamerica-east1"
-}, async (event) => {
-    const snap = event.data;
-    if (!snap) return;
+export const onMenuImportCreated = functions
+    .region("southamerica-east1")
+    .runWith({
+        timeoutSeconds: 540, // 9 minutes limit
+        memory: "2GB"
+    })
+    .firestore
+    .document("tenants/{tenantId}/import_jobs/{jobId}")
+    .onCreate(async (snap, context) => {
+        const job = snap.data();
+        const { tenantId, jobId } = context.params;
+        const db = admin.firestore();
+        const jobRef = snap.ref;
 
-    const job = snap.data();
-    const { tenantId, jobId } = event.params;
-    const db = admin.firestore();
-    const jobRef = snap.ref;
+        // Only process pending jobs
+        if (job.status !== 'pending') return;
 
-    // Only process pending jobs
-    if (job.status !== 'pending') return;
+        try {
+            // 1. UPDATE STATUS TO PROCESSING
+            await jobRef.update({
+                status: 'processing',
+                progress: 10,
+                message: 'Analisando imagem com Visão Computacional...'
+            });
 
-    try {
-        // 1. UPDATE STATUS TO PROCESSING
-        await jobRef.update({
-            status: 'processing',
-            progress: 5,
-            message: 'Iniciando leitura do cardápio...'
-        });
+            // 2. STAGE 1: VISION (Extract raw items)
+            const rawItems = await extractRawMenuFromMedia(job.fileUrl, job.mimeType);
 
-        // 2. STAGE 1: VISION (Extract raw items)
-        const rawItems = await extractRawMenuFromMedia(job.fileUrl, job.mimeType);
-
-        if (!rawItems || rawItems.length === 0) {
-            await jobRef.update({ status: 'error', message: 'Nenhum item identificado no cardápio.' });
-            return;
-        }
-
-        const restaurantName = rawItems[0]?.restaurantName || "Restaurante";
-        const totalItems = rawItems.length;
-
-        await jobRef.update({
-            progress: 15,
-            totalItems,
-            message: `Visão: ${totalItems} itens detectados em ${restaurantName}. Preparando engenharia...`
-        });
-
-        // 3. GET EXISTING INGREDIENTS FOR CONTEXT (RAG)
-        const ingredientsSnap = await db.collection('ingredients')
-            .where('tenantId', '==', tenantId)
-            .limit(500)
-            .get();
-
-        const ingredientsContext = ingredientsSnap.docs.map(doc => {
-            const d = doc.data();
-            return `${d.name} (ID: ${doc.id}, Unidade: ${d.unit})`;
-        }).join('\n');
-
-        // 4. STAGE 2 & 3: ENRICHMENT LOOP (Engineer + Marketing)
-        let processedCount = 0;
-
-        for (const item of rawItems) {
-            try {
-                // A. Engineer Recipe
-                const recipe = await engineerProductRecipe(
-                    item.name,
-                    item.price || 0,
-                    item.originalDescription || "",
-                    restaurantName
-                );
-
-                // B. Generate Marketing & SEO
-                const marketing = await generateProductMarketing(
-                    item.name,
-                    recipe.ingredients.map((i: any) => i.name).join(', '),
-                    restaurantName
-                );
-
-                // C. Persist using existing tool
-                await createFullProductTree.run({
-                    tenantId,
-                    products: [{
-                        name: item.name,
-                        price: item.price || 0,
-                        category: item.categoryName || 'Importado',
-                        description: marketing.siteDescription || item.originalDescription || '',
-                        ingredients: recipe.ingredients.map((i: any) => ({
-                            name: i.name,
-                            quantity: i.quantity,
-                            unit: i.unit,
-                            estimatedCost: i.estimatedCost
-                        }))
-                    }]
-                });
-
-                processedCount++;
-                const progress = Math.round(15 + ((processedCount / totalItems) * 80));
-
+            if (!rawItems || rawItems.length === 0) {
                 await jobRef.update({
-                    progress,
-                    message: `Processado: ${item.name} (${processedCount}/${totalItems})`
+                    status: 'error',
+                    progress: 0,
+                    message: 'Não foi possível identificar itens no cardápio. Tente uma imagem mais clara.'
+                });
+                return;
+            }
+
+            const restaurantName = rawItems[0]?.restaurantName || "";
+            const totalItems = rawItems.length;
+
+            await jobRef.update({
+                status: 'processing',
+                progress: 40,
+                totalItems,
+                message: `Identifiquei ${totalItems} itens${restaurantName ? ' do ' + restaurantName : ''}! Organizando catálogo...`
+            });
+
+            await new Promise(resolve => setTimeout(resolve, 800)); // Small delay for UX "feeling"
+
+            // 3. FAST IMPORT: Save Drafts directly (Batch Write)
+            const batch = db.batch();
+            const productsRef = db.collection('products');
+            const categoriesRef = db.collection('tenants').doc(tenantId).collection('categories');
+
+            // 3.1 Fetch Existing Categories for Fuzzy Matching
+            const existingCategoriesSnap = await categoriesRef.get();
+            const existingCategories = existingCategoriesSnap.docs.map(doc => ({
+                id: doc.id,
+                name: doc.data().name.toLowerCase().trim()
+            }));
+
+            const categoryMap = new Map<string, string>(); // Name -> ID
+
+            // Helper to find or create category ID
+            const getCategoryId = (name: string): string => {
+                const cleanName = (name || 'Geral').trim();
+                const lowerName = cleanName.toLowerCase();
+
+                // Check local map first (for items in same batch)
+                if (categoryMap.has(lowerName)) return categoryMap.get(lowerName)!;
+
+                // Check database existing
+                const found = existingCategories.find(c => c.name === lowerName);
+                if (found) {
+                    categoryMap.set(lowerName, found.id);
+                    return found.id;
+                }
+
+                // Create NEW Category (Virtual for now, will batch commit)
+                const newCatRef = categoriesRef.doc();
+                batch.set(newCatRef, {
+                    name: cleanName,
+                    description: 'Importada via IA',
+                    isActive: true,
+                    order: 99,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
                 });
 
-            } catch (err: any) {
-                console.error(`[Orchestrator] Erro no item ${item.name}:`, err.message);
-                // Continue with next items
-            }
+                // Update local lookups
+                existingCategories.push({ id: newCatRef.id, name: lowerName });
+                categoryMap.set(lowerName, newCatRef.id);
+
+                return newCatRef.id;
+            };
+
+            rawItems.forEach((item) => {
+                const finalCategoryId = getCategoryId(item.categoryName || 'Geral');
+
+                const newProductRef = productsRef.doc();
+                batch.set(newProductRef, {
+                    tenantId,
+                    name: item.name,
+                    price: Number(item.price) || 0,
+                    description: item.originalDescription || '',
+                    categoryId: finalCategoryId,
+                    categoryName: item.categoryName || 'Geral',
+                    category: item.categoryName || 'Geral', // FIX: Sync with Frontend Schema
+                    status: 'DRAFT',
+                    enrichmentStatus: 'pending',
+                    channels: [
+                        { channel: 'pos', isAvailable: true, price: Number(item.price) || 0, displayName: item.name },
+                        { channel: 'digital-menu', isAvailable: true, price: Number(item.price) || 0, displayName: item.name, description: item.originalDescription || '' },
+                        { channel: 'ifood', isAvailable: false, price: Number(item.price) || 0, displayName: item.name } // Default to inactive
+                    ],
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+            });
+
+            await jobRef.update({
+                status: 'processing',
+                progress: 80,
+                message: `Salvando ${rawItems.length} rascunhos no banco de dados...`
+            });
+
+            await batch.commit();
+
+            // 4. FINALIZATION (Instant)
+            await jobRef.update({
+                status: 'completed',
+                progress: 100,
+                message: 'Leitura concluída! Seus produtos estão prontos.'
+            });
+
+        } catch (error: any) {
+            console.error('[Orchestrator] Erro Fatal:', error);
+            await jobRef.update({
+                status: 'error',
+                message: `Erro crítico: ${error.message}`
+            });
         }
-
-        // 5. FINALIZATION
-        await jobRef.update({
-            status: 'completed',
-            progress: 100,
-            message: 'Importação concluída com sucesso!'
-        });
-
-    } catch (error: any) {
-        console.error('[Orchestrator] Erro Fatal:', error);
-        await jobRef.update({
-            status: 'error',
-            message: `Erro crítico: ${error.message}`
-        });
-    }
-});
+    });

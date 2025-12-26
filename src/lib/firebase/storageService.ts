@@ -9,32 +9,18 @@ export const storageService = {
      * Uploads a file to a specific path in storage
      */
     async uploadFile(file: File | Blob, path: string): Promise<string> {
-        // --- OFFLINE/MOCK FALLBACK ---
-        // If there's no active firebase session or in mock mode, use base64
-        const isMockEntry = localStorage.getItem('summo_mock_session') === 'true';
-        if (isMockEntry) {
-            console.warn("[StorageService] Mock mode detected. using Data URL fallback.");
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(file);
-            });
-        }
+        // Enforce real upload
+        console.log(`[StorageService] Uploading to: ${path}`);
 
         try {
             const storageRef = ref(storage, path);
             const snapshot = await uploadBytes(storageRef, file);
-            return getDownloadURL(snapshot.ref);
+            const url = await getDownloadURL(snapshot.ref);
+            console.log(`[StorageService] Upload success: ${url}`);
+            return url;
         } catch (error: any) {
-            if (error.code === 'storage/unauthorized') {
-                console.warn("[StorageService] Unauthorized. Falling back to Data URL for local session.");
-                return new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result as string);
-                    reader.readAsDataURL(file);
-                });
-            }
-            throw error;
+            console.error("[StorageService] Upload failed:", error);
+            throw error; // Throw error to be caught by UI
         }
     },
 

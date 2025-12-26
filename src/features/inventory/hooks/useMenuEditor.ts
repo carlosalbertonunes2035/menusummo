@@ -4,8 +4,9 @@ import { Product, ChannelConfig, SalesChannel, Ingredient } from '../../../types
 import { Recipe, RecipeIngredient } from '../../../types/recipe';
 import { useData } from '../../../contexts/DataContext';
 import { useApp } from '../../../contexts/AppContext';
-import { functions } from '@/lib/firebase/client';
+import { db, functions } from '@/lib/firebase/client';
 import { httpsCallable } from '@firebase/functions';
+import { collection, doc } from '@firebase/firestore';
 import { ProductSchema } from '../../../lib/schemas';
 import { z } from 'zod';
 
@@ -96,7 +97,7 @@ export const useMenuEditor = () => {
     }, [selectedProduct, editData, products, ingredients, recipes, activeChannel, recipeEditData]);
 
     // Detecção inteligente de mudanças
-    const hasChanges = useMemo(() => {
+    const isDirty = useMemo(() => {
         if (!selectedProduct) return false;
 
         const productChanged = Object.keys(editData).length > 0 && Object.keys(editData).some(key => {
@@ -104,11 +105,41 @@ export const useMenuEditor = () => {
             return JSON.stringify(editData[_key]) !== JSON.stringify(selectedProduct[_key]);
         });
 
-        const originalRecipe = recipes.find(r => r.productId === selectedProduct.id);
-        const recipeChanged = JSON.stringify(recipeEditData) !== JSON.stringify(originalRecipe || { ingredients: [], yield: 1, yieldUnit: 'porção' });
+        // Safe retrieval of original recipe
+        const foundRecipe = recipes.find(r => r.productId === selectedProduct.id);
 
-        return productChanged || recipeChanged;
-    }, [selectedProduct, editData, recipeEditData, recipes]);
+        // Check draft status
+        const isPersisted = products.some(p => p.id === selectedProduct?.id);
+        const isDraftModified = !isPersisted && (editData.name !== 'Novo Produto' || (editData.cost || 0) > 0);
+
+        // Recipe Dirty Logic:
+        // If there is an existing recipe in DB, compare against it.
+        // If NOT, we must compare against the "Inferred Recipe" derived from product.ingredients (Legacy support).
+        let baselineRecipe: Partial<Recipe> = foundRecipe || {
+            ingredients: (selectedProduct.ingredients || []).map((i: any) => ({
+                ingredientId: i.ingredientId,
+                quantity: i.amount,
+                unit: ingredients.find(inv => inv.id === i.ingredientId)?.unit || 'und'
+            })),
+            yield: 1,
+            yieldUnit: 'porção'
+        };
+
+        // Normalize for comparison (sort ingredients by ID to avoid order issues)
+        const normalizeRecipe = (r: Partial<Recipe> | undefined) => {
+            if (!r) return {};
+            return {
+                ...r,
+                ingredients: (r.ingredients || []).map(i => ({ i: i.ingredientId, q: i.quantity })).sort((a, b) => a.i.localeCompare(b.i)),
+                yield: r.yield,
+                yieldUnit: r.yieldUnit
+            };
+        };
+
+        const recipeChanged = JSON.stringify(normalizeRecipe(recipeEditData)) !== JSON.stringify(normalizeRecipe(baselineRecipe));
+
+        return productChanged || recipeChanged || isDraftModified;
+    }, [selectedProduct, editData, recipeEditData, recipes, products, ingredients]);
 
     // Actions
     const linkRecipe = (recipeId: string) => {
@@ -128,7 +159,7 @@ export const useMenuEditor = () => {
         setRecipeEditData((prev: Partial<Recipe>) => ({ ...prev, yield: val }));
     };
 
-    const handleSave = useCallback(async () => {
+    const handleSave = useCallback(async (): Promise<boolean> => {
         if (selectedProduct && currentEditingProduct) {
             const dataToSave = { ...editData };
 
@@ -151,10 +182,10 @@ export const useMenuEditor = () => {
             } catch (err) {
                 if (err instanceof z.ZodError) {
                     showToast(`Erro: ${err.errors[0].message}`, 'error');
-                    return;
+                    return false;
                 }
                 showToast('Erro de Validação', 'error');
-                return;
+                return false;
             }
 
             try {
@@ -183,26 +214,32 @@ export const useMenuEditor = () => {
                     setEditData({});
                     setRecipeEditData({});
                 }
+                return true;
 
             } catch (error) {
                 showToast('Erro ao salvar.', 'error');
+                return false;
             }
         }
+        return false;
     }, [selectedProduct, currentEditingProduct, editData, recipeEditData, onUpdateProduct, handleAction, showToast, recipes]);
 
-    const handleClose = useCallback(async () => {
-        if (hasChanges) {
-            if (window.confirm("Você realizou alterações no produto.\n\nDeseja SALVAR as mudanças antes de sair?\n\n[OK] = Salvar e Fechar\n[Cancelar] = Descartar alterações e Fechar")) {
+    const handleClose = useCallback(async (force?: boolean) => {
+        if (!force && isDirty) {
+            if (window.confirm("Deseja SALVAR as alterações antes de sair?\n\n[OK] = Salvar e Sair\n[Cancelar] = Sair sem Salvar (Descartar)")) {
                 await handleSave();
+                return;
             }
         }
+
+        // Reset everything
         setSelectedProduct(null);
         setEditData({});
         setRecipeEditData({});
-    }, [hasChanges, handleSave]);
+    }, [isDirty, handleSave, selectedProduct, editData]);
 
     const openEditor = (product: Product) => {
-        if (selectedProduct && hasChanges && !window.confirm("Descartar alterações do produto atual?")) return;
+        if (selectedProduct && isDirty && !window.confirm("Descartar alterações do produto atual?")) return;
         setSelectedProduct(product);
         setEditData({});
         setRecipeEditData({});
@@ -210,9 +247,15 @@ export const useMenuEditor = () => {
     };
 
     const handleOpenCreator = (initialCategory: string, initialType: 'SIMPLE' | 'COMBO' = 'SIMPLE') => {
-        if (selectedProduct && hasChanges && !window.confirm("Descartar alterações atuais?")) return;
+        if (selectedProduct && isDirty && !window.confirm("Descartar alterações atuais?")) return;
+
+        // Generate a real ID immediately so the product is "tracked"
+        const newId = doc(collection(db, 'products')).id;
+
         const newProd: Product = {
-            id: '', name: 'Novo Produto', category: initialCategory !== 'Todos' ? initialCategory : 'Geral',
+            id: newId,
+            name: 'Novo Produto',
+            category: initialCategory !== 'Todos' ? initialCategory : 'Geral',
             cost: 0, tags: [], ingredients: [], optionGroupIds: [], type: initialType,
             channels: [
                 { channel: 'pos', displayName: 'Novo Produto', price: 0, isAvailable: true },
@@ -226,10 +269,27 @@ export const useMenuEditor = () => {
         setActiveTab('GENERAL');
     };
 
-    const toggleAvailability = (e: React.MouseEvent, product: Product) => {
+    const toggleAvailability = async (e: React.MouseEvent, product: Product) => {
         e.stopPropagation();
-        const newChannels = product.channels.map(c => ({ ...c, isAvailable: !c.isAvailable }));
-        onUpdateProduct({ id: product.id, channels: newChannels });
+
+        // New Logic: Toggle Global Status (ACTIVE vs PAUSED)
+        // This preserves the individual channel configuration (isAvailable flags).
+
+        const currentStatus = product.status || 'ACTIVE'; // Default to ACTIVE if undefined
+        const isCurrentlyPaused = currentStatus === 'PAUSED';
+
+        const newStatus = isCurrentlyPaused ? 'ACTIVE' : 'PAUSED';
+        const toastMessage = isCurrentlyPaused ? 'Produto ativado (Estado anterior restaurado).' : 'Produto pausado globalmente.';
+
+        try {
+            // We only update the status field. 
+            // The UI must respect this status to consider the product "Offline".
+            await onUpdateProduct({ id: product.id, status: newStatus });
+            showToast(toastMessage, 'success');
+        } catch (err) {
+            console.error(err);
+            showToast('Erro ao alterar status.', 'error');
+        }
     };
 
     const addIngredientToRecipe = (ingredientId?: string) => {
@@ -309,7 +369,11 @@ export const useMenuEditor = () => {
 
     const linkOptionGroup = (groupId: string) => {
         const currentIds = editData.optionGroupIds || selectedProduct?.optionGroupIds || [];
-        if (!currentIds.includes(groupId)) {
+        if (currentIds.includes(groupId)) {
+            // Toggle OFF (Unlink)
+            setEditData(prev => ({ ...prev, optionGroupIds: currentIds.filter(id => id !== groupId) }));
+        } else {
+            // Toggle ON (Link)
             setEditData(prev => ({ ...prev, optionGroupIds: [...currentIds, groupId] }));
         }
     };
@@ -320,25 +384,32 @@ export const useMenuEditor = () => {
     };
 
     const handleDelete = useCallback(async () => {
-        if (!selectedProduct || !selectedProduct.id) return;
+        console.log('[useMenuEditor] handleDelete initiated');
+        if (!selectedProduct || !selectedProduct.id) {
+            console.warn('[useMenuEditor] Unexpected state: Missing product ID');
+            return;
+        }
 
-        if (window.confirm(`Tem certeza que deseja EXCLUIR o produto "${selectedProduct.name}"?\n\nEssa ação não pode ser desfeita.`)) {
-            try {
-                await handleAction('products', 'delete', selectedProduct.id);
-                showToast('Produto excluído com sucesso.', 'info');
-                setSelectedProduct(null);
-                setEditData({});
-                setRecipeEditData({});
-            } catch (error) {
-                console.error(error);
-                showToast('Erro ao excluir produto.', 'error');
-            }
+        try {
+            console.log(`[useMenuEditor] Deleting product ${selectedProduct.id} ("${selectedProduct.name}")`);
+
+            // Always attempt DB delete (Idempotent: if it's a draft not in DB, this is a no-op 200 OK)
+            await handleAction('products', 'delete', selectedProduct.id);
+
+            console.log('[useMenuEditor] Delete/Discard successful');
+            showToast('Produto excluído/descartado.', 'info');
+            setSelectedProduct(null);
+            setEditData({});
+            setRecipeEditData({});
+        } catch (error) {
+            console.error('[useMenuEditor] Delete failed:', error);
+            showToast('Erro ao excluir produto.', 'error');
         }
     }, [selectedProduct, handleAction, showToast]);
 
     return {
         selectedProduct, editData, setEditData, activeTab, setActiveTab,
-        currentEditingProduct, hasChanges,
+        currentEditingProduct, isDirty,
         newIngredientId, setNewIngredientId, isGeneratingCopy,
         openEditor, handleOpenCreator, handleClose, handleSave, handleDelete,
         toggleAvailability, onDuplicateProduct,

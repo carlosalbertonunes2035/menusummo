@@ -7,32 +7,48 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Regras para a coleção de Tenants (Seus clientes)
-    match /tenants/{tenantId} {
-      
-      // ==================================================
-      // 🧠 IMPORTAÇÃO INTELIGENTE (Onde está o erro)
-      // ==================================================
-      // Precisamos liberar a CRIAÇÃO na coleção 'import_jobs'
-      match /import_jobs/{jobId} {
-        allow create: if isAuthenticated(); // <--- ISSO CONSERTA O ERRO
-        allow read: if isAuthenticated();   // <--- ISSO PERMITE VER A BARRA DE PROGRESSO
-        allow update: if false; // Só o Backend mexe aqui depois de criado
-      }
+    // ============================================================================
+    // 🌐 COLEÇÕES RAÍZES (Usadas pelo App principal / hooks.ts)
+    // ============================================================================
+    // O App usa "collection(db, 'products')" filtrando por tenantId.
+    // Portanto, precisamos de regras na raiz.
+    
+    match /products/{id} { allow read, write: if isAuthenticated(); }
+    match /ingredients/{id} { allow read, write: if isAuthenticated(); }
+    match /recipes/{id} { allow read, write: if isAuthenticated(); }
+    match /orders/{id} { allow read, write: if isAuthenticated(); }
+    match /option_groups/{id} { allow read, write: if isAuthenticated(); }
+    match /coupons/{id} { allow read, write: if isAuthenticated(); }
+    match /customers/{id} { allow read, write: if isAuthenticated(); }
+    match /expenses/{id} { allow read, write: if isAuthenticated(); }
+    match /settings/{id} { allow read, write: if isAuthenticated(); }
+    match /print_jobs/{id} { allow read, write: if isAuthenticated(); }
 
-      // Regras para Produtos (Exemplo)
-      match /products/{productId} {
-        allow read: if true;
-        allow write: if isAuthenticated();
-      }
-      
-      // Regras para Ingredientes
-      match /ingredients/{ingredientId} {
-        allow read, write: if isAuthenticated();
+    // ============================================================================
+    // 🏢 TENANTS & IMPORTAÇÃO (Usado pelo useMenuImport.ts)
+    // ============================================================================
+    match /tenants/{tenantId} {
+      match /roles/{roleId} { allow read, write: if isAuthenticated(); }
+      match /import_jobs/{jobId} {
+        allow create: if isAuthenticated();
+        allow read: if isAuthenticated();
+        allow update: if false; 
+        allow delete: if isAuthenticated();
       }
     }
 
-    // Bloqueia todo o resto por segurança
+    // ============================================================================
+    // 👤 REGRAS DE USUÁRIO
+    // ============================================================================
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /system_users/{userId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Bloqueia todo o resto
     match /{document=**} {
       allow read, write: if false;
     }

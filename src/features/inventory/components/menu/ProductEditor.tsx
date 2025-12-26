@@ -15,7 +15,7 @@ import { ProductChannels } from './editor/ProductChannels';
 import {
     X, LayoutTemplate, ListPlus, Calculator, Globe, Package, CheckCircle2,
     Save, Trash2, Library, Link2Off, Monitor, Loader2, Wand2,
-    Image as ImageIcon, UploadCloud, Camera
+    Image as ImageIcon, UploadCloud, Camera, Eye
 } from 'lucide-react';
 import { Product, OptionGroup, ChannelConfig } from '../../../../types';
 import { slugify } from '../../../../lib/seoUtils';
@@ -41,20 +41,42 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
     // UI States
     const [isOptionManagerOpen, setIsOptionManagerOpen] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showUnsavedModal, setShowUnsavedModal] = useState(false);
 
-    // Auto-Slug Effect
+    // Auto-Slug Effect: Only runs on NEW products or when Name is actively edited
     useEffect(() => {
-        const nameToSlug = editData.name || selectedProduct?.name || '';
-        if (nameToSlug) {
-            const newSlug = slugify(nameToSlug);
-            if (editData.slug !== newSlug) {
-                setEditData(prev => ({ ...prev, slug: newSlug }));
+        const isNewProduct = !selectedProduct?.id || selectedProduct.name === 'Novo Produto';
+        const isNameEdited = !!editData.name;
+
+        if (isNewProduct || isNameEdited) {
+            const nameToSlug = editData.name || selectedProduct?.name || '';
+            if (nameToSlug) {
+                const newSlug = slugify(nameToSlug);
+                const currentEffectiveSlug = editData.slug ?? selectedProduct?.slug;
+
+                if (currentEffectiveSlug !== newSlug) {
+                    setEditData(prev => ({ ...prev, slug: newSlug }));
+                }
             }
         }
-    }, [editData.name, selectedProduct?.name, editData.slug, setEditData]);
+    }, [editData.name, selectedProduct, editData.slug, setEditData]);
+
+    const onCloseRequest = async () => {
+        if (logic.isDirty) {
+            setShowUnsavedModal(true);
+        } else {
+            handleClose(true);
+        }
+    };
+
+    const handleSaveAndClose = async () => {
+        // Optimistic Close: Close UI immediately
+        handleClose(true);
+        // Then perform save in background
+        handleSave();
+    };
 
     // Derived State
-    // Vincular grupos de opções com segurança
     const linkedGroups = useMemo(() => {
         if (!currentEditingProduct?.optionGroupIds || !Array.isArray(currentEditingProduct.optionGroupIds)) {
             return [];
@@ -79,19 +101,45 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
 
     // Handlers
     const handleBasicInfoUpdate = (field: keyof Product, value: any) => {
-        if (field === 'name') {
-            // Update name and sync displayName across channels
-            setEditData((prev: Partial<Product>) => {
-                const newData = { ...prev, name: value };
-                if (prev.channels) {
-                    const updatedChannels = prev.channels.map((c: ChannelConfig) => ({ ...c, displayName: value }));
-                    newData.channels = updatedChannels;
-                }
-                return newData;
-            });
-        } else {
-            setEditData(prev => ({ ...prev, [field]: value }));
-        }
+        setEditData((prev: Partial<Product>) => {
+            const newData = { ...prev, [field]: value };
+            const existingChannels = prev.channels || selectedProduct?.channels || [];
+
+            // Ensure basic channels exist if arrays are empty (Fix for broken imports)
+            let updatedChannels = [...existingChannels];
+
+            if (updatedChannels.length === 0) {
+                updatedChannels = [
+                    { channel: 'pos', isAvailable: true, price: 0, displayName: newData.name || 'Novo Produto' },
+                    { channel: 'digital-menu', isAvailable: true, price: 0, displayName: newData.name || 'Novo Produto', description: '' },
+                    { channel: 'ifood', isAvailable: false, price: 0, displayName: newData.name || 'Novo Produto' }
+                ];
+            }
+
+            // Sync logic
+            if (field === 'name') {
+                updatedChannels = updatedChannels.map((c: ChannelConfig) => ({ ...c, displayName: value }));
+            } else if (field === 'price') {
+                const newPrice = Number(value); // Ensure number
+                newData.price = newPrice;
+                updatedChannels = updatedChannels.map((c: ChannelConfig) => {
+                    if (['pos', 'digital-menu', 'ifood'].includes(c.channel)) {
+                        return { ...c, price: newPrice };
+                    }
+                    return c;
+                });
+            } else if (field === 'description') {
+                updatedChannels = updatedChannels.map((c: ChannelConfig) => {
+                    if (['pos', 'digital-menu'].includes(c.channel)) {
+                        return { ...c, description: value };
+                    }
+                    return c;
+                });
+            }
+
+            newData.channels = updatedChannels;
+            return newData;
+        });
     };
 
     const handleImageChange = (url: string) => {
@@ -105,50 +153,20 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
         });
     };
 
-    // Keyboard Shortcuts
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            // Ctrl+S - Save
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                handleSave();
-            }
-            // Ctrl+D - Delete (only if product exists)
-            if (e.ctrlKey && e.key === 'd' && selectedProduct?.id) {
-                e.preventDefault();
-                setShowDeleteConfirm(true);
-            }
-            // Esc - Close modal or confirmation
-            if (e.key === 'Escape') {
-                if (showDeleteConfirm) {
-                    setShowDeleteConfirm(false);
-                } else {
-                    handleClose();
-                }
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleSave, handleClose, selectedProduct?.id, showDeleteConfirm]);
-
-    // Calculate product completion score
+    // Completion Score
     const getCompletionScore = () => {
         let score = 0;
         const current = currentEditingProduct;
-
         if (!current) return 0;
-
         if (current.name) score += 20;
         if (current.channels?.some(c => c.image)) score += 20;
         if (current.ingredients && current.ingredients.length > 0) score += 20;
         if (current.channels?.some(c => c.isAvailable && c.price > 0)) score += 20;
         if (current.slug) score += 20;
-
         return score;
     };
 
-    // Tab Navigation Flow
+    // Tab Navigation
     const tabFlow = ['GENERAL', 'OPTIONS', 'ENGINEERING', 'CHANNELS', 'SEO'] as const;
     const currentTabIndex = activeTab ? tabFlow.indexOf(activeTab) : 0;
     const canGoNext = currentTabIndex >= 0 && currentTabIndex < tabFlow.length - 1;
@@ -166,6 +184,28 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
         }
     };
 
+    // Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                handleSaveAndClose();
+            }
+            if (e.ctrlKey && e.key === 'd' && selectedProduct?.id) {
+                e.preventDefault();
+                setShowDeleteConfirm(true);
+            }
+            if (e.key === 'Escape') {
+                if (showDeleteConfirm) setShowDeleteConfirm(false);
+                else if (showUnsavedModal) setShowUnsavedModal(false);
+                else onCloseRequest();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [handleSaveAndClose, onCloseRequest, selectedProduct?.id, showDeleteConfirm, showUnsavedModal]);
+
+
     if (!selectedProduct || !currentEditingProduct) return null;
 
     const digitalChannelData = currentEditingProduct.channels?.find((c: ChannelConfig) => c.channel === 'digital-menu') || currentEditingProduct.channels?.[0] || { image: '', displayName: '', description: '' };
@@ -174,9 +214,9 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
     return (
         <>
             <div className="fixed inset-0 z-[60] flex justify-end">
-                <div className="absolute inset-0 bg-summo-dark/60 backdrop-blur-sm transition-opacity" onClick={handleClose}></div>
+                <div className="absolute inset-0 bg-summo-dark/60 backdrop-blur-sm transition-opacity" onClick={onCloseRequest}></div>
 
-                <div className="relative w-full lg:w-[800px] bg-white shadow-2xl border-l border-gray-200 flex flex-col animate-slide-in-right h-full">
+                <div className="relative w-full lg:w-[1000px] bg-white shadow-2xl border-l border-gray-200 flex flex-col animate-slide-in-right h-full">
                     {/* Header */}
                     <div className="px-6 py-4 bg-white border-b border-gray-100 flex justify-between items-center sticky top-0 z-20">
                         <div className="flex items-center gap-3 min-w-0">
@@ -202,7 +242,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                                 </label>
                             )}
                             <div className="h-8 w-px bg-gray-200"></div>
-                            <button type="button" onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition"><X size={24} /></button>
+                            <button type="button" onClick={onCloseRequest} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition"><X size={24} /></button>
                         </div>
                     </div>
 
@@ -235,17 +275,18 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                             {/* GENERAL TAB */}
                             {activeTab === 'GENERAL' && (
                                 <div className="space-y-6 animate-fade-in">
-                                    <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-1"><Monitor size={12} /> Identificação</h4>
+                                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-1"><Monitor size={12} /> Informações Principais</h4>
 
                                         <ProductBasicInfo
                                             product={currentEditingProduct}
                                             editData={editData}
                                             onUpdate={handleBasicInfoUpdate}
                                             categories={uniqueCategories as string[]}
+                                            onImageChange={handleImageChange}
                                         />
 
-                                        <div className="pt-2">
+                                        <div className="pt-4 border-t border-gray-100 mt-4">
                                             <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Etiquetas (Tags)</label>
                                             <div className="flex flex-wrap gap-2">
                                                 {['Promoção', 'Novo', 'Vegano', 'Mais Vendido', 'Sem Glúten', 'Sem Lactose'].map((tag: string) => (
@@ -261,62 +302,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                                         </div>
                                     </div>
 
-                                    <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-1"><Package size={12} /> Imagem Principal</h4>
-                                        <div className="flex justify-center">
-                                            <div className="w-48">
-                                                <select
-                                                    value={editData.type || currentEditingProduct.type}
-                                                    onChange={(e) => setEditData({ ...editData, type: e.target.value as 'SIMPLE' | 'COMBO' })}
-                                                    disabled={!!selectedProduct.id}
-                                                    className={`w-full p-3 border rounded-xl outline-none transition appearance-none bg-white ${!!selectedProduct.id ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'focus:ring-2 focus:ring-summo-primary/20'}`}
-                                                >
-                                                    <option value="SIMPLE">Produto Simples</option>
-                                                    <option value="COMBO">Combo de Produtos</option>
-                                                </select>
-                                                <ProductImageManager
-                                                    product={currentEditingProduct}
-                                                    currentImage={currentEditingProduct.image || ''}
-                                                    onImageChange={handleImageChange}
-                                                    productName={currentEditingProduct.name || ''}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {/* Left Column - Image & Basic Info */}
-                                    <div className="space-y-4">
-                                        {/* Master Image Upload */}
-                                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                            <h3 className="font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                                <ImageIcon size={18} /> Foto Principal
-                                                <span className="text-xs font-normal text-gray-400 ml-auto">Será usada em todos os canais</span>
-                                            </h3>
-                                            <div className="relative group w-full aspect-video max-h-[200px] bg-white rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-summo-primary hover:bg-summo-primary/5 transition overflow-hidden">
-                                                {(editData.image || currentEditingProduct.image) ? (
-                                                    <>
-                                                        <img src={editData.image || currentEditingProduct.image} className="w-full h-full object-cover" />
-                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                                                            <button onClick={() => document.getElementById('master-image-upload')?.click()} className="p-2 bg-white rounded-full text-gray-700 hover:text-summo-primary"><UploadCloud size={20} /></button>
-                                                            <button onClick={() => handleImageChange('')} className="p-2 bg-white rounded-full text-red-500 hover:bg-red-50"><Trash2 size={20} /></button>
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <div onClick={() => document.getElementById('master-image-upload')?.click()} className="text-center p-2">
-                                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mx-auto mb-2 group-hover:scale-110 transition"><Camera size={24} /></div>
-                                                        <p className="text-sm font-bold text-gray-500">Adicionar Foto</p>
-                                                    </div>
-                                                )}
-                                                <input type="file" id="master-image-upload" className="hidden" accept="image/*" onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        const reader = new FileReader();
-                                                        reader.onloadend = () => handleImageChange(reader.result as string);
-                                                        reader.readAsDataURL(file);
-                                                    }
-                                                }} />
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             )}
 
@@ -372,43 +357,43 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
 
                     {/* Footer */}
                     <div className="bg-white border-t border-gray-200 sticky bottom-0 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-                        <div className="p-4 pb-safe lg:pb-4 flex gap-3">
-                            {/* Previous Tab Button */}
-                            {canGoPrevious && (
-                                <button
-                                    onClick={handlePreviousTab}
-                                    className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition active:scale-95 flex items-center gap-2"
-                                    title="Aba Anterior"
-                                >
-                                    ← Anterior
-                                </button>
-                            )}
-
-                            {/* Delete Button - Always visible now */}
+                        <div className="p-4 pb-safe lg:pb-4 flex items-center justify-between gap-4">
+                            {/* Delete Button - Left Side */}
                             <button
                                 onClick={() => setShowDeleteConfirm(true)}
-                                className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition absolute left-6"
+                                className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition flex-shrink-0"
                                 title={selectedProduct.id ? "Excluir Produto (Ctrl+D)" : "Descartar Rascunho"}
                             >
                                 <Trash2 size={20} />
                             </button>
 
-                            {/* Next Tab / Save Button */}
-                            {canGoNext ? (
+                            {/* Navigation Buttons - Right Side */}
+                            <div className="flex items-center gap-3 flex-1 justify-end">
+                                {/* Always Show Save Button for Quick Access */}
                                 <button
-                                    onClick={handleNextTab}
-                                    className="flex-1 py-3 bg-summo-primary text-white rounded-xl font-bold hover:bg-summo-dark transition active:scale-95 flex items-center justify-center gap-2"
+                                    onClick={handleSaveAndClose}
+                                    className="px-6 py-3 bg-white text-summo-primary border-2 border-summo-primary/10 rounded-xl font-bold hover:bg-summo-bg transition flex items-center justify-center gap-2 active:scale-95"
+                                    title="Salvar e Fechar (Ctrl+S)"
                                 >
-                                    Próximo →
+                                    <Save size={18} /> Salvar
                                 </button>
-                            ) : (
-                                <button
-                                    onClick={handleSave}
-                                    className="flex-1 py-3 bg-summo-primary text-white rounded-xl font-bold shadow-lg shadow-summo-primary/30 hover:bg-summo-dark transition flex items-center justify-center gap-2 active:scale-95"
-                                >
-                                    <Save size={20} /> Salvar <span className="text-xs opacity-70">(Ctrl+S)</span>
-                                </button>
-                            )}
+
+                                {canGoNext ? (
+                                    <button
+                                        onClick={handleNextTab}
+                                        className="px-6 py-3 bg-summo-primary text-white rounded-xl font-bold hover:bg-summo-dark transition active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-summo-primary/20"
+                                    >
+                                        Próximo →
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleSaveAndClose}
+                                        className="px-6 py-3 bg-summo-primary text-white rounded-xl font-bold shadow-lg shadow-summo-primary/30 hover:bg-summo-dark transition flex items-center justify-center gap-2 active:scale-95"
+                                    >
+                                        <Save size={20} /> Concluir
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div >
@@ -423,7 +408,9 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                             <div className="p-3 bg-red-100 rounded-full">
                                 <Trash2 size={24} className="text-red-600" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-800">Excluir Produto?</h3>
+                            <h3 className="text-xl font-bold text-gray-800">
+                                Excluir Produto?
+                            </h3>
                         </div>
                         <p className="text-gray-600 mb-6">
                             Tem certeza que deseja excluir <strong className="text-gray-800">"{selectedProduct?.name}"</strong>?
@@ -457,6 +444,51 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                 onLinkGroup={linkOptionGroup}
                 existingGroupIds={currentEditingProduct.optionGroupIds || []}
             />
+            {/* Unsaved Changes Warning Modal */}
+            {showUnsavedModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-3 bg-orange-100 rounded-full">
+                                <Save size={24} className="text-orange-600" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800">
+                                Salvar Alterações?
+                            </h3>
+                        </div>
+                        <p className="text-gray-600 mb-6">
+                            Você tem alterações não salvas em <strong className="text-gray-800">"{editData.name || selectedProduct.name || "Novo Produto"}"</strong>.
+                            <br />
+                            Deseja salvar antes de sair?
+                        </p>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={async () => {
+                                    await handleSaveAndClose();
+                                    setShowUnsavedModal(false);
+                                }}
+                                className="w-full py-3 bg-summo-primary text-white rounded-xl font-bold hover:bg-summo-dark transition flex items-center justify-center gap-2 shadow-lg shadow-summo-primary/20"
+                            >
+                                <Save size={18} /> Sim, Salvar e Sair
+                            </button>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => handleClose(true)}
+                                    className="flex-1 py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl font-bold hover:bg-red-100 transition"
+                                >
+                                    Descartar Alterações
+                                </button>
+                                <button
+                                    onClick={() => setShowUnsavedModal(false)}
+                                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition"
+                                >
+                                    Continuar Editando
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };

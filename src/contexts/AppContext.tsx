@@ -83,21 +83,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     setSettingsState(GET_DEFAULT_SETTINGS(tenantId));
                 }
             } else {
-                // 2. Fallback to LocalStorage (Mock Mode or Offline)
-                const settingsKey = `summo_db_settings_${tenantId}`;
-                const storedSettings = localStorage.getItem(settingsKey);
-
-                // CRITICAL: Validate before parsing to prevent cross-tenant data leak
-                if (storedSettings && validateTenantKey(settingsKey)) {
-                    try {
-                        setSettingsState(JSON.parse(storedSettings));
-                    } catch (e) {
-                        console.error('[Security] Invalid settings data, using defaults');
-                        setSettingsState(GET_DEFAULT_SETTINGS(tenantId));
-                    }
-                } else {
-                    setSettingsState(GET_DEFAULT_SETTINGS(tenantId));
-                }
+                // 2. Fallback Removed - Hard Failure
+                console.error("[AppContext] Firestore connection required. Mock mode disabled.");
+                // Optional: setSettingsState(GET_DEFAULT_SETTINGS(tenantId)); 
+                // But better to leave empty or error state if real data is mandated.
+                // For now, default settings to allow UI to render, but log heavily.
+                setSettingsState(GET_DEFAULT_SETTINGS(tenantId));
             }
 
             // Load Cash Register (always from localStorage)
@@ -191,20 +182,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     if (action === 'update') await setSettings(data);
                     break;
                 default:
-                    // Fallback for collections without specific services yet
-                    if (isMockMode) {
-                        const currentData = getCollection(tenantId, collectionName as any);
-                        let newData = [...currentData];
-                        if (action === 'add') newData.push({ ...data, tenantId, id: id || Date.now().toString() });
-                        else if (action === 'update' && id) newData = newData.map(item => item.id === id ? { ...item, ...data } : item);
-                        else if (action === 'delete' && id) newData = newData.filter(item => item.id !== id);
-                        setCollection(tenantId, collectionName as any, newData);
-                    } else {
-                        const docId = id || data?.id || Date.now().toString();
-                        const docRef = doc(db, collectionName, docId);
-                        if (action === 'add' || action === 'update') await setDoc(docRef, { ...data, tenantId }, { merge: true });
-                        else if (action === 'delete' && id) await deleteDoc(doc(db, collectionName, id));
-                    }
+                    // Standard Firestore Logic
+                    const docId = id || data?.id || Date.now().toString();
+                    const docRef = doc(db, collectionName, docId);
+                    if (action === 'add' || action === 'update') await setDoc(docRef, { ...data, tenantId }, { merge: true });
+                    else if (action === 'delete' && id) await deleteDoc(doc(db, collectionName, id));
             }
             return resultId;
         } catch (e) {
@@ -220,20 +202,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const onPlaceOrder = useCallback(async (orderData: Omit<Order, 'id' | 'createdAt'>): Promise<string> => {
         console.log(`[onPlaceOrder] Initiated. MockMode: ${isMockMode}`);
 
-        // 1. Mock Mode: Keep local logic
+        // 1. Mock Mode Removed - Enforcing Production
         if (isMockMode === true) {
-            console.log('[onPlaceOrder] Executing Mock Mode Save...');
-            const orderId = Date.now().toString();
-            const newOrder: Order = {
-                ...orderData,
-                id: orderId,
-                createdAt: new Date(),
-                tenantId
-            };
-            // Ensure we are using the local repository logic
-            await orders.save(newOrder, tenantId);
-            console.log('[onPlaceOrder] Mock Save Complete');
-            return orderId;
+            console.error("Critical: Mock Mode attempted in Production Build.");
+            throw new Error("Simulation Mode is disabled in this environment.");
         }
 
         // 2. Production Mode: Call Secure Backend

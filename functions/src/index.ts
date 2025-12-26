@@ -7,7 +7,7 @@ admin.initializeApp();
 export { startSmartImport } from './flows/importFlow';
 export { getProfitInsights } from './flows/profitFlow';
 export { secureCheckout } from './flows/checkoutFlow';
-export { testAgentFlow } from './ai/tests/flowSimulation';
+
 
 // Export Triggers
 export {
@@ -28,14 +28,14 @@ export { onMenuImportCreated } from './triggers/menuImportTrigger';
 
 // Export Marketing AI Flows
 import { onCall } from 'firebase-functions/v2/https';
-import { generateSocialMediaContent, generateStoreSeo } from './ai/agents/marketingAgent';
+import { generateSocialMediaContent, generateStoreSeo as generateStoreSeoAgent } from './ai/agents/marketingAgent';
 
 export const generateSocialMedia = onCall({ region: 'southamerica-east1' }, async (request) => {
     return generateSocialMediaContent(request.data.prompt);
 });
 
 export const generateStoreSeo = onCall({ region: 'southamerica-east1' }, async (request) => {
-    return generateStoreSeo(request.data.brandName, request.data.products);
+    return generateStoreSeoAgent(request.data.brandName, request.data.products);
 });
 
 // Export POS Agent
@@ -73,11 +73,27 @@ export const analyzeReceipt = onCall({ region: 'southamerica-east1' }, async (re
 });
 
 // Export Marketing Agent (Copy & Image)
-import { generateProductMarketing, generateProductImage } from './ai/agents/marketingAgent';
+// Export Marketing Agent (Copy & Image)
+import { generateProductMarketing, enhanceProductImage as enhanceProductImageAgent } from './ai/agents/marketingAgent';
 export const generateMarketingCopy = onCall({ region: 'southamerica-east1' }, async (request) => {
     // Adapter: Frontend expects "generateMarketingCopy" but we map to "generateProductMarketing"
     return generateProductMarketing(request.data.productName, request.data.ingredients, request.data.restaurantName);
 });
-export const generateImage = onCall({ region: 'southamerica-east1' }, async (request) => {
-    return generateProductImage(request.data.productName);
+import { HttpsError } from 'firebase-functions/v2/https';
+
+export const enhanceProductImageFn = onCall({
+    region: 'southamerica-east1',
+    cors: true, // Explicit CORS
+    timeoutSeconds: 60, // Give AI time to think
+    memory: '1GiB'
+}, async (request) => {
+    try {
+        console.log(`[enhanceProductImage] Request received for: ${request.data.productName}`);
+        return await enhanceProductImageAgent(request.data.productName, request.data.originalImageUrl);
+    } catch (error: any) {
+        console.error('[enhanceProductImage] Implementation Error:', error);
+        // Return a structured error that the client SDK can parse
+        throw new HttpsError('internal', error.message || 'Falha interna na IA', error);
+    }
 });
+export const enhanceProductImage = enhanceProductImageFn;

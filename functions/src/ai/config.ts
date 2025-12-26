@@ -29,10 +29,13 @@ export const MODELS = {
     thinking: 'vertexai/gemini-2.0-flash-thinking-exp',
 
     // C. O Plano B / Fallback de Alta Precisão
-    pro: gemini15Pro,
+    pro: 'vertexai/gemini-1.5-pro-001',
 
     // Padrão Estável
     stable: gemini15Flash,
+
+    // D. Geração de Imagens (Imagen 3)
+    image: 'vertexai/imagen-3',
 };
 
 // Model configuration for different use cases

@@ -80,142 +80,140 @@ const MenuImportModal: React.FC<MenuImportModalProps> = ({ isOpen, onClose, onSu
         }
     };
 
-    const handleFileUpload = async (file: File) => {
+    // Reset state when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setStep('SELECT');
+            setImportResults(null);
+            setScrapedData(null);
+            setIfoodLink('');
+        }
+    }, [isOpen]);
+
+    const handleFileUpload = async (files: FileList | File[]) => {
         if (!systemUser?.tenantId) return;
 
+        const filesArray = Array.from(files);
+        if (filesArray.length === 0) return;
+
+        // Validate all files
         const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-        if (!validTypes.includes(file.type)) {
-            showToast("Formato inválido. Use JPG, PNG ou PDF.", "error");
+        const invalidFiles = filesArray.filter(f => !validTypes.includes(f.type));
+
+        if (invalidFiles.length > 0) {
+            showToast(`Formato inválido em ${invalidFiles.length} arquivo(s). Use JPG, PNG ou PDF.`, "error");
             return;
         }
 
         setStep('SCANNING');
 
         try {
-            const timestamp = Date.now();
-            const storagePath = `imports/${systemUser.tenantId}/${timestamp}_${file.name}`;
-            const storageReference = ref(storage, storagePath);
+            // Process all files in parallel
+            const uploadPromises = filesArray.map(async (file) => {
+                const timestamp = Date.now();
+                const storagePath = `imports/${systemUser.tenantId}/${timestamp}_${file.name}`;
+                const storageReference = ref(storage, storagePath);
 
-            console.log(`[Storage] Uploading: ${storagePath} (${file.type})`);
-            const uploadResult = await uploadBytes(storageReference, file, {
-                contentType: file.type
+                console.log(`[Storage] Uploading: ${storagePath} (${file.type})`);
+                const uploadResult = await uploadBytes(storageReference, file, {
+                    contentType: file.type
+                });
+                const downloadUrl = await getDownloadURL(uploadResult.ref);
+
+                // Return startImport promise
+                return startImport(downloadUrl, file.type);
             });
-            const downloadUrl = await getDownloadURL(uploadResult.ref);
 
-            // Trigger Background Job
-            await startImport(downloadUrl, file.type);
+            await Promise.all(uploadPromises);
 
-            // Close modal after starting background job
-            showToast("Importação iniciada em segundo plano. Você será notificado ao concluir.", "success");
+            showToast(`${filesArray.length} arquivo(s) enviado(s) para análise!`, "success");
             onClose();
         } catch (error: any) {
             console.error(error);
-            showToast("Erro ao iniciar importação.", "error");
-            setStep('VISION_UPLOAD');
+            showToast("Erro ao iniciar importação em lote.", "error");
+            setStep('VISION_UPLOAD'); // Return to upload step on error
         }
     };
 
-    const onDragOver = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(true);
-    }, []);
-
-    const onDragLeave = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-    }, []);
+    // ... (drag handlers need to use new signature)
 
     const onDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
-        const file = e.dataTransfer.files[0];
-        if (file) handleFileUpload(file);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFileUpload(e.dataTransfer.files);
+        }
     }, [systemUser?.tenantId]);
 
-
-    const executeImport = async () => {
-        if (!systemUser?.tenantId || !scrapedData) return;
-
-        const items: any[] = [];
-        scrapedData.items?.forEach((item: any) => {
-            items.push(item);
-        });
-
-        executeAIImport({ items });
-    };
-
-    const totalItems = scrapedData?.items?.length || 0;
-    const avgPrice = (scrapedData?.items?.reduce((acc: number, item: any) => acc + item.price, 0) || 0) / (totalItems || 1);
+    // ...
 
     const content = () => {
         switch (step) {
             case 'SELECT':
                 return (
-                    <div className="space-y-8 animate-in fade-in zoom-in duration-300">
+                    <div className="space-y-8 animate-in slide-in-from-bottom duration-300">
                         <div className="text-center space-y-2">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 text-xs font-bold uppercase tracking-wider mb-2">
-                                <Zap size={12} /> Engenharia de Dados High-End
-                            </div>
-                            <h2 className="text-3xl font-black text-white tracking-tight">Sincronizador de <span className="text-orange-500">Lucratividade</span></h2>
-                            <p className="text-slate-400">Escolha o canal de entrada para alimentar sua inteligência.</p>
+                            <h2 className="text-3xl font-black text-white tracking-tight">Importar Cardápio</h2>
+                            <p className="text-slate-400">Digitalize seu cardápio físico ou importe do iFood em segundos usando IA.</p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             <button
                                 onClick={() => setStep('IFOOD_LINK')}
-                                className="group relative flex items-center gap-6 p-6 bg-white/5 border border-white/10 rounded-3xl hover:border-orange-500/50 hover:bg-white/10 transition-all text-left overflow-hidden"
+                                className="group relative p-6 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-orange-500/50 rounded-3xl transition-all duration-300 text-left overflow-hidden"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <div className="w-12 h-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-orange-500/20 group-hover:scale-110 transition-transform">
-                                    <Store size={24} />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-white group-hover:text-orange-400 transition-colors">Importar iFood</h3>
-                                    <p className="text-xs text-slate-400 mt-1">Extraímos produtos e aplicamos reverse engineering.</p>
+                                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/0 to-orange-500/0 group-hover:to-orange-500/10 transition-all opacity-0 group-hover:opacity-100" />
+                                <div className="relative z-10 space-y-4">
+                                    <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform duration-300">
+                                        <Store size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-white text-lg">Via iFood</h3>
+                                        <p className="text-sm text-slate-500 mt-1">Cole o link da sua loja</p>
+                                    </div>
                                 </div>
                             </button>
 
                             <button
                                 onClick={() => setStep('VISION_UPLOAD')}
-                                className="group relative flex items-center gap-6 p-6 bg-white/5 border border-white/10 rounded-3xl hover:border-blue-500/50 hover:bg-white/10 transition-all text-left overflow-hidden"
+                                className="group relative p-6 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/50 rounded-3xl transition-all duration-300 text-left overflow-hidden"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <div className="w-12 h-12 bg-blue-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
-                                    <Camera size={24} />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">Visão (Foto/PDF)</h3>
-                                    <p className="text-xs text-slate-400 mt-1">Analise fotos de cardápios físicos ou arquivos PDF.</p>
+                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-500/0 group-hover:to-blue-500/10 transition-all opacity-0 group-hover:opacity-100" />
+                                <div className="relative z-10 space-y-4">
+                                    <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform duration-300">
+                                        <FileText size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-white text-lg">Foto ou PDF</h3>
+                                        <p className="text-sm text-slate-500 mt-1">Envie arquivos do cardápio</p>
+                                    </div>
                                 </div>
                             </button>
-
                         </div>
                     </div>
                 );
 
             case 'VISION_UPLOAD':
                 return (
-                    <div className="space-y-8 animate-in slide-in-from-right duration-300">
+                    <div
+                        className={`space-y-8 animate-in slide-in-from-right duration-300 ${isDragging ? 'opacity-50' : ''}`}
+                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={onDrop}
+                    >
                         <div className="text-center">
-                            <h2 className="text-2xl font-black text-white">Importação Visual</h2>
-                            <p className="text-slate-400 mt-1">Arraste ou selecione a foto do seu cardápio físico.</p>
+                            <h2 className="text-2xl font-bold text-white">Upload de Arquivos</h2>
+                            <p className="text-slate-400 mt-1">Envie fotos (JPG/PNG) ou PDF do seu cardápio físico.</p>
                         </div>
 
-                        <div
-                            onDragOver={onDragOver}
-                            onDragLeave={onDragLeave}
-                            onDrop={onDrop}
-                            className={`relative h-64 border-2 border-dashed rounded-[2rem] transition-all flex flex-col items-center justify-center gap-4 ${isDragging
-                                ? 'border-blue-500 bg-blue-500/10 scale-[1.02]'
-                                : 'border-white/10 bg-white/5 hover:border-blue-500/30 hover:bg-white/10'
-                                }`}
-                        >
+                        <div className="border-3 border-dashed border-slate-700 hover:border-blue-500 rounded-3xl p-10 flex flex-col items-center justify-center gap-4 transition-colors bg-white/5 group">
                             <input
                                 type="file"
                                 id="file-upload"
                                 className="hidden"
                                 accept="image/*,application/pdf"
-                                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+                                multiple
+                                onChange={(e) => e.target.files && e.target.files.length > 0 && handleFileUpload(e.target.files)}
                             />
                             <label
                                 htmlFor="file-upload"
@@ -312,6 +310,9 @@ const MenuImportModal: React.FC<MenuImportModalProps> = ({ isOpen, onClose, onSu
                 );
 
             case 'CONFIRM':
+                const totalItems = scrapedData?.menu?.length || 0;
+                const avgPrice = scrapedData?.menu?.reduce((acc: number, item: any) => acc + (item.price || 0), 0) / (totalItems || 1);
+
                 return (
                     <div className="space-y-8 animate-in zoom-in duration-300">
                         <div className="text-center">
@@ -336,7 +337,7 @@ const MenuImportModal: React.FC<MenuImportModalProps> = ({ isOpen, onClose, onSu
                         <div className="flex gap-4">
                             <button onClick={() => setStep('SELECT')} className="flex-1 py-4 text-slate-400 font-bold hover:text-white transition-colors">Cancelar</button>
                             <button
-                                onClick={executeImport}
+                                onClick={() => executeAIImport(scrapedData)}
                                 disabled={isImporting}
                                 className="flex-[2] py-4 bg-green-600 text-white font-black rounded-2xl hover:bg-green-500 shadow-xl shadow-green-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                             >
@@ -346,7 +347,6 @@ const MenuImportModal: React.FC<MenuImportModalProps> = ({ isOpen, onClose, onSu
                         </div>
                     </div>
                 );
-
 
             case 'AI_PROCESSING':
                 return (
@@ -365,7 +365,6 @@ const MenuImportModal: React.FC<MenuImportModalProps> = ({ isOpen, onClose, onSu
                 );
 
             case 'RESULTS':
-                const summary = importResults?.results || [];
                 return (
                     <div className="space-y-6 animate-in zoom-in duration-300">
                         <div className="text-center">
@@ -378,9 +377,8 @@ const MenuImportModal: React.FC<MenuImportModalProps> = ({ isOpen, onClose, onSu
 
                         <div className="max-h-48 overflow-y-auto space-y-2 pr-2 scrollbar-thin scrollbar-thumb-white/10">
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Produtos Identificados</p>
-                            {/* Assuming for now the response doesn't detail items to simplify UI but we mention the success */}
                             <div className="p-4 bg-white/5 border border-white/10 rounded-2xl text-center">
-                                <p className="text-white text-sm">Os produtos estão sendo criadosatomicamente com suas fichas técnicas vinculadas.</p>
+                                <p className="text-white text-sm">Os produtos estão sendo criados automaticamente com suas fichas técnicas vinculadas.</p>
                             </div>
                         </div>
 

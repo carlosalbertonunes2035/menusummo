@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import {
     Search, Plus, Image as ImageIcon, Power, Edit3, TrendingUp,
@@ -14,6 +13,8 @@ import ErrorBoundary from '../../../components/ui/ErrorBoundary';
 import ProductEditor from '../components/menu/ProductEditor';
 import MenuImportModal from '../components/menu/MenuImportModal';
 import { Product } from '../../../types';
+import { collection, query, orderBy, limit, onSnapshot, deleteDoc, doc } from '@firebase/firestore';
+import { db } from '../../../lib/firebase/client';
 
 // --- SUB-COMPONENT: PRODUCT CARD ---
 const MenuProductCard: React.FC<{
@@ -27,7 +28,11 @@ const MenuProductCard: React.FC<{
     const tenantId = systemUser?.tenantId || 'global';
 
     const posChannel = product.channels.find(c => c.channel === 'pos') || product.channels[0] || { price: 0, isAvailable: false, description: '', image: '' };
-    const isAvailable = posChannel.isAvailable;
+    // Logic: Global Switch (PAUSED/ACTIVE) overrides Channel Switch.
+    // If product.status is PAUSED, it is effectively unavailable everywhere.
+    // If ACTIVE, it respects the channel configuration.
+    const isGlobalActive = product.status !== 'PAUSED';
+    const isAvailable = isGlobalActive && (posChannel.isAvailable || false);
     const price = posChannel.price;
 
     const [isEditingPrice, setIsEditingPrice] = useState(false);
@@ -35,9 +40,11 @@ const MenuProductCard: React.FC<{
     const [isUploading, setIsUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
 
-    // Profit Indicators
     const isLowMargin = product.marginPercent < 30;
     const isHighMargin = product.marginPercent >= 50;
+
+    // Resolve Image: Channel Override > Root Product Image
+    const displayImage = posChannel.image || product.image;
 
     // Quick Edit Handlers
     const handlePriceSave = (e?: React.FormEvent) => {
@@ -88,7 +95,7 @@ const MenuProductCard: React.FC<{
             setIsUploading(true);
             try {
                 const url = await storageService.uploadProductImage(file, tenantId, product.id);
-                // Sync across all main channels
+                // Sync across all main channels AND root image
                 const newChannels = product.channels.map(c =>
                     ['pos', 'digital-menu', 'ifood'].includes(c.channel) ? { ...c, image: url } : c
                 );
@@ -119,19 +126,21 @@ const MenuProductCard: React.FC<{
                         🎁 COMBO
                     </div>
                 )}
-                {posChannel.image ? (
-                    <div className="w-full h-full relative overflow-hidden">
-                        {/* Blurred background filling for portrait/wide icons */}
-                        <img
-                            src={posChannel.image}
-                            className="absolute inset-0 w-full h-full object-cover blur-md opacity-30 scale-110"
-                            aria-hidden="true"
-                        />
+                {displayImage ? (
+                    <div className="w-full h-full relative overflow-hidden bg-gray-50">
+                        {/* Blurred background filling for portrait/wide icons (only show if fit is CONTAIN) */}
+                        {(!product.imageFit || product.imageFit === 'contain') && (
+                            <img
+                                src={displayImage}
+                                className="absolute inset-0 w-full h-full object-cover blur-md opacity-30 scale-110"
+                                aria-hidden="true"
+                            />
+                        )}
                         {/* Main Image contained properly */}
                         <img
-                            src={posChannel.image}
+                            src={displayImage}
                             alt={product.name}
-                            className="relative w-full h-full object-contain z-10 group-hover:scale-105 transition-transform duration-500"
+                            className={`relative w-full h-full z-10 group-hover:scale-105 transition-transform duration-500 ${product.imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
                             loading="lazy"
                         />
                     </div>
@@ -226,13 +235,90 @@ const MenuProductCard: React.FC<{
 
 const MenuEngineering: React.FC = () => {
     const { products, ingredients } = useData();
+    // Hoist hooks
+    const { systemUser } = useAuth();
+    const { handleAction, showToast } = useApp();
     const menuEditorLogic = useMenuEditor();
     const { openEditor, handleOpenCreator, toggleAvailability } = menuEditorLogic;
 
+    // ... existing state ...
     const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
     const [searchQuery, setSearchQuery] = useState('');
     const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [activeJob, setActiveJob] = useState<any>(null); // New State
+
+    // 1. Listen for Active Jobs
+    const [ignoredJobIds, setIgnoredJobIds] = useState<Set<string>>(new Set());
+
+    React.useEffect(() => {
+        if (!systemUser?.tenantId) return;
+
+        const jobsRef = collection(db, `tenants/${systemUser.tenantId}/import_jobs`);
+        // Limit 5 to find recent ones, then pick the latest valid one
+        const q = query(jobsRef, orderBy('createdAt', 'desc'), limit(1));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (snapshot.empty) {
+                setActiveJob(null);
+                return;
+            }
+
+            const latestJob = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as any;
+
+            // STATUS CHECK:
+            // 1. If completed (100%), we don't show the loader anymore
+            if (latestJob.status === 'completed') {
+                setActiveJob(null);
+                return;
+            }
+
+            // 2. AGE CHECK:
+            // If the job is older than 60 minutes, we assume it's dead/irrelevant history.
+            // This prevents "Zombie" jobs from days ago appearing when you delete a recent one.
+            const createdAt = latestJob.createdAt?.toDate ? latestJob.createdAt.toDate() : new Date();
+            const now = new Date();
+            const diffMins = (now.getTime() - createdAt.getTime()) / 1000 / 60;
+
+            if (diffMins > 60) {
+                setActiveJob(null);
+                return;
+            }
+
+            // 3. STALE CHECK (15-60 mins):
+            // It's recent enough to show, but might be stuck.
+            if (diffMins > 15) {
+                setActiveJob({ ...latestJob, isStale: true });
+            } else {
+                setActiveJob(latestJob);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [systemUser?.tenantId]);
+
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    const handleClearJob = async () => {
+        if (!activeJob?.id || !systemUser?.tenantId || isCancelling) return;
+
+        setIsCancelling(true);
+        // OPTIMISTIC UPDATE: Clear UI immediately
+        const prevJob = activeJob;
+        setActiveJob(null);
+
+        // KILL TASK: Permanently delete the document.
+        try {
+            await deleteDoc(doc(db, `tenants/${systemUser.tenantId}/import_jobs`, prevJob.id));
+            showToast("Tarefa cancelada e removida.", "success");
+        } catch (error) {
+            console.error("Erro ao cancelar:", error);
+            // Revert on critical failure (optional, but usually better to just let it go)
+            showToast("Erro ao cancelar tarefa no servidor, mas ocultada localmente.", "error");
+        } finally {
+            setIsCancelling(false);
+        }
+    };
 
     const handleImportSuccess = () => {
         // Force refresh or just close modal, data context should handle subscriptions
@@ -316,6 +402,9 @@ const MenuEngineering: React.FC = () => {
                                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-summo-primary focus:ring-2 focus:ring-summo-primary/20 outline-none bg-gray-50 text-gray-800 text-sm transition-all"
                             />
                         </div>
+                        <button onClick={() => setIsImportModalOpen(true)} className="bg-white text-gray-700 border border-gray-200 px-3 py-2.5 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition flex items-center gap-2 active:scale-95" title="Importar Cardápio">
+                            <Import size={20} /> <span className="hidden xl:inline">Importar</span>
+                        </button>
                         <button onClick={() => setIsTypeModalOpen(true)} className="bg-summo-primary text-white px-4 py-2.5 rounded-xl font-bold shadow-lg shadow-summo-primary/30 hover:bg-summo-dark transition flex items-center gap-2 whitespace-nowrap active:scale-95">
                             <Plus size={20} /> <span className="hidden sm:inline">Novo Produto</span>
                         </button>
@@ -341,42 +430,87 @@ const MenuEngineering: React.FC = () => {
 
             {/* MAIN CONTENT GRID */}
             <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {filteredProducts.map((product, index) => (
-                        <ErrorBoundary key={product.id || `product-${index}`} scope={`Card: ${product.name}`} fallback={<div className="p-4 bg-red-50 rounded-xl text-red-600 text-sm">Erro ao carregar produto</div>}>
-                            <MenuProductCard
-                                product={product}
-                                onOpenEditor={openEditor}
-                                onToggleAvailability={toggleAvailability}
-                                isEditorOpen={menuEditorLogic.selectedProduct?.id === product.id}
-                            />
-                        </ErrorBoundary>
-                    ))}
 
-                    {/* Empty State */}
-                    {filteredProducts.length === 0 && (
-                        <div className="col-span-full py-20 text-center text-gray-400 flex flex-col items-center max-w-md mx-auto">
-                            <div className="bg-gray-100 p-6 rounded-full mb-6">
-                                <Wand2 size={48} className="text-purple-500 opacity-80" />
+                {/* SCENARIO 1: IMPORT IN PROGRESS */}
+                {activeJob && (
+                    <div className="flex flex-col items-center justify-center h-full animate-fade-in">
+                        <div className="bg-white border border-gray-100 rounded-2xl p-10 text-center shadow-xl max-w-lg w-full relative overflow-hidden">
+                            {/* Animated Background */}
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-summo-primary to-transparent animate-shimmer" />
+
+                            <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                                <span className="text-4xl">⚡</span>
                             </div>
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">Comece seu Cardápio</h3>
-                            <p className="text-sm text-gray-500 mb-8">
-                                Você ainda não tem produtos cadastrados. Que tal usar nossa IA para importar tudo automaticamente?
+
+                            <h3 className="text-2xl font-black text-gray-800 mb-2">
+                                {activeJob.isStale ? "Parece que demorou demais..." : "A IA está lendo seu cardápio..."}
+                            </h3>
+                            <p className="text-gray-500 mb-8 text-lg">
+                                {activeJob.message || "Processando..."}
+                                {activeJob.isStale && <br />}
+                                {activeJob.isStale && <span className="text-red-400 text-sm">(Esta tarefa parece travada)</span>}
                             </p>
 
-                            <button
-                                onClick={() => setIsImportModalOpen(true)}
-                                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-purple-200 hover:shadow-2xl hover:-translate-y-1 transition-all flex items-center justify-center gap-3 mb-4"
-                            >
-                                <Import size={20} /> Importar Cardápio (iFood/PDF)
-                            </button>
+                            {/* Real Progress Bar */}
+                            <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden mb-4 border border-gray-100">
+                                <div
+                                    className={`h-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(249,115,22,0.5)] ${activeJob.isStale ? 'bg-gray-400 w-full' : 'bg-gradient-to-r from-orange-500 to-pink-500'}`}
+                                    style={{ width: activeJob.isStale ? '100%' : `${activeJob.progress || 5}%` }}
+                                />
+                            </div>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-6">{activeJob.progress || 0}% Concluído</p>
 
-                            <button onClick={() => setIsTypeModalOpen(true)} className="text-sm font-bold text-gray-500 hover:text-gray-700 underline">
-                                Criar manualmente
+                            {/* Cancel / Clear Button */}
+                            <button
+                                onClick={handleClearJob}
+                                disabled={isCancelling}
+                                className="text-sm font-bold text-gray-400 hover:text-red-500 underline transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isCancelling ? "Cancelando..." : (activeJob.isStale ? "Cancelar e Tentar Novamente" : "Cancelar")}
                             </button>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
+
+                {/* SCENARIO 2: PRODUCT LIST (OR EMPTY STATE) */}
+                {!activeJob && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                        {filteredProducts.map((product, index) => (
+                            <ErrorBoundary key={product.id || `product-${index}`} scope={`Card: ${product.name}`} fallback={<div className="p-4 bg-red-50 rounded-xl text-red-600 text-sm">Erro ao carregar produto</div>}>
+                                <MenuProductCard
+                                    product={product}
+                                    onOpenEditor={openEditor}
+                                    onToggleAvailability={toggleAvailability}
+                                    isEditorOpen={menuEditorLogic.selectedProduct?.id === product.id}
+                                />
+                            </ErrorBoundary>
+                        ))}
+
+                        {/* Empty State */}
+                        {filteredProducts.length === 0 && (
+                            <div className="col-span-full py-20 text-center text-gray-400 flex flex-col items-center max-w-md mx-auto">
+                                <div className="bg-gray-100 p-6 rounded-full mb-6">
+                                    <Wand2 size={48} className="text-purple-500 opacity-80" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800 mb-2">Comece seu Cardápio</h3>
+                                <p className="text-sm text-gray-500 mb-8">
+                                    Você ainda não tem produtos cadastrados. Que tal usar nossa IA para importar tudo automaticamente?
+                                </p>
+
+                                <button
+                                    onClick={() => setIsImportModalOpen(true)}
+                                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-purple-200 hover:shadow-2xl hover:-translate-y-1 transition-all flex items-center justify-center gap-3 mb-4"
+                                >
+                                    <Import size={20} /> Importar Cardápio (iFood/PDF)
+                                </button>
+
+                                <button onClick={() => setIsTypeModalOpen(true)} className="text-sm font-bold text-gray-500 hover:text-gray-700 underline">
+                                    Criar manualmente
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             <ProductEditor logic={menuEditorLogic} />
@@ -430,11 +564,13 @@ const MenuEngineering: React.FC = () => {
                 </div>
             )}
 
-            <MenuImportModal
-                isOpen={isImportModalOpen}
-                onClose={() => setIsImportModalOpen(false)}
-                onSuccess={handleImportSuccess}
-            />
+            {isImportModalOpen && (
+                <MenuImportModal
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    onSuccess={handleImportSuccess}
+                />
+            )}
 
         </div>
     );

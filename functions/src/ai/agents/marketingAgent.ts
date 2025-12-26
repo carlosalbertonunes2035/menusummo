@@ -124,10 +124,68 @@ export async function generateStoreSeo(brandName: string, topProducts: string[])
  * Generates a photorealistic image for a product.
  * Note: Requires Imagen model enabled in Vertex AI.
  */
-export async function generateProductImage(productName: string) {
-    console.log(`[MarketingAgent] 🎨 Gerando imagem para: ${productName}`);
+/**
+ * Enhances a product image using Vision Analysis + Imagen 3.
+ * Strategy: Extract strict structure -> Re-generate with high aesthetics.
+ */
+import { analyzeForVisualEnhancement } from './visionAgent';
 
-    // SAFE FALLBACK: Return a high-quality Unsplash search URL based on the product name.
-    const query = encodeURIComponent(productName);
-    return `https://source.unsplash.com/800x600/?${query},food`;
+export async function enhanceProductImage(productName: string, originalImageUrl?: string) {
+    console.log(`[MarketingAgent] 🎨 Processando imagem para: ${productName}`);
+
+    // Fallback if no image strictly required but function called without it (legacy safety)
+    if (!originalImageUrl) {
+        const query = encodeURIComponent(productName);
+        return `https://source.unsplash.com/800x600/?${query},food`;
+    }
+
+    // 1. Vision Analysis (The "Safety Guard")
+    const visionData = await analyzeForVisualEnhancement(originalImageUrl);
+    console.log('[MarketingAgent] 👁️ Análise Visual Concluída:', visionData);
+
+    // 2. Construct the "Context-Aware Studio Prompt"
+    const prompt = `
+        PHOTOREALISTIC FOOD PHOTOGRAPHY. 8k Ultra-HD.
+        
+        SUBJECT: ${productName}.
+        CONTEXT/VIBE: ${visionData.marketingVibe || 'Professional Food Photography'}.
+        
+        COMPOSITION:
+        - Plating: ${visionData.platingStyle}
+        - Angle: ${visionData.cameraAngle}
+        
+        STRICT INGREDIENTS (NO HALLUCINATIONS):
+        ${visionData.visibleIngredients}
+        
+        LIGHTING & ATMOSPHERE (CRITICAL):
+        ${visionData.lightingSuggestion || 'Cinematic studio lighting, high contrast, rim light'}
+        
+        AESTHETICS:
+        - Michelin Guide Quality
+        - Glistening textures (appetizing)
+        - Depth of field (bokeh background)
+        - Sharp focus on the main food item
+        
+        NEGATIVE PROMPT: text, watermark, cartoon, illustration, distorted, extra ingredients, blurry, low resolution, people, hands, ugly plating.
+    `;
+
+    // 3. Generate with Imagen 3
+    const result = await ai.generate({
+        model: MODELS.image, // defined in config as 'vertexai/imagen-3'
+        prompt: prompt,
+        output: {
+            format: 'media' // Request media output
+        },
+        config: {
+            personGeneration: 'dont_allow', // Safety
+            aspectRatio: '1:1' // Default square for products
+        }
+    });
+
+    if (!result.media) {
+        throw new Error('Falha na geração da imagem (Sem saída de mídia).');
+    }
+
+    // Return the URL (Genkit usually returns a GCS URL or Data URI)
+    return result.media.url;
 }

@@ -1,6 +1,6 @@
 import { ai } from '../ai/config';
 import * as admin from 'firebase-admin';
-import { FullProductTreeSchema } from '../../../src/shared/schemas';
+import { FullProductTreeSchema } from '../shared/schemas';
 
 /**
  * createFullProductTree

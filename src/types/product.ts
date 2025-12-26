@@ -61,6 +61,7 @@ export interface Product {
     channels: ChannelConfig[];
     image?: string;
     imageAlt?: string; // SEO alt text for accessibility
+    imageFit?: 'cover' | 'contain';
     description?: string;
     realCost?: number; // Added to fix useProductPricing error
     // New inventory & recipe fields
@@ -72,4 +73,8 @@ export interface Product {
     slug?: string;
     likes?: number;
     tenantId?: string;
+    // Legacy/Migration fields
+    price?: number; // Root price for simple products
+    categoryId?: string; // Reference to category doc
+    categoryName?: string; // Denormalized category name
 }

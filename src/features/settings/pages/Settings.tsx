@@ -6,7 +6,7 @@ import {
     Save, Printer, Store as StoreIcon, Clock, Truck,
     Bike, AlertTriangle, CreditCard, LayoutGrid, Monitor,
     Plus, Trash2, ChevronRight, Bell, Activity, Building2, Check, Briefcase, SlidersHorizontal, Cpu, Users, Shield, Lock, Plug, Key, LogOut, Smartphone, Loader2,
-    Wand2, Info
+    Wand2, Info, Brain
 } from 'lucide-react';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useApp } from '@/contexts/AppContext';
@@ -15,7 +15,8 @@ import { requestNotificationPermission } from '@/services/notificationService';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import {
     StoreForm, ScheduleForm, DeliveryForm,
-    PaymentForm, InterfaceForm, PrinterForm, IntegrationsForm, OperationForm
+    PaymentForm, InterfaceForm, PrinterForm, IntegrationsForm, OperationForm,
+    BusinessProfileForm
 } from '../components/SettingsForms';
 import SubscriptionSection from '../components/SubscriptionSection';
 import MotoboysSection from '../components/MotoboysSection';
@@ -51,6 +52,7 @@ const Settings: React.FC = () => {
 
     const allMenuItems = [
         { id: 'STORE', label: 'Dados da Empresa', icon: StoreIcon, description: 'CNPJ, endereço e segurança da conta.', permission: 'manage:settings' },
+        { id: 'BUSINESS_CONTEXT', label: 'Contexto do Negócio', icon: Brain, description: 'Identidade para IA e Marketing.', permission: 'manage:settings' }, // New Tab
         { id: 'TEAM', label: 'Gestão de Equipe', icon: Users, description: 'Colaboradores, acessos e cargos.', permission: 'manage:team' },
         { id: 'INTEGRATIONS', label: 'Integrações (API)', icon: Plug, description: 'Conexões externas (Gemini, iFood, WhatsApp).', permission: 'manage:settings' },
         { id: 'OPERATION', label: 'Operação', icon: SlidersHorizontal, description: 'Modos e tempos de pedido.', permission: 'manage:settings' },
@@ -239,6 +241,7 @@ const Settings: React.FC = () => {
 
         switch (activeTab) {
             case 'STORE': return <StoreForm {...commonProps} />;
+            case 'BUSINESS_CONTEXT': return <BusinessProfileForm {...commonProps} />;
             case 'TEAM':
                 return (
                     <ErrorBoundary>

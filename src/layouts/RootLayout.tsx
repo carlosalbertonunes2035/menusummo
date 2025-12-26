@@ -11,7 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 
 export const RootLayout: React.FC = () => {
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, isMockMode } = useAuth();
     const { settings } = useApp();
     const { toasts, removeToast } = useToast();
     const location = useLocation();
@@ -31,6 +31,8 @@ export const RootLayout: React.FC = () => {
     return (
         <div className={`fixed inset-0 overflow-hidden bg-summo-bg font-sans text-summo-text flex ${navigationMode === 'SIDEBAR' ? 'flex-col md:flex-row' : 'flex-col'} md:pb-0`}>
             <a href="#main-content" className="skip-to-content focus:z-50">Pular para o conteúdo principal</a>
+
+
             <ToastContainer toasts={toasts} onRemove={removeToast} />
             {navigationMode === 'SIDEBAR' && <Sidebar />}
             <main id="main-content" className="flex-1 w-full h-full overflow-y-auto relative custom-scrollbar flex flex-col">

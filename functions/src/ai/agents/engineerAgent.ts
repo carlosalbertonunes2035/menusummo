@@ -1,5 +1,5 @@
 import { ai, MODELS } from '../config';
-import { RecipeSchema } from '../../../../src/shared/schemas';
+import { RecipeSchema } from '../../shared/schemas';
 
 /**
  * Engineer Agent (O Engenheiro)

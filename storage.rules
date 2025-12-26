@@ -38,6 +38,14 @@ service firebase.storage {
     }
 
     // ==================================================
+    // 🏢 MULTI-TENANT (Novas Rotas)
+    // ==================================================
+    match /tenants/{tenantId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // ==================================================
     // 🔒 SEGURANÇA FINAL
     // ==================================================
     // Bloqueia qualquer outra pasta que não foi listada acima

@@ -9,4 +9,5 @@ export * from './forms/InterfaceForm';
 export * from './forms/PrinterForm';
 export * from './forms/AdvancedForm';
 export * from './forms/DiagnosticsForm';
+export * from './forms/BusinessProfileForm';
 export { TeamSettings as TeamAndPermissionsForm } from './TeamSettings';
