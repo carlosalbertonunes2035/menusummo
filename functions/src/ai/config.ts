@@ -23,19 +23,22 @@ export const ai = genkit({
  */
 export const MODELS = {
     // A. O Cérebro dos Agentes (Rápido e Preciso)
+    // Atualizado para Gemini 2.0 Flash (SOTA) - Visão Computacional Superior
     fast: 'vertexai/gemini-2.0-flash-001',
 
     // B. O Conselheiro Financeiro Profundo (Cadeia de Pensamento)
+    // Gemini 2.0 Flash Thinking para raciocínio complexo e matemática
     thinking: 'vertexai/gemini-2.0-flash-thinking-exp',
 
-    // C. O Plano B / Fallback de Alta Precisão
-    pro: 'vertexai/gemini-1.5-pro-001',
+    // C. O Plano B / Fallback de Alta Precisão (Legado Estável)
+    pro: gemini15Pro,
 
-    // Padrão Estável
-    stable: gemini15Flash,
+    // Padrão Estável (Mantendo 1.5 como fallback se necessário, mas 2.0 é o novo padrão)
+    stable: 'vertexai/gemini-2.0-flash-001',
 
     // D. Geração de Imagens (Imagen 3)
-    image: 'vertexai/imagen-3',
+    // O rei da estética ("Food Porn")
+    image: 'vertexai/imagen-3.0-generate-001',
 };
 
 // Model configuration for different use cases

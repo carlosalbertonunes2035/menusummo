@@ -75,28 +75,7 @@ const SystemSection: React.FC<SystemSectionProps> = ({ userEmail, tenantId, onLo
                     </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="mb-4 bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-start gap-3">
-                        <Info size={18} className="text-blue-600 mt-0.5" />
-                        <div>
-                            <p className="text-sm font-bold text-blue-900">Popular Dados (Seed)</p>
-                            <p className="text-xs text-blue-700 mt-1">Isso preenche seu sistema com o cardápio padrão do JC Bar para testes.</p>
-                            {settings.lastSeedingAt && (
-                                <div className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-blue-800 bg-white/50 w-fit px-2 py-1 rounded-md border border-blue-200">
-                                    <Calendar size={12} /> Última vez: {new Date(settings.lastSeedingAt).toLocaleString()}
-                                </div>
-                            )}
-                        </div>
-                    </div>
 
-                    <button
-                        onClick={handleSeed}
-                        disabled={seeding}
-                        className="w-full py-3 bg-summo-primary text-white rounded-xl font-bold text-sm hover:bg-summo-dark transition flex justify-center items-center gap-2 shadow-sm active:scale-[0.98]"
-                    >
-                        {seeding ? 'Importando...' : 'Importar Cardápio JC Bar'}
-                    </button>
-                </div>
             </div>
             <DiagnosticsForm />
         </div>

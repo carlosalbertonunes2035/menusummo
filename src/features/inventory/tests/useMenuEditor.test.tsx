@@ -90,13 +90,13 @@ describe('useMenuEditor Hook', () => {
             result.current.openEditor(product);
         });
 
-        expect(result.current.hasChanges).toBe(false);
+        expect(result.current.isDirty).toBe(false);
 
         act(() => {
             result.current.setEditData({ name: 'Burger Updated' });
         });
 
-        expect(result.current.hasChanges).toBe(true);
+        expect(result.current.isDirty).toBe(true);
         expect(result.current.currentEditingProduct?.name).toBe('Burger Updated');
     });
 

@@ -36,6 +36,7 @@ export interface Ingredient {
 
 export interface Product {
     id: string;
+    status?: 'ACTIVE' | 'ARCHIVED' | 'PAUSED'; // Global availability status
     type?: 'SIMPLE' | 'COMBO';
     comboItems?: {
         productId: string;

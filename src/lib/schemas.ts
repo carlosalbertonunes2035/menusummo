@@ -21,6 +21,7 @@ export const ChannelConfigSchema = z.object({
 
 export const ProductSchema = z.object({
     id: z.string(),
+    status: z.enum(['ACTIVE', 'ARCHIVED', 'PAUSED', 'draft']).default('ACTIVE').optional(),
     type: z.enum(['SIMPLE', 'COMBO']).default('SIMPLE').optional(),
     comboItems: z.array(z.object({
         productId: z.string(),

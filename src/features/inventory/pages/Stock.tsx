@@ -7,7 +7,7 @@ import StockModals from '../components/stock/StockModals';
 import { StockOverview } from '../components/stock/StockOverview';
 import { PurchaseEntry } from '../components/stock/PurchaseEntry';
 import { RecipeManager } from '../components/stock/RecipeManager';
-import { useApp } from '../../../contexts/AppContext';
+import { useApp } from '@/contexts/AppContext';
 import IngredientCard from '../components/stock/IngredientCard';
 import { PageContainer } from '@/components/layouts/PageContainer';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';

@@ -103,7 +103,7 @@ export const createFullProductTree = ai.defineTool({
             type: 'SIMPLE',
             cost: totalRecursiveCost,
             recipeId: recipeRef.id,
-            status: 'draft',
+            status: 'ACTIVE',
             tags: ['importado', 'ia-match'],
             channels: [
                 { channel: 'pos', price: prod.price, isAvailable: true, displayName: prod.name },

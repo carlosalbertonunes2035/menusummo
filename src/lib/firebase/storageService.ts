@@ -8,19 +8,22 @@ export const storageService = {
     /**
      * Uploads a file to a specific path in storage
      */
-    async uploadFile(file: File | Blob, path: string): Promise<string> {
+    /**
+     * Uploads a file to a specific path in storage with optional metadata
+     */
+    async uploadFile(file: File | Blob, path: string, metadata?: any): Promise<string> {
         // Enforce real upload
         console.log(`[StorageService] Uploading to: ${path}`);
 
         try {
             const storageRef = ref(storage, path);
-            const snapshot = await uploadBytes(storageRef, file);
+            const snapshot = await uploadBytes(storageRef, file, metadata);
             const url = await getDownloadURL(snapshot.ref);
             console.log(`[StorageService] Upload success: ${url}`);
             return url;
         } catch (error: any) {
             console.error("[StorageService] Upload failed:", error);
-            throw error; // Throw error to be caught by UI
+            throw error;
         }
     },
 
@@ -28,10 +31,18 @@ export const storageService = {
      * Uploads a product image
      * Path: tenants/{tenantId}/products/{productId}/{filename}
      */
-    async uploadProductImage(file: File | Blob, tenantId: string, productId: string, filename: string = 'main-image'): Promise<string> {
+    async uploadProductImage(
+        file: File | Blob,
+        tenantId: string,
+        productId: string,
+        customName?: string,
+        metadata?: any
+    ): Promise<string> {
         const extension = file instanceof File ? file.name.split('.').pop() : 'png';
-        const path = `tenants/${tenantId}/products/${productId}/${filename}_${Date.now()}.${extension}`;
-        return this.uploadFile(file, path);
+        const finalName = customName ? `${customName}_${Date.now()}` : `main-image_${Date.now()}`;
+        const path = `tenants/${tenantId}/products/${productId}/${finalName}.${extension}`;
+
+        return this.uploadFile(file, path, metadata);
     },
 
     /**
@@ -53,10 +64,12 @@ export const storageService = {
         file: File | Blob,
         tenantId: string,
         productId: string,
-        filename: string = 'main-image'
+        customName?: string,
+        metadata?: any
     ): Promise<{ mainUrl: string; thumbnailUrl: string }> {
         const extension = file instanceof File ? file.name.split('.').pop() : 'jpg';
         const timestamp = Date.now();
+        const baseName = customName || 'main-image';
 
         // Upload main image (high quality, 1200px)
         let mainBlob: Blob = file;
@@ -68,8 +81,8 @@ export const storageService = {
                 console.warn('Failed to compress main image, using original', e);
             }
         }
-        const mainPath = `tenants/${tenantId}/products/${productId}/${filename}_${timestamp}.${extension}`;
-        const mainUrl = await this.uploadFile(mainBlob, mainPath);
+        const mainPath = `tenants/${tenantId}/products/${productId}/${baseName}_${timestamp}.${extension}`;
+        const mainUrl = await this.uploadFile(mainBlob, mainPath, metadata);
 
         // Upload thumbnail (low quality, 400px)
         let thumbBlob: Blob = file;
@@ -81,8 +94,8 @@ export const storageService = {
                 console.warn('Failed to compress thumbnail, using original', e);
             }
         }
-        const thumbPath = `tenants/${tenantId}/products/${productId}/${filename}_thumb_${timestamp}.${extension}`;
-        const thumbnailUrl = await this.uploadFile(thumbBlob, thumbPath);
+        const thumbPath = `tenants/${tenantId}/products/${productId}/${baseName}_thumb_${timestamp}.${extension}`;
+        const thumbnailUrl = await this.uploadFile(thumbBlob, thumbPath, metadata);
 
         return { mainUrl, thumbnailUrl };
     },

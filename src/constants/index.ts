@@ -10,16 +10,16 @@ export function GET_DEFAULT_SETTINGS(tenantId: string): StoreSettings {
         unitName: "Matriz",
         logoUrl: "",
         company: {
-            legalName: "Minha Loja Ltda",
-            cnpj: "",
-            phone: "",
+            legalName: "SUMMO TECNOLOGIA E GESTAO INOVA SIMPLES (I.S.)",
+            cnpj: "64.162.119/0001-43",
+            phone: "17991234567", // Placeholder phone based on area code
             address: {
-                zip: "",
-                street: "",
-                number: "",
-                neighborhood: "",
-                city: "",
-                state: "",
+                zip: "15044-425",
+                street: "RUA JOAQUIM LOPES DA SILVA",
+                number: "1215",
+                neighborhood: "SOLO SAGRADO I",
+                city: "SAO JOSE DO RIO PRETO",
+                state: "SP",
             }
         },
         address: "",
@@ -121,4 +121,53 @@ export const INITIAL_CASH_REGISTER = {
 
 export * from './stubs';
 
-export const FINANCIAL_CATEGORIES = [];
+
+export const COST_CENTERS = [
+    { id: 'kitchen', name: 'Cozinha / Produção' },
+    { id: 'bar', name: 'Bar / Copa' },
+    { id: 'service', name: 'Salão / Atendimento' },
+    { id: 'delivery', name: 'Delivery / Logística' },
+    { id: 'admin', name: 'Administrativo / Escritório' },
+    { id: 'marketing', name: 'Marketing / Vendas' }
+];
+
+export const FINANCIAL_CATEGORIES = [
+    // --- INCOME ---
+    { id: 'income_sales_food', name: 'Venda de Produtos (Alimentos)', type: 'INCOME' },
+    { id: 'income_sales_beverage', name: 'Venda de Produtos (Bebidas)', type: 'INCOME' },
+    { id: 'income_delivery_fee', name: 'Taxas de Entrega Recebidas', type: 'INCOME' },
+    { id: 'income_investment', name: 'Aporte / Investimento', type: 'INCOME' },
+    { id: 'income_other', name: 'Outras Receitas', type: 'INCOME' },
+
+    // --- EXPENSES (COST OF GOODS) ---
+    { id: 'exp_cogs_food', name: 'Insumos (Alimentos)', type: 'EXPENSE' },
+    { id: 'exp_cogs_beverage', name: 'Insumos (Bebidas/Revenda)', type: 'EXPENSE' },
+    { id: 'exp_packaging', name: 'Embalagens & Descartáveis', type: 'EXPENSE' },
+
+    // --- EXPENSES (LOGISTICS) ---
+    { id: 'exp_delivery_driver', name: 'Pagamento de Entregadores', type: 'EXPENSE' },
+    { id: 'exp_delivery_fuel', name: 'Combustível / Manutenção Veículos', type: 'EXPENSE' },
+    { id: 'exp_delivery_platform', name: 'Logística Terceirizada (iFood/Uber)', type: 'EXPENSE' },
+
+    // --- EXPENSES (OPERATIONAL) ---
+    { id: 'exp_labor_salary', name: 'Salários & Encargos', type: 'EXPENSE' },
+    { id: 'exp_labor_extra', name: 'Horas Extras / Freelancers', type: 'EXPENSE' },
+    { id: 'exp_utilities', name: 'Utilidades (Água, Luz, Gás, Internet)', type: 'EXPENSE' },
+    { id: 'exp_rent', name: 'Aluguel & Condomínio', type: 'EXPENSE' },
+    { id: 'exp_maintenance', name: 'Manutenção Predial / Equipamentos', type: 'EXPENSE' },
+    { id: 'exp_software', name: 'Software & Sistemas', type: 'EXPENSE' },
+    { id: 'exp_accounting', name: 'Contabilidade & Jurídico', type: 'EXPENSE' },
+    { id: 'exp_marketing', name: 'Marketing & Publicidade', type: 'EXPENSE' },
+
+    // --- EXPENSES (FINANCIAL) ---
+    { id: 'exp_tax_card', name: 'Taxas de Cartão / Adquirência', type: 'EXPENSE' },
+    { id: 'exp_tax_hub', name: 'Comissões Marketplace (iFood)', type: 'EXPENSE' },
+    { id: 'exp_tax_gov', name: 'Impostos (Simples, ICMS, ISS)', type: 'EXPENSE' },
+    { id: 'exp_bank_fees', name: 'Tarifas Bancárias', type: 'EXPENSE' },
+    { id: 'exp_loan', name: 'Empréstimos / Financiamentos', type: 'EXPENSE' },
+
+    // --- EXPENSES (OTHER) ---
+    { id: 'exp_withdraw', name: 'Sangria de Caixa / Retirada Sócios', type: 'EXPENSE' },
+    { id: 'exp_loss', name: 'Perdas / Quebras / Roubos', type: 'EXPENSE' },
+    { id: 'exp_other', name: 'Outras Despesas', type: 'EXPENSE' }
+];

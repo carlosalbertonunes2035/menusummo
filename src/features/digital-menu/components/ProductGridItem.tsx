@@ -3,6 +3,7 @@ import { Product } from '@/types';
 import { Plus, ShoppingBag, Image as ImageIcon } from 'lucide-react';
 import { getProductChannel } from '@/lib/utils';
 import { getProductImage } from '../utils/imageMapper';
+import { usePublicData } from '@/contexts/PublicDataContext';
 
 interface ProductGridItemProps {
     product: Product;
@@ -10,10 +11,15 @@ interface ProductGridItemProps {
 }
 
 const ProductGridItem: React.FC<ProductGridItemProps> = ({ product, onAdd }) => {
+    const { settings } = usePublicData();
     const channel = getProductChannel(product, 'digital-menu');
     const hasPromo = channel.promotionalPrice && channel.promotionalPrice > 0 && channel.promotionalPrice < (channel.price || 0);
     const displayPrice = hasPromo ? channel.promotionalPrice : (channel.price || 0);
     const oldPrice = channel.price || 0;
+
+    const points = settings.loyalty?.enabled && settings.loyalty.pointsPerCurrency
+        ? Math.floor((displayPrice || 0) * settings.loyalty.pointsPerCurrency)
+        : 0;
 
     return (
         <div
@@ -31,6 +37,12 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({ product, onAdd }) => 
                 {hasPromo && (
                     <div className="absolute top-2 left-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm">
                         OFERTA
+                    </div>
+                )}
+
+                {points > 0 && (
+                    <div className="absolute top-2 right-2 bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm flex items-center gap-1">
+                        💎 +{points}
                     </div>
                 )}
 

@@ -75,25 +75,56 @@ export const analyzeReceipt = onCall({ region: 'southamerica-east1' }, async (re
 // Export Marketing Agent (Copy & Image)
 // Export Marketing Agent (Copy & Image)
 import { generateProductMarketing, enhanceProductImage as enhanceProductImageAgent } from './ai/agents/marketingAgent';
-export const generateMarketingCopy = onCall({ region: 'southamerica-east1' }, async (request) => {
+export const generateMarketingCopy = onCall({ region: 'us-central1' }, async (request) => {
     // Adapter: Frontend expects "generateMarketingCopy" but we map to "generateProductMarketing"
     return generateProductMarketing(request.data.productName, request.data.ingredients, request.data.restaurantName);
 });
 import { HttpsError } from 'firebase-functions/v2/https';
 
-export const enhanceProductImageFn = onCall({
-    region: 'southamerica-east1',
-    cors: true, // Explicit CORS
-    timeoutSeconds: 60, // Give AI time to think
-    memory: '1GiB'
+import * as logger from "firebase-functions/logger";
+
+export const enhanceProductImage = onCall({
+    region: 'us-central1',
+    cors: true,          // CORRIGE CORS
+    timeoutSeconds: 120, // IA precisa de tempo
+    memory: '1GiB',      // IA precisa de memória
+    invoker: 'public'    // Permite acesso público ao gatilho (necessário para CORS funcionar antes do Auth)
 }, async (request) => {
+    // 1. Verificação de Autenticação
+    if (!request.auth) {
+        logger.warn("[enhanceProductImage] Unauthenticated request blocked.");
+        throw new HttpsError("unauthenticated", "Você precisa estar logado.");
+    }
+
+    const { fileUrl, productName, mimeType } = request.data;
+
+    // Compatibility: Support both new 'fileUrl' and legacy 'originalImageUrl'
+    const targetUrl = fileUrl || request.data.originalImageUrl;
+
+    if (!targetUrl) {
+        throw new HttpsError("invalid-argument", "URL da imagem não fornecida.");
+    }
+
     try {
-        console.log(`[enhanceProductImage] Request received for: ${request.data.productName}`);
-        return await enhanceProductImageAgent(request.data.productName, request.data.originalImageUrl);
+        logger.info(`[enhanceProductImage] Request received`, {
+            productName,
+            targetUrl,
+            mimeType,
+            hasAuth: !!request.auth,
+            uid: request.auth?.uid
+        });
+
+        // 2. Chama o Agente de Marketing (que orquestra Visão + Geração)
+        const result = await enhanceProductImageAgent(productName || 'Produto', targetUrl);
+        logger.info("[enhanceProductImage] Success", { result });
+        return result;
     } catch (error: any) {
-        console.error('[enhanceProductImage] Implementation Error:', error);
-        // Return a structured error that the client SDK can parse
-        throw new HttpsError('internal', error.message || 'Falha interna na IA', error);
+        logger.error('[enhanceProductImage] CRITICAL ERROR:', {
+            message: error.message,
+            stack: error.stack,
+            details: error
+        });
+        // Rethrow as HttpsError with detailed message for client visibility
+        throw new HttpsError('internal', `Backend AI Failure: ${error.message}`, error);
     }
 });
-export const enhanceProductImage = enhanceProductImageFn;

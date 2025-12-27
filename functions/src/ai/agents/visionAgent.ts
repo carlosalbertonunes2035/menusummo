@@ -104,26 +104,22 @@ export async function analyzeForVisualEnhancement(fileUrl: string) {
     console.log(`[VisionAgent] 🖼️ Analisando estrutura visual para aprimoramento...`);
 
     const prompt = `
-        ATUE COMO UM DIRETOR DE FOTOGRAFIA DE ALIMENTOS (Fidelity Inspector).
+        ATUE COMO UM DESCRITOR VISUAL PARA IA (Blind Assistant).
 
-        OBJETIVO: Descrever esta imagem para que uma IA possa "refazê-la" com maior qualidade, mas SEM alterar os ingredientes.
+        OBJETIVO: Descrever a imagem em termos de FORMAS, CORES e TEXTURAS.
 
-        TAREFA:
-        1. Liste os INGREDIENTES VISÍVEIS (Seja rígido. Se não vê, não liste).
-        2. Descreva o EMPRATAMENTO (Prato, Tábua, Copo, etc).
-        3. Descreva o ÂNGULO (Top-down, 45 graus, Macro).
-        4. Descreva a ILUMINAÇÃO ATUAL (Natural, Escura, Flash estourado).
-        5. ANALISE O CONTEXTO/VIBE (Ex: "Bar Rústico", "Jantar Romântico", "Street Food", "Café Manhã").
-        6. SUGIRA A ILUMINAÇÃO DE ESTÚDIO IDEAL PARA ESSE TIPO DE COMIDA (Ex: "Luz quente e dramática para bar", "Luz natural difusa para salada").
+        TAREFA (PRIMITIVAS VISUAIS):
+        1. Descreva os OBJETOS PRINCIPAIS por sua geometria e textura (Ex: "Tiras alongadas douradas e crocantes", "Cubos marrons suculentos").
+        2. NÃO USE NOMES DE PRATOS. (Evite "Strogonoff", "Sushi").
+        3. Descreva a organização no prato (Ex: "Pilha centralizada").
+        4. Descreva a Luz e a Vibe.
 
         SAÍDA ESPERADA (JSON):
         {
-            "visibleIngredients": "lista de ingredientes",
-            "platingStyle": "descrição do suporte e organização",
-            "cameraAngle": "ângulo da foto",
-            "lighting": "condição de luz atual",
-            "marketingVibe": "atmosfera sugerida",
-            "lightingSuggestion": "sugestão técnica de luz"
+            "visualPrimitives": "descrição física detalhada",
+            "platingGeometry": "descrição da posição",
+            "lightingCondition": "descrição da luz",
+            "sceneVibe": "atmosfera visual"
         }
     `;
 
@@ -136,16 +132,25 @@ export async function analyzeForVisualEnhancement(fileUrl: string) {
         output: {
             format: 'json',
             schema: z.object({
-                visibleIngredients: z.string(),
-                platingStyle: z.string(),
-                cameraAngle: z.string(),
-                lighting: z.string(),
-                marketingVibe: z.string().describe("A vibe comercial do produto (ex: Rústico, Gourmet, Vegano Fresh)"),
-                lightingSuggestion: z.string().describe("Sugestão de iluminação para food porn (ex: Softbox lateral, Golden Hour)")
+                visualPrimitives: z.string(),
+                platingGeometry: z.string(),
+                lightingCondition: z.string(),
+                sceneVibe: z.string()
             })
         },
-        config: { temperature: 0.2 } // Slightly higher temp for creative vibe detection
+        config: { temperature: 0.1 }
     });
 
-    return result.output;
+    // Return extended object to support both new and legacy fields if needed
+    // But mainly targeting new schema
+    return {
+        ...result.output,
+        // Legacy mapping for safety if any other code uses it, though MarketingAgent is updated
+        visibleIngredients: result.output.visualPrimitives,
+        platingStyle: result.output.platingGeometry,
+        lightingSuggestion: result.output.lightingCondition,
+        marketingVibe: result.output.sceneVibe,
+        lighting: result.output.lightingCondition,
+        cameraAngle: "N/A"
+    };
 }

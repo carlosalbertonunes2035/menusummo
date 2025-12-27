@@ -3,6 +3,7 @@ import { Product } from '@/types';
 import { Percent, Info, Image as ImageIcon, Plus } from 'lucide-react';
 import { getProductImage } from '../utils/imageMapper';
 import { getProductChannel } from '@/lib/utils';
+import { usePublicData } from '@/contexts/PublicDataContext';
 
 interface ProductListItemProps {
     product: Product;
@@ -10,8 +11,13 @@ interface ProductListItemProps {
 }
 
 const ProductListItem: React.FC<ProductListItemProps> = ({ product, onAdd }) => {
+    const { settings } = usePublicData();
     const channel = getProductChannel(product, 'digital-menu');
     const hasPromo = !!(channel.promotionalPrice && channel.promotionalPrice > 0 && channel.promotionalPrice < (channel.price || 0));
+    const price = hasPromo ? channel.promotionalPrice : channel.price;
+    const points = settings.loyalty?.enabled && settings.loyalty.pointsPerCurrency
+        ? Math.floor((price || 0) * settings.loyalty.pointsPerCurrency)
+        : 0;
 
     return (
         <div onClick={onAdd} className="flex gap-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm cursor-pointer active:scale-[0.98] transition hover:shadow-md h-[132px]">
@@ -22,6 +28,12 @@ const ProductListItem: React.FC<ProductListItemProps> = ({ product, onAdd }) => 
                     className="w-full h-full object-cover rounded-xl bg-gray-100 shadow-sm transition-transform duration-500 group-hover:scale-110"
                 />
                 {hasPromo && <div className="absolute top-0 left-0 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-br-lg rounded-tl-lg shadow-sm"><Percent size={10} className="inline mr-0.5" />OFF</div>}
+
+                {points > 0 && (
+                    <div className="absolute bottom-0 right-0 bg-purple-600/90 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-tl-lg rounded-br-xl shadow-sm flex items-center gap-1">
+                        💎 +{points}
+                    </div>
+                )}
             </div>
 
             <div className="flex-1 flex flex-col justify-between min-w-0 py-1">

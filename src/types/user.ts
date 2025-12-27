@@ -12,6 +12,16 @@ export interface Customer {
     favoriteItems?: string[];
     notes?: string;
     segments?: string[]; // VIP, Lost, etc
+    // Loyalty System
+    loyaltyPoints?: number;
+    loyaltyHistory?: {
+        id: string;
+        date: Date | string;
+        type: 'EARN' | 'REDEEM' | 'BONUS' | 'EXPIRY';
+        amount: number;
+        description: string;
+        orderId?: string;
+    }[];
 }
 
 export type Permission = string;

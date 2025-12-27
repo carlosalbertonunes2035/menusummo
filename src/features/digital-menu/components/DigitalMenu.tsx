@@ -177,6 +177,8 @@ const DigitalMenu: React.FC = () => {
                     setViewMode={setViewMode}
                     isDarkMode={isDarkMode}
                     setIsDarkMode={setIsDarkMode}
+                    user={user}
+                    setActiveTab={setActiveTab}
                 />
 
                 {activeTab === 'feed' && settings.digitalMenu?.branding?.promoBanners && (

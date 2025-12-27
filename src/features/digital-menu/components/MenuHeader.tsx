@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutList, LayoutGrid, Square, Sun, Moon, LogOut, Clock } from 'lucide-react';
+import { LayoutList, LayoutGrid, Square, Sun, Moon, LogOut, Clock, Wallet } from 'lucide-react';
 
 interface MenuHeaderProps {
     settings: any;
@@ -9,10 +9,12 @@ interface MenuHeaderProps {
     setViewMode: (mode: 'GRID' | 'LIST' | 'FEED') => void;
     isDarkMode: boolean;
     setIsDarkMode: (isDark: boolean) => void;
+    user?: any; // Added user for Wallet display
+    setActiveTab?: (tab: string) => void; // Added for navigation
 }
 
 export const MenuHeader: React.FC<MenuHeaderProps> = ({
-    settings, isOpen, eta, viewMode, setViewMode, isDarkMode, setIsDarkMode
+    settings, isOpen, eta, viewMode, setViewMode, isDarkMode, setIsDarkMode, user, setActiveTab
 }) => {
     return (
         <header className="flex-none bg-summo-surface z-30 pt-safe relative shadow-sm border-b border-summo-border">
@@ -33,6 +35,20 @@ export const MenuHeader: React.FC<MenuHeaderProps> = ({
                         </div>
                     </div>
                 </div>
+
+                {/* Loyalty Wallet Widget */}
+                {settings.loyalty?.enabled && user?.loyaltyPoints && user.loyaltyPoints > 0 && (
+                    <button
+                        onClick={() => setActiveTab && setActiveTab('profile')}
+                        className="hidden md:flex flex-col items-end mr-4 cursor-pointer hover:opacity-80 transition"
+                    >
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Meu Saldo</span>
+                        <div className="flex items-center gap-1.5 text-amber-500 font-black">
+                            <Wallet size={16} className="fill-current" />
+                            <span>{user.loyaltyPoints} {settings.loyalty.branding?.name || 'Pontos'}</span>
+                        </div>
+                    </button>
+                )}
 
                 <div className="flex items-center gap-2">
                     <button

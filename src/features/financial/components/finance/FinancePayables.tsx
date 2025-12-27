@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, memo } from 'react';
 import { Expense } from '../../../../types';
-import { FINANCIAL_CATEGORIES } from '../../../../constants';
+import { FINANCIAL_CATEGORIES, COST_CENTERS } from '../../../../constants';
 import { Plus, Trash2, X, Calendar, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useApp } from '../../../../contexts/AppContext';
 
@@ -145,6 +145,13 @@ const FinancePayables: React.FC<FinancePayablesProps> = ({ expenses }) => {
                                 <select className="w-full p-3 border rounded-xl bg-white" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
                                     <option value="">Selecione...</option>
                                     {FINANCIAL_CATEGORIES.filter(c => c.type === 'EXPENSE').map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase">Centro de Custo</label>
+                                <select className="w-full p-3 border rounded-xl bg-white" value={formData.costCenter || ''} onChange={e => setFormData({ ...formData, costCenter: e.target.value })}>
+                                    <option value="">Geral / Indefinido</option>
+                                    {COST_CENTERS.map(cc => <option key={cc.id} value={cc.id}>{cc.name}</option>)}
                                 </select>
                             </div>
                             <div>

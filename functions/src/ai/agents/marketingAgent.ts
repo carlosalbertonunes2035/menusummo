@@ -144,30 +144,32 @@ export async function enhanceProductImage(productName: string, originalImageUrl?
     console.log('[MarketingAgent] 👁️ Análise Visual Concluída:', visionData);
 
     // 2. Construct the "Context-Aware Studio Prompt"
-    const prompt = `
-        PHOTOREALISTIC FOOD PHOTOGRAPHY. 8k Ultra-HD.
+    const promptText = `
+        PROMPT DE GERAÇÃO (BASEADO EM GEOMETRIA):
         
-        SUBJECT: ${productName}.
-        CONTEXT/VIBE: ${visionData.marketingVibe || 'Professional Food Photography'}.
+        Foto Hyper-Realista de comida.
+        SUJEITO PRINCIPAL: ${visionData.visualPrimitives}.
+        DISPOSIÇÃO: ${visionData.platingGeometry}.
         
-        COMPOSITION:
-        - Plating: ${visionData.platingStyle}
-        - Angle: ${visionData.cameraAngle}
+        ESTILO VISUAL:
+        Fotografia 8K, Macro, Iluminação de Estúdio.
         
-        STRICT INGREDIENTS (NO HALLUCINATIONS):
-        ${visionData.visibleIngredients}
-        
-        LIGHTING & ATMOSPHERE (CRITICAL):
-        ${visionData.lightingSuggestion || 'Cinematic studio lighting, high contrast, rim light'}
-        
-        AESTHETICS:
-        - Michelin Guide Quality
-        - Glistening textures (appetizing)
-        - Depth of field (bokeh background)
-        - Sharp focus on the main food item
-        
-        NEGATIVE PROMPT: text, watermark, cartoon, illustration, distorted, extra ingredients, blurry, low resolution, people, hands, ugly plating.
+        DIRETRIZES:
+        - Use a imagem fornecida como REFERÊNCIA ESTRUTURAL RÍGIDA.
+        - Mantenha exatamente as formas e texturas descritas.
+        - Não tente adivinhar o nome do prato, apenas desenhe as formas descritas com texturas realistas.
+        - Melhore a luz e o contraste para parecer profissional.
     `;
+
+    const prompt: any[] = [
+        { text: promptText }
+    ];
+
+    // If original image exists, pass it as reference for Image-to-Image (Variation)
+    // This allows Imagen to "see" the structure and just "enhance" it.
+    if (originalImageUrl) {
+        prompt.push({ media: { url: originalImageUrl, contentType: 'image/jpeg' } });
+    }
 
     // 3. Generate with Imagen 3
     const result = await ai.generate({
@@ -186,6 +188,13 @@ export async function enhanceProductImage(productName: string, originalImageUrl?
         throw new Error('Falha na geração da imagem (Sem saída de mídia).');
     }
 
-    // Return the URL (Genkit usually returns a GCS URL or Data URI)
-    return result.media.url;
+    // Return rich data for Frontend auto-fill
+    return {
+        image: result.media.url,
+        analysis: {
+            ingredients: visionData.visualPrimitives, // Mapped for frontend compatibility
+            vibe: visionData.sceneVibe,
+            lighting: visionData.lightingCondition // Mapped
+        }
+    };
 }

@@ -26,6 +26,8 @@ const Support = React.lazy(() => import('./features/crm/pages/Support'));
 const DigitalMenu = React.lazy(() => import('./features/digital-menu/components/DigitalMenu'));
 const ProductPage = React.lazy(() => import('./features/digital-menu/components/ProductPage'));
 const LandingPage = React.lazy(() => import('./features/landing-page/components/LandingPage'));
+const Terms = React.lazy(() => import('./features/landing-page/components/Terms'));
+const Privacy = React.lazy(() => import('./features/landing-page/components/Privacy'));
 
 
 // Wrapper for public routes with PublicDataProvider
@@ -57,6 +59,14 @@ export const router = createBrowserRouter([
     {
         path: '/',
         element: <Suspense fallback={<LoadingFallback />}><LandingPage /></Suspense>
+    },
+    {
+        path: '/terms',
+        element: <Suspense fallback={<LoadingFallback />}><Terms /></Suspense>
+    },
+    {
+        path: '/privacy',
+        element: <Suspense fallback={<LoadingFallback />}><Privacy /></Suspense>
     },
     {
         path: '/loja/:slugLoja', // Main Store Route

@@ -11,3 +11,5 @@ export * from './forms/AdvancedForm';
 export * from './forms/DiagnosticsForm';
 export * from './forms/BusinessProfileForm';
 export { TeamSettings as TeamAndPermissionsForm } from './TeamSettings';
+export * from './forms/OperationsHub';
+export * from './forms/BankAccountsForm';

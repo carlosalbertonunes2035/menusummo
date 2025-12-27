@@ -22,7 +22,7 @@ export const InterfaceForm: React.FC<SettingsFormProps> = ({ settings, onChange,
             <h4 className="font-bold mb-1 text-slate-800100">Apps na Dock / Sidebar</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {ALL_MODULES.map((module: any) => {
-                    const isSelected = (settings.dockItems || []).includes(module.id);
+                    const isSelected = !settings.dockItems || settings.dockItems.length === 0 || settings.dockItems.includes(module.id);
                     const Icon = module.icon;
                     return (
                         <div key={module.id} onClick={() => onToggleDockItem(module.id)} className={`cursor-pointer flex items-center justify-between p-3 rounded-xl border transition ${isSelected ? 'bg-summo-bg border-summo-primary' : 'bg-slate-50800 border-slate-200700'}`}>

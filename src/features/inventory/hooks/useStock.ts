@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Ingredient, StockMovementType, ShoppingListItem } from '../../../types';
-import { useData } from '../../../contexts/DataContext';
+import { useData } from '@/contexts/DataContext';
 import { useStockMovements } from '@/hooks/useStockMovements';
 import { useShoppingList } from '@/hooks/useShoppingList';
-import { useApp } from '../../../contexts/AppContext';
+import { useApp } from '@/contexts/AppContext';
 import { useDebounce } from '../../../lib/hooks';
 import { searchMatch } from '../../../lib/utils';
 import { functions } from '@/lib/firebase/client';

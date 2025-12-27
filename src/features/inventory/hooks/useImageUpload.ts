@@ -10,7 +10,7 @@ export const useImageUpload = (productId: string) => {
     const [isUploading, setIsUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
 
-    const uploadImage = async (file: File | Blob): Promise<string> => {
+    const uploadImage = async (file: File | Blob, customName?: string, metadata?: any): Promise<string> => {
         if (!productId) {
             throw new Error('Product ID is required for image upload');
         }
@@ -29,7 +29,13 @@ export const useImageUpload = (productId: string) => {
                 }
             }
 
-            return await storageService.uploadProductImage(uploadSource, tenantId, productId);
+            return await storageService.uploadProductImage(
+                uploadSource,
+                tenantId,
+                productId,
+                customName, // Pass custom filename
+                metadata // Pass custom metadata
+            );
         } finally {
             setIsUploading(false);
         }

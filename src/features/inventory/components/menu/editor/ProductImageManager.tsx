@@ -1,9 +1,10 @@
 import React from 'react';
 import { Product } from '@/types';
-import { ImageIcon, Loader2, Plus, Trash2, Wand2, X, Maximize2, Minimize2, Check } from 'lucide-react';
+import { ImageIcon, Loader2, Plus, Trash2, Wand2, X, Check } from 'lucide-react';
 import { useImageUpload } from '../../../hooks/useImageUpload';
-import { functions } from '@/lib/firebase/client';
+import { functions, functionsUS } from '@/lib/firebase/client';
 import { httpsCallable } from '@firebase/functions';
+import { slugify } from '@/lib/seoUtils';
 
 interface ProductImageManagerProps {
     product: Product;
@@ -23,22 +24,28 @@ export const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     const { uploadImage, isUploading, isDragging, setIsDragging } = useImageUpload(product.id || 'new-product');
     const [isGeneratingAI, setIsGeneratingAI] = React.useState(false);
 
-    const imageFit = product.imageFit || 'contain';
+    const imageFit = product.imageFit || 'cover';
 
-    const handleFitToggle = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const newFit = imageFit === 'contain' ? 'cover' : 'contain';
-        // Update local state via parent (will be saved when user clicks Save)
-        onUpdate('imageFit', newFit);
+    // Helper for SEO Metadata
+    const getSeoMetadata = (file: File | Blob) => {
+        return {
+            customMetadata: {
+                product: productName || 'Produto Sem Nome',
+                business: 'MenuSummo', // Ideal: Get from Auth/Context
+                originalName: file instanceof File ? file.name : 'ai-generated.jpg',
+                uploadedBy: 'Menu Studio'
+            },
+            contentType: file.type
+        };
+    };
+
+    const getSeoFilename = () => {
+        return slugify(productName || 'produto');
     };
 
     const handleDrop = async (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
-
-        // ALLOW UPLOAD BEFORE SAVE (User Request)
-        // if (!product.id) { ... }
 
         let fileToUpload: File | Blob | null = null;
 
@@ -62,7 +69,10 @@ export const ProductImageManager: React.FC<ProductImageManagerProps> = ({
 
         if (fileToUpload) {
             try {
-                const url = await uploadImage(fileToUpload);
+                const metadata = getSeoMetadata(fileToUpload);
+                const filename = getSeoFilename();
+
+                const url = await uploadImage(fileToUpload, filename, metadata);
                 onImageChange(url);
             } catch (err) {
                 alert('Erro ao processar imagem.');
@@ -70,12 +80,45 @@ export const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         }
     };
 
+    const processImageWithAI = async (url: string, mimeType: string) => {
+        setIsGeneratingAI(true);
+        try {
+            console.log('[ProductImageManager] 🚀 Auto-Enhance Triggered for:', url);
+
+            const generateImageFn = httpsCallable(functionsUS, 'enhanceProductImage');
+            const { data } = await generateImageFn({
+                productName: productName || 'Produto',
+                fileUrl: url,
+                mimeType
+            });
+
+            // Handle Rich Response { image, analysis }
+            const result = data as any;
+            const enhancedImage = result.image || result;
+            const analysis = result.analysis;
+
+            if (enhancedImage) {
+                setPreviewImage(enhancedImage);
+            }
+
+            if (analysis) {
+                const aiDesc = `Ingredientes Visíveis: ${analysis.ingredients}.\nVibe: ${analysis.vibe}`;
+                console.log('[ProductImageManager] 🧠 AI Insights:', aiDesc);
+
+                if (product.description === '' || !product.description) {
+                    onUpdate('description', aiDesc);
+                }
+            }
+        } catch (e) {
+            console.error('[ProductImageManager] AI Failed:', e);
+        } finally {
+            setIsGeneratingAI(false);
+        }
+    };
+
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
-        // ALLOW UPLOAD BEFORE SAVE (User Request)
-        // if (!product.id) { ... }
 
         if (file.size > 5 * 1024 * 1024) {
             alert('Arquivo muito grande. Máximo 5MB.');
@@ -83,7 +126,10 @@ export const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         }
 
         try {
-            const url = await uploadImage(file);
+            // 1. Upload (Instant) with SEO
+            const metadata = getSeoMetadata(file);
+            const filename = getSeoFilename();
+            const url = await uploadImage(file, filename, metadata);
             onImageChange(url);
         } catch (err) {
             alert('Erro ao enviar imagem.');
@@ -93,53 +139,31 @@ export const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     const [previewImage, setPreviewImage] = React.useState<string | null>(null);
 
     const handleGenerateAI = async () => {
-        // ALLOW ENHANCE BEFORE SAVE
-        // if (!product.id) { ... }
-        if (!currentImage) {
-            alert('Por favor, adicione uma foto básica primeiro para a IA aprimorar.');
-            return;
-        }
-
-        setIsGeneratingAI(true);
-        try {
-            // Updated Flow: Enhance existing photo
-            const generateImageFn = httpsCallable(functions, 'enhanceProductImage');
-            const { data } = await generateImageFn({
-                productName,
-                originalImageUrl: currentImage
-            });
-            const imgBase64 = data as string; // Or URL depending on what backend returns
-
-            // Backend returns URL directly from Media object now (according to my update)
-            // But if it returns Base64 or URL, we handle it.
-            // My backend update returns `result.media.url`, which is a URL.
-
-            if (imgBase64) {
-                // Show Preview instead of auto-applying
-                setPreviewImage(imgBase64);
-            }
-        } catch (e) {
-            console.error(e);
-            alert('Erro ao aprimorar imagem. Verifique se o recurso está ativo.');
-        } finally {
-            setIsGeneratingAI(false);
-        }
+        if (!currentImage) return;
+        await processImageWithAI(currentImage, 'image/jpeg');
     };
 
     const handleApplyPreview = async () => {
         if (!previewImage) return;
 
         try {
-            // If the backend returned a GCS URL, we can just use it.
-            // If it returned Base64 (unlikely with Genkit media), we'd need to upload.
-            // Assuming URL for now.
-            // NOTE: If it's a temporary signed URL, we might need to "upload" it to our storage strictly 
-            // to make it permanent. But let's assume Genkit returns a persistable URL or we fetch/blob/upload.
-
             // Safer: Download and re-upload to our bucket to ensure ownership.
             const res = await fetch(previewImage);
             const blob = await res.blob();
-            const url = await uploadImage(blob);
+
+            // SEO for AI Image
+            const metadata = {
+                customMetadata: {
+                    product: productName || 'Produto',
+                    business: 'MenuSummo',
+                    type: 'AI-Enhanced',
+                    source: 'Imagen 3'
+                },
+                contentType: 'image/jpeg'
+            };
+            const filename = slugify((productName || 'produto') + '-ia');
+
+            const url = await uploadImage(blob, filename, metadata);
 
             onImageChange(url);
             setPreviewImage(null);
@@ -223,22 +247,12 @@ export const ProductImageManager: React.FC<ProductImageManagerProps> = ({
                             {/* Actual image */}
                             <img
                                 src={currentImage}
-                                className={`relative w-full h-full z-10 transition-all duration-500 ${imageFit === 'cover' ? 'object-cover' : 'object-contain'}`}
+                                className={`relative w-full h-full z-10 transition-all duration-500 object-cover`}
                                 alt={productName}
                             />
 
                             {/* Controls Overlay */}
                             <div className="absolute inset-x-0 bottom-0 p-3 flex justify-center gap-2 z-20 translate-y-full group-hover/img:translate-y-0 transition-transform bg-gradient-to-t from-black/60 to-transparent">
-                                {/* Fit Toggle */}
-                                <button
-                                    type="button"
-                                    onClick={handleFitToggle}
-                                    className="bg-white text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg hover:bg-summo-primary hover:text-white transition flex items-center gap-1"
-                                    title={imageFit === 'contain' ? "Expandir para Preencher" : "Ajustar para Caber"}
-                                >
-                                    {imageFit === 'contain' ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
-                                    {imageFit === 'contain' ? 'Preencher' : 'Ajustar'}
-                                </button>
 
                                 {/* Remove Button */}
                                 <button
@@ -250,10 +264,10 @@ export const ProductImageManager: React.FC<ProductImageManagerProps> = ({
                                             onImageChange('');
                                         }
                                     }}
-                                    className="bg-white text-red-500 p-1.5 rounded-lg hover:bg-red-500 hover:text-white transition shadow-lg"
+                                    className="bg-white text-red-500 p-2 rounded-full hover:bg-red-500 hover:text-white transition shadow-lg transform hover:scale-110"
                                     title="Excluir Imagem"
                                 >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={18} />
                                 </button>
                             </div>
                         </div>
@@ -273,6 +287,7 @@ export const ProductImageManager: React.FC<ProductImageManagerProps> = ({
                         accept="image/*"
                         className="hidden"
                         disabled={isUploading || isGeneratingAI}
+                        onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
                         onChange={handleFileSelect}
                     />
                     {isDragging && (
@@ -304,6 +319,8 @@ export const ProductImageManager: React.FC<ProductImageManagerProps> = ({
                     )}
                 </button>
             )}
+
+
         </div>
     );
 };

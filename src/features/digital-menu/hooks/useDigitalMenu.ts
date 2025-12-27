@@ -437,7 +437,7 @@ export const useDigitalMenu = () => {
         showToast(`+1 ${product.name} adicionado`, 'success');
     };
 
-    const sendOrder = async () => {
+    const sendOrder = async (loyaltyDiscountInput: number = 0, loyaltyPointsUsedInput: number = 0) => {
         if (isClosed) { showToast("Estamos fechados no momento. Tente novamente mais tarde!", 'error'); return; }
         if (!user.name || !user.phone) { showToast("Por favor, preencha seu nome no Perfil.", 'error'); setActiveTab('profile'); setIsCartOpen(false); return; }
         if (!paymentMethod) { showToast("Escolha uma forma de pagamento.", 'error'); return; }
@@ -463,7 +463,7 @@ export const useDigitalMenu = () => {
             }
 
             const deliveryFee = (orderMode === OrderType.DELIVERY && cartTotal < (settings.delivery?.freeShippingThreshold || 0)) ? calculatedDeliveryFee : 0;
-            const finalTotal = Math.max(0, cartTotal - discountValue) + deliveryFee;
+            const finalTotal = Math.max(0, cartTotal - discountValue - loyaltyDiscountInput) + deliveryFee;
 
             const orderPayments: PaymentTransaction[] = [];
             if (paymentMethod) {
@@ -500,7 +500,11 @@ export const useDigitalMenu = () => {
                 ...(scheduledDate ? { scheduledTo: scheduledDate } : {}),
                 ...(scheduledDate ? { scheduledTo: scheduledDate } : {}),
                 ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
+                ...(scheduledDate ? { scheduledTo: scheduledDate } : {}),
+                ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
                 ...(discountValue > 0 ? { discountTotal: discountValue } : {}),
+                ...(loyaltyDiscountInput > 0 ? { loyaltyDiscount: loyaltyDiscountInput } : {}),
+                ...(loyaltyPointsUsedInput > 0 ? { loyaltyPointsUsed: loyaltyPointsUsedInput } : {}),
                 ...(changeAmount !== undefined ? { change: changeAmount } : {}),
                 ...(orderMode === OrderType.DINE_IN && tableNumber ? { tableNumber } : {})
             };

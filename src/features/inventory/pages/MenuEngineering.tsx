@@ -28,13 +28,36 @@ const MenuProductCard: React.FC<{
     const tenantId = systemUser?.tenantId || 'global';
 
     const posChannel = product.channels.find(c => c.channel === 'pos') || product.channels[0] || { price: 0, isAvailable: false, description: '', image: '' };
-    // Logic: Global Switch (PAUSED/ACTIVE) overrides Channel Switch.
-    // If product.status is PAUSED, it is effectively unavailable everywhere.
-    // If ACTIVE, it respects the channel configuration.
-    const isGlobalActive = product.status !== 'PAUSED';
-    const isAvailable = isGlobalActive && (posChannel.isAvailable || false);
+    // Logic: Tri-State Availability
+    // 1. GLOBAL PAUSE: If status is PAUSED, everything is off.
+    // 2. PARTIAL: If Active but some channels are off.
+    // 3. FULL: If Active and all main channels (pos, digital-menu, ifood) are on.
+
+    // Define main channels we care about for "Full" status
+    const MAIN_CHANNELS = ['pos', 'digital-menu', 'ifood'];
+
+    const isGlobalPaused = product.status === 'PAUSED';
+
+    // Only verify channels that appear in the product configuration
+    const configuredMainChannels = product.channels.filter(c => MAIN_CHANNELS.includes(c.channel as any));
+    const activeChannelsCount = configuredMainChannels.filter(c => c.isAvailable).length;
+    const totalMainChannels = configuredMainChannels.length;
+
+    // Fallback: If no channels configured, consider it FULL if active (shouldn't happen)
+    const effectiveTotal = totalMainChannels === 0 ? 1 : totalMainChannels;
+
+    let availabilityStatus: 'PAUSED' | 'PARTIAL' | 'FULL' = 'PAUSED';
+    if (isGlobalPaused) {
+        availabilityStatus = 'PAUSED';
+    } else if (activeChannelsCount < totalMainChannels) {
+        availabilityStatus = 'PARTIAL';
+    } else {
+        availabilityStatus = 'FULL';
+    }
+
     const price = posChannel.price;
 
+    // ... existing hooks ...
     const [isEditingPrice, setIsEditingPrice] = useState(false);
     const [tempPrice, setTempPrice] = useState(price.toString());
     const [isUploading, setIsUploading] = useState(false);
@@ -43,11 +66,12 @@ const MenuProductCard: React.FC<{
     const isLowMargin = product.marginPercent < 30;
     const isHighMargin = product.marginPercent >= 50;
 
-    // Resolve Image: Channel Override > Root Product Image
+    // Resolve Image
     const displayImage = posChannel.image || product.image;
 
-    // Quick Edit Handlers
+    // ... existing handlers ...
     const handlePriceSave = (e?: React.FormEvent) => {
+        // ... (unchanged)
         e?.preventDefault();
         const newPrice = parseFloat(tempPrice);
         if (!isNaN(newPrice) && newPrice >= 0) {
@@ -70,6 +94,7 @@ const MenuProductCard: React.FC<{
     };
 
     const handleDrop = async (e: React.DragEvent) => {
+        // ... (unchanged)
         e.preventDefault();
         e.stopPropagation();
         setIsDragging(false);
@@ -109,13 +134,36 @@ const MenuProductCard: React.FC<{
         }
     };
 
+    // Helper for Button Styles
+    const getToggleStyle = () => {
+        switch (availabilityStatus) {
+            case 'PAUSED':
+                // Currently Red (Off). Hovering suggests "Turn On" (Green-ish).
+                return 'bg-red-100 text-red-600 hover:bg-green-100 hover:text-green-600 hover:shadow-md hover:scale-105';
+            case 'PARTIAL':
+                // Currently Amber (Partial). Hovering suggests "Turn Off" (Red-ish).
+                return 'bg-amber-100 text-amber-700 hover:bg-red-100 hover:text-red-600 ring-1 ring-amber-200 hover:ring-red-200 hover:shadow-md';
+            case 'FULL':
+                // Currently Green (On). Hovering suggests "Turn Off" (Red-ish).
+                return 'bg-green-100 text-green-600 hover:bg-red-100 hover:text-red-600 hover:shadow-md';
+        }
+    };
+
+    const getToggleTitle = () => {
+        switch (availabilityStatus) {
+            case 'PAUSED': return 'Ativar Venda (Global)';
+            case 'PARTIAL': return 'Ativo Parcialmente (Clique para Pausar)';
+            case 'FULL': return 'Pausar Venda (Global)';
+        }
+    };
+
     return (
         <div
             onClick={() => onOpenEditor(product)}
             onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
-            className={`group bg-white rounded-3xl border transition-all duration-300 flex flex-col overflow-hidden relative cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 ${isAvailable ? 'border-gray-100' : 'border-gray-200 opacity-60 grayscale-[0.5]'} ${isEditorOpen ? 'ring-2 ring-summo-primary border-summo-primary' : ''} ${isDragging ? 'ring-4 ring-summo-primary/50 scale-[1.02] z-20' : ''}`}
+            className={`group bg-white rounded-3xl border transition-all duration-300 flex flex-col overflow-hidden relative cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 ${availabilityStatus !== 'PAUSED' ? 'border-gray-100' : 'border-gray-200 opacity-60 grayscale-[0.8] hover:grayscale-0 hover:opacity-100'} ${isEditorOpen ? 'ring-2 ring-summo-primary border-summo-primary' : ''} ${isDragging ? 'ring-4 ring-summo-primary/50 scale-[1.02] z-20' : ''}`}
         >
 
             {/* Image Header */}
@@ -165,8 +213,12 @@ const MenuProductCard: React.FC<{
                 )}
 
                 <div className="absolute top-3 right-3 flex gap-2 z-10">
-                    <button onClick={(e) => onToggleAvailability(e, product)} className={`p-2 rounded-full shadow-lg transition backdrop-blur-md ${isAvailable ? 'bg-white/90 text-green-600 hover:bg-red-50 hover:text-red-500' : 'bg-red-100 text-red-500 hover:bg-green-50 hover:text-green-500'}`} title={isAvailable ? "Pausar Venda" : "Ativar Venda"}>
-                        <Power size={16} />
+                    <button
+                        onClick={(e) => onToggleAvailability(e, product)}
+                        className={`p-2 rounded-full shadow-lg transition-all duration-300 backdrop-blur-md ${getToggleStyle()}`}
+                        title={getToggleTitle()}
+                    >
+                        <Power size={16} strokeWidth={3} />
                     </button>
                 </div>
 

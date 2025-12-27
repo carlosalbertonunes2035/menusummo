@@ -95,19 +95,7 @@ export const StoreForm: React.FC<SettingsFormProps> = ({ settings, onChange }) =
                 </div>
             </div>
 
-            {/* FINANCIAL INTELLIGENCE SETTINGS - NEW */}
-            <div className={cardClass}>
-                <h4 className="font-bold text-slate-800 flex items-center gap-2"><Calculator size={20} /> Inteligência de Precificação</h4>
-                <p className="text-xs text-slate-500">Dados usados para calcular sugestões de preços e margens reais.</p>
 
-                <div className="grid grid-cols-1 gap-4">
-                    <div>
-                        <label className={labelClass}>Impostos (Simples/Outros)</label>
-                        <div className="relative"><input type="number" name="financial.taxRate" value={settings.financial?.taxRate || 0} onChange={onChange} className={`${inputClass} pr-8`} placeholder="0" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span></div>
-                        <p className="text-[10px] text-slate-400 mt-1">DAS, ICMS, etc sobre faturamento.</p>
-                    </div>
-                </div>
-            </div>
 
             <div className={cardClass}>
                 <h4 className="font-bold text-slate-800 flex items-center gap-2"><MapPin size={20} /> Localização e Contato</h4>

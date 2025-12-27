@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { StockMovementType } from '../../../types';
-import { DollarSign, Loader2, Wallet, FileText, Bike, TrendingUp, CreditCard, ArrowRight } from 'lucide-react';
+import { DollarSign, Loader2, Wallet, FileText, Bike, TrendingUp, CreditCard, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useOrders } from '@/hooks/useOrders';
 import { useStockMovements } from '@/hooks/useStockMovements';
 import { useExpenses } from '@/hooks/useExpenses';
@@ -10,9 +10,10 @@ import { useApp } from '../../../contexts/AppContext';
 // Sub-components
 import FinanceCash from '../components/finance/FinanceCash';
 import FinanceDRE from '../components/finance/FinanceDRE';
-import FinancePayables from '../components/finance/FinancePayables'; // Updated import
-import FinanceReceivables from '../components/finance/FinanceReceivables'; // New import
+import FinancePayables from '../components/finance/FinancePayables';
+import FinanceReceivables from '../components/finance/FinanceReceivables';
 import FinanceDrivers from '../components/finance/FinanceDrivers';
+import { FinanceReconciliation } from '../components/finance/FinanceReconciliation'; // New
 
 const Finance: React.FC = () => {
     const { data: orders } = useOrders({ limit: 500 });
@@ -20,9 +21,10 @@ const Finance: React.FC = () => {
     const { data: expenses } = useExpenses({ limit: 500 });
     const { cashRegister } = useApp();
 
-    const [view, setView] = useState<'CASH' | 'DRE' | 'PAYABLES' | 'RECEIVABLES' | 'DRIVERS'>('CASH');
+    const [view, setView] = useState<'CASH' | 'DRE' | 'PAYABLES' | 'RECEIVABLES' | 'DRIVERS' | 'RECONCILIATION'>('CASH');
     const [dateRange, setDateRange] = useState<'TODAY' | 'YESTERDAY' | 'MONTH' | 'ALL'>('TODAY');
 
+    // ... (filters) ...
     const filterDate = React.useCallback((date: Date) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -73,7 +75,6 @@ const Finance: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Background Decoration */}
                 <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none">
                     <DollarSign size={200} />
                 </div>
@@ -114,6 +115,7 @@ const Finance: React.FC = () => {
                     { id: 'CASH', label: 'Fluxo de Caixa', icon: Wallet },
                     { id: 'PAYABLES', label: 'Contas a Pagar', icon: FileText },
                     { id: 'RECEIVABLES', label: 'A Receber', icon: CreditCard },
+                    { id: 'RECONCILIATION', label: 'Conciliação', icon: CheckCircle2 }, // New
                     { id: 'DRIVERS', label: 'Motoboys', icon: Bike },
                     { id: 'DRE', label: 'DRE Gerencial', icon: TrendingUp }
                 ].map(v => {
@@ -131,6 +133,7 @@ const Finance: React.FC = () => {
                 {view === 'DRE' && <FinanceDRE revenue={revenue} cmv={cmv} expenses={totalExpenses} netProfit={netProfit} />}
                 {view === 'PAYABLES' && <FinancePayables expenses={expenses} />}
                 {view === 'RECEIVABLES' && <FinanceReceivables orders={orders} />}
+                {view === 'RECONCILIATION' && <FinanceReconciliation />}
                 {view === 'DRIVERS' && <FinanceDrivers orders={filteredOrders} />}
             </div>
         </div>

@@ -19,7 +19,7 @@ export const useMenuEditor = () => {
     const [activeTab, setActiveTab] = useState<'GENERAL' | 'OPTIONS' | 'ENGINEERING' | 'CHANNELS' | 'SEO'>('GENERAL');
     const [activeChannel, setActiveChannel] = useState<SalesChannel>('pos');
     const [newIngredientId, setNewIngredientId] = useState('');
-    const [recipeEditData, setRecipeEditData] = useState<Partial<Recipe>>({});
+    const [recipeEditData, setRecipeEditData] = useState<Partial<Recipe> | null>(null);
     const [isGeneratingCopy, setIsGeneratingCopy] = useState(false);
 
     // Helpers
@@ -68,8 +68,8 @@ export const useMenuEditor = () => {
                 return acc + (item.quantity * (subProduct?.cost || 0));
             }, 0);
         } else {
-            const currentRecipeIngredients = recipeEditData.ingredients || [];
-            const currentYield = recipeEditData.yield || 1;
+            const currentRecipeIngredients = recipeEditData?.ingredients || [];
+            const currentYield = recipeEditData?.yield || 1;
 
             const previewRealCostAcrossYield = (currentRecipeIngredients).reduce((acc: number, item: RecipeIngredient) => {
                 const ing = ingredients.find((i: Ingredient) => i.id === item.ingredientId);
@@ -89,7 +89,7 @@ export const useMenuEditor = () => {
 
         return {
             ...mergedData,
-            recipe: recipeEditData,
+            recipe: recipeEditData || {}, // Fallback for UI
             realCost: previewRealCostPerPorion,
             margin: previewMargin,
             marginPercent: previewMarginPercent
@@ -113,6 +113,11 @@ export const useMenuEditor = () => {
         const isDraftModified = !isPersisted && (editData.name !== 'Novo Produto' || (editData.cost || 0) > 0);
 
         // Recipe Dirty Logic:
+        // Ignore if recipeEditData is not initialized yet (null)
+        if (!recipeEditData) {
+            return productChanged || isDraftModified;
+        }
+
         // If there is an existing recipe in DB, compare against it.
         // If NOT, we must compare against the "Inferred Recipe" derived from product.ingredients (Legacy support).
         let baselineRecipe: Partial<Recipe> = foundRecipe || {
@@ -138,6 +143,13 @@ export const useMenuEditor = () => {
 
         const recipeChanged = JSON.stringify(normalizeRecipe(recipeEditData)) !== JSON.stringify(normalizeRecipe(baselineRecipe));
 
+        // Ignore recipe change if both are essentially empty defaults
+        if (recipeChanged) {
+            const isBaseEmpty = (baselineRecipe.ingredients?.length || 0) === 0;
+            const isCurrEmpty = (recipeEditData.ingredients?.length || 0) === 0;
+            if (isBaseEmpty && isCurrEmpty) return productChanged || isDraftModified;
+        }
+
         return productChanged || recipeChanged || isDraftModified;
     }, [selectedProduct, editData, recipeEditData, recipes, products, ingredients]);
 
@@ -156,12 +168,13 @@ export const useMenuEditor = () => {
     };
 
     const updateRecipeYield = (val: number) => {
-        setRecipeEditData((prev: Partial<Recipe>) => ({ ...prev, yield: val }));
+        setRecipeEditData((prev: Partial<Recipe> | null) => ({ ...(prev || {}), yield: val }));
     };
 
     const handleSave = useCallback(async (): Promise<boolean> => {
         if (selectedProduct && currentEditingProduct) {
             const dataToSave = { ...editData };
+            const currentRecipeData = recipeEditData || { ingredients: [], yield: 1, yieldUnit: 'porção' }; // Fallback
 
             // Se mudamos a receita no editor, sugerimos salvar a receita primeiro ou sincronizar custo
             const finalProduct = {
@@ -169,7 +182,7 @@ export const useMenuEditor = () => {
                 ...dataToSave,
                 cost: currentEditingProduct.realCost,
                 // Garantimos que a lista de ingredientes no produto reflita a receita linkada
-                ingredients: (recipeEditData.ingredients || [])
+                ingredients: (currentRecipeData.ingredients || [])
                     .map((ri: RecipeIngredient) => ({
                         ingredientId: ri.ingredientId,
                         amount: ri.quantity
@@ -192,13 +205,13 @@ export const useMenuEditor = () => {
                 const savedId = await onUpdateProduct(finalProduct);
 
                 // Se houver alteração na receita (rendimento ou ingredientes), atualizamos a receita também
-                if (recipeEditData.id) {
+                if (currentRecipeData.id) {
                     const recipeData: Partial<Recipe> = {
-                        ...recipeEditData,
-                        ingredients: (recipeEditData.ingredients || []).filter((i: RecipeIngredient) => i.quantity > 0),
-                        totalCost: currentEditingProduct.realCost * (recipeEditData.yield || 1)
+                        ...currentRecipeData,
+                        ingredients: (currentRecipeData.ingredients || []).filter((i: RecipeIngredient) => i.quantity > 0),
+                        totalCost: currentEditingProduct.realCost * (currentRecipeData.yield || 1)
                     };
-                    await handleAction('recipes', 'update', recipeEditData.id, recipeData);
+                    await handleAction('recipes', 'update', currentRecipeData.id, recipeData);
                 }
 
                 showToast('Produto salvo com sucesso!', 'success');
@@ -212,7 +225,7 @@ export const useMenuEditor = () => {
                     // Fallback if ID wasn't returned but operation succeeded (should not happen with fix)
                     setSelectedProduct(null);
                     setEditData({});
-                    setRecipeEditData({});
+                    setRecipeEditData(null);
                 }
                 return true;
 
@@ -227,22 +240,22 @@ export const useMenuEditor = () => {
     const handleClose = useCallback(async (force?: boolean) => {
         if (!force && isDirty) {
             if (window.confirm("Deseja SALVAR as alterações antes de sair?\n\n[OK] = Salvar e Sair\n[Cancelar] = Sair sem Salvar (Descartar)")) {
-                await handleSave();
-                return;
+                const saved = await handleSave();
+                if (!saved) return; // If save failed, stay open to retry
             }
         }
 
-        // Reset everything
+        // Reset everything (Success path for Save OR Discard path)
         setSelectedProduct(null);
         setEditData({});
-        setRecipeEditData({});
+        setRecipeEditData(null);
     }, [isDirty, handleSave, selectedProduct, editData]);
 
     const openEditor = (product: Product) => {
         if (selectedProduct && isDirty && !window.confirm("Descartar alterações do produto atual?")) return;
         setSelectedProduct(product);
         setEditData({});
-        setRecipeEditData({});
+        setRecipeEditData(null); // Wait for useEffect to load it
         setActiveTab('GENERAL');
     };
 
@@ -295,30 +308,38 @@ export const useMenuEditor = () => {
     const addIngredientToRecipe = (ingredientId?: string) => {
         const idToAdd = ingredientId || newIngredientId;
         if (!idToAdd) return;
-        const currentIngredients = recipeEditData.ingredients || [];
+
+        // Ensure initialized
+        const currentData = recipeEditData || { ingredients: [], yield: 1, yieldUnit: 'porção' };
+
+        const currentIngredients = currentData.ingredients || [];
         if (currentIngredients.find((i: RecipeIngredient) => i.ingredientId === idToAdd)) return;
+
         const ing = ingredients.find(i => i.id === idToAdd);
         const recipe = recipes.find(r => r.id === idToAdd);
         const unit = ing ? ing.unit : recipe?.yieldUnit || 'und';
-        setRecipeEditData((prev: Partial<Recipe>) => ({
-            ...prev,
+
+        setRecipeEditData({
+            ...currentData,
             ingredients: [...currentIngredients, { ingredientId: idToAdd, quantity: 1, unit }]
-        }));
+        });
         setNewIngredientId('');
     };
 
     const removeIngredient = (index: number) => {
+        if (!recipeEditData) return;
         const currentIngredients = recipeEditData.ingredients || [];
         const updated = [...currentIngredients];
         updated.splice(index, 1);
-        setRecipeEditData((prev: Partial<Recipe>) => ({ ...prev, ingredients: updated }));
+        setRecipeEditData((prev: Partial<Recipe> | null) => ({ ...(prev || {}), ingredients: updated }));
     };
 
     const updateIngredientAmount = (index: number, val: number) => {
+        if (!recipeEditData) return;
         const currentIngredients = recipeEditData.ingredients || [];
         const updated = [...currentIngredients];
         updated[index] = { ...updated[index], quantity: val };
-        setRecipeEditData((prev: Partial<Recipe>) => ({ ...prev, ingredients: updated }));
+        setRecipeEditData((prev: Partial<Recipe> | null) => ({ ...(prev || {}), ingredients: updated }));
     };
 
     const handleGenerateCopy = async () => {
@@ -407,11 +428,38 @@ export const useMenuEditor = () => {
         }
     }, [selectedProduct, handleAction, showToast]);
 
+    // Simplified Discard
+    const discardChanges = useCallback(() => {
+        handleClose(true); // Force close
+    }, [handleClose]);
+
+    const calculateComboCost = useCallback((items: any[]) => {
+        return items.reduce((acc, item) => {
+            const childProduct = products.find(p => p.id === item.productId);
+            // Use realCost (calculated from recipe) or fallback to cost field
+            const productCost = childProduct?.realCost || childProduct?.cost || 0;
+            return acc + (productCost * item.quantity);
+        }, 0);
+    }, [products]);
+
+    const handleComboUpdate = useCallback((comboItems: any[]) => {
+        const totalCost = calculateComboCost(comboItems);
+
+        setEditData(prev => ({
+            ...prev,
+            comboItems,
+            cost: totalCost,
+            // Combos inherit cost from children, so realCost is same as cost
+            realCost: totalCost,
+            recipeId: undefined,
+        }));
+    }, [calculateComboCost, setEditData]);
+
     return {
         selectedProduct, editData, setEditData, activeTab, setActiveTab,
         currentEditingProduct, isDirty,
         newIngredientId, setNewIngredientId, isGeneratingCopy,
-        openEditor, handleOpenCreator, handleClose, handleSave, handleDelete,
+        openEditor, handleOpenCreator, handleClose, handleSave, handleDelete, discardChanges,
         toggleAvailability, onDuplicateProduct,
         addIngredientToRecipe, removeIngredient, updateIngredientAmount, updateRecipeYield,
         handleGenerateCopy, handleTagToggle,

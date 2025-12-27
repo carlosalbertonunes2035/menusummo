@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product, ChannelConfig, SalesChannel } from '@/types';
-import { Globe, Monitor, ShoppingCart, Wand2, Loader2, Play, Pause, ChevronRight, ImageIcon } from 'lucide-react';
+import { Globe, Monitor, ShoppingCart, Wand2, Loader2, Play, Pause, ChevronRight, ImageIcon, X } from 'lucide-react';
 import { ProductImageManager } from './ProductImageManager';
 
 interface ProductChannelsProps {
@@ -104,17 +104,59 @@ export const ProductChannels: React.FC<ProductChannelsProps> = ({
                     </h4>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="md:col-span-1 space-y-2">
-                            <label className="text-xs font-black text-gray-400 uppercase block mb-2">Imagem do Canal</label>
-                            <div className="max-w-[200px]">
-                                <ProductImageManager
-                                    product={currentEditingProduct as Product}
-                                    currentImage={currentChannelData.image || ''}
-                                    onImageChange={(url: string) => onChannelDataChange('image', url)}
-                                    productName={currentChannelData.displayName || product.name}
-                                />
-                            </div>
-                            <p className="text-[10px] text-gray-400 font-bold leading-tight">Esta imagem substituirá a imagem principal apenas para este canal.</p>
+                        <div className="md:col-span-1 space-y-4">
+                            <label className="text-xs font-black text-gray-400 uppercase block">Imagem do Canal</label>
+
+                            {/* Logic: If channel image is same as main, show Preview + Toggle. If different, show Uploader + Remove Override */}
+                            {(() => {
+                                const mainImage = currentEditingProduct.image;
+                                const channelImage = currentChannelData.image;
+                                const isOverridden = channelImage && channelImage !== mainImage;
+
+                                if (!isOverridden) {
+                                    return (
+                                        <div className="space-y-3">
+                                            <div className="max-w-[200px] aspect-square rounded-xl overflow-hidden border border-gray-200 relative group">
+                                                <img src={mainImage || ''} className="w-full h-full object-cover opacity-80" alt="Main" />
+                                                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                                    <span className="text-[10px] font-bold text-white uppercase tracking-wider">Imagem Principal</span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => onChannelDataChange('image', 'https://via.placeholder.com/150')} // Trigger change to different (or empty to start upload? better to just show manager) 
+                                                // Actually, we need to allow enabling the uploader.
+                                                // Let's change the pattern slightly. We need a local state? 
+                                                // No, we can just render the Manager if we want to Edit.
+                                                // But to *become* overridden, we start with the current image.
+                                                className="text-xs font-bold text-summo-primary hover:underline flex items-center gap-1"
+                                            >
+                                                <Wand2 size={12} /> Customizar para este canal
+                                            </button>
+                                        </div>
+                                    );
+                                } else {
+                                    // Overridden State
+                                    return (
+                                        <div className="space-y-2">
+                                            <div className="max-w-[200px]">
+                                                <ProductImageManager
+                                                    product={currentEditingProduct as Product}
+                                                    currentImage={currentChannelData.image || ''}
+                                                    onImageChange={(url: string) => onChannelDataChange('image', url)}
+                                                    productName={currentChannelData.displayName || product.name}
+                                                    onUpdate={() => { }}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => onChannelDataChange('image', currentEditingProduct.image)} // Revert to Main
+                                                className="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 mt-1"
+                                            >
+                                                <X size={10} /> Remover Personalização (Usar Principal)
+                                            </button>
+                                        </div>
+                                    );
+                                }
+                            })()}
                         </div>
 
                         <div className="md:col-span-2 space-y-5">

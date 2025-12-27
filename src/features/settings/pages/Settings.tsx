@@ -6,18 +6,20 @@ import {
     Save, Printer, Store as StoreIcon, Clock, Truck,
     Bike, AlertTriangle, CreditCard, LayoutGrid, Monitor,
     Plus, Trash2, ChevronRight, Bell, Activity, Building2, Check, Briefcase, SlidersHorizontal, Cpu, Users, Shield, Lock, Plug, Key, LogOut, Smartphone, Loader2,
-    Wand2, Info, Brain
+    Wand2, Info, Brain, Wallet
 } from 'lucide-react';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { requestNotificationPermission } from '@/services/notificationService';
+import { ALL_MODULES } from '@/components/layouts/Sidebar';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import {
     StoreForm, ScheduleForm, DeliveryForm,
     PaymentForm, InterfaceForm, PrinterForm, IntegrationsForm, OperationForm,
-    BusinessProfileForm
+    BusinessProfileForm, OperationsHub, BankAccountsForm
 } from '../components/SettingsForms';
+import { FinancialSettings } from '../components/FinancialSettings';
 import SubscriptionSection from '../components/SubscriptionSection';
 import MotoboysSection from '../components/MotoboysSection';
 import SystemSection from '../components/SystemSection';
@@ -52,13 +54,12 @@ const Settings: React.FC = () => {
 
     const allMenuItems = [
         { id: 'STORE', label: 'Dados da Empresa', icon: StoreIcon, description: 'CNPJ, endereço e segurança da conta.', permission: 'manage:settings' },
-        { id: 'BUSINESS_CONTEXT', label: 'Contexto do Negócio', icon: Brain, description: 'Identidade para IA e Marketing.', permission: 'manage:settings' }, // New Tab
+        { id: 'BUSINESS_CONTEXT', label: 'Contexto do Negócio', icon: Brain, description: 'Identidade para IA e Marketing.', permission: 'manage:settings' },
         { id: 'TEAM', label: 'Gestão de Equipe', icon: Users, description: 'Colaboradores, acessos e cargos.', permission: 'manage:team' },
+        { id: 'OPERATIONS_HUB', label: 'Operação & Logística', icon: SlidersHorizontal, description: 'Horários, delivery e modos de pedido.', permission: 'manage:settings' }, // NEW HUB
+        { id: 'FINANCIAL', label: 'Financeiro & Taxas', icon: CreditCard, description: 'Taxas, pagamentos e iFood.', permission: 'manage:finance' },
+        { id: 'BANKS', label: 'Bancos & Caixas', icon: Wallet, description: 'Contas bancárias, caixas e conciliação.', permission: 'manage:finance' }, // NEW MODULE
         { id: 'INTEGRATIONS', label: 'Integrações (API)', icon: Plug, description: 'Conexões externas (Gemini, iFood, WhatsApp).', permission: 'manage:settings' },
-        { id: 'OPERATION', label: 'Operação', icon: SlidersHorizontal, description: 'Modos e tempos de pedido.', permission: 'manage:settings' },
-        { id: 'HOURS', label: 'Horários', icon: Clock, description: 'Funcionamento do estabelecimento.', permission: 'manage:settings' },
-        { id: 'DELIVERY', label: 'Delivery', icon: Truck, description: 'Taxas, raio e pedido mínimo.', permission: 'manage:settings' },
-        { id: 'PAYMENT', label: 'Pagamento', icon: CreditCard, description: 'Meios aceitos e chaves Pix.', permission: 'manage:finance' },
         { id: 'MOTOBOYS', label: 'Entregadores', icon: Bike, description: 'Cadastro de motoboys (Logística).', permission: 'manage:logistics' },
         { id: 'INTERFACE', label: 'Interface', icon: LayoutGrid, description: 'Aparência do sistema.', permission: 'manage:settings' },
         { id: 'PRINTER', label: 'Impressão', icon: Printer, description: 'Tamanho do papel e vias.', permission: 'view:settings' },
@@ -155,10 +156,31 @@ const Settings: React.FC = () => {
     };
 
     const toggleDockItem = (moduleId: string) => {
+        // If dockItems is empty/undefined, it implies ALL are active by default.
+        // So we initialize with all/interface-visible modules first if we are toggling for the first time.
+        // However, we don't have ALL_MODULES here without import. 
+        // Let's rely on the form passing the current state or just handling it in UI?
+        // Better: Initialize localSettings.dockItems in useEffect if empty?
+        // No, let's fix logic here.
+        // We will do a safe fallback:
         const current = localSettings.dockItems || [];
         let updated: string[];
+
+        // Logic: specific to "dockItems". 
+        // If the user hasn't configured, we assume all. 
+        // But if they click one, they establish a preference.
+        // If current is empty, does it mean "All" or "None"? 
+        // In the App, it usually means "None" or "All" depending on implementation.
+        // User said "Todos ativados", so empty = All.
+        // If I click one to "Turn Off", I expect everything else to stay ON.
+        // So I must populate `current` with ALL, then remove the clicked one.
+
+        // Since I don't have ALL_MODULES easily available without resolving imports, I will simply 
+        // force the state to be initialized in InterfaceForm or here.
+        // Let's modify the imports to include ALL_MODULES.
         if (current.includes(moduleId)) updated = current.filter(id => id !== moduleId);
         else updated = [...current, moduleId];
+
         setLocalSettings(prev => ({ ...prev, dockItems: updated }));
         setHasChanges(true);
     };
@@ -258,10 +280,9 @@ const Settings: React.FC = () => {
                         </React.Suspense>
                     </ErrorBoundary>
                 );
-            case 'OPERATION': return <OperationForm {...commonProps} />;
-            case 'HOURS': return <ScheduleForm {...commonProps} onScheduleChange={handleScheduleChange} />;
-            case 'DELIVERY': return <DeliveryForm {...commonProps} />;
-            case 'PAYMENT': return <PaymentForm {...commonProps} />;
+            case 'OPERATIONS_HUB': return <OperationsHub {...commonProps} onScheduleChange={handleScheduleChange} />; // NEW HUB
+            case 'FINANCIAL': return <FinancialSettings settings={localSettings} onChange={handleInputChange} />;
+            case 'BANKS': return <BankAccountsForm settings={localSettings} onChange={handleInputChange} />;
             case 'INTEGRATIONS': return <IntegrationsForm {...commonProps} />;
             case 'SUBSCRIPTION': return <SubscriptionSection />;
             case 'INTERFACE': return <InterfaceForm {...commonProps} onToggleDockItem={toggleDockItem} />;
@@ -333,33 +354,7 @@ const Settings: React.FC = () => {
                                 )
                             })}
                         </div>
-                        <div className="pt-8 border-t border-gray-200">
-                            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <Wand2 className="text-purple-500" /> Ferramentas de IA (Beta)
-                            </h3>
-                            <div className="bg-purple-50 p-6 rounded-xl border border-purple-100">
-                                <div className="flex justify-between items-center mb-4">
-                                    <div>
-                                        <h4 className="font-bold text-gray-800">Importador Inteligente de Cardápio</h4>
-                                        <p className="text-sm text-gray-600 mt-1">
-                                            Engenharia reversa de cardápios (iFood/PDF) para gerar produtos, receitas e insumos automaticamente.
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={handleImportMenu}
-                                        disabled={isImporting}
-                                        className="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-purple-700 transition flex items-center gap-2 disabled:opacity-50"
-                                    >
-                                        {isImporting ? <Loader2 className="animate-spin" /> : <Wand2 size={18} />}
-                                        Importar "JC Espetaria"
-                                    </button>
-                                </div>
-                                <div className="text-xs text-purple-600 bg-purple-100 p-3 rounded-lg flex items-center gap-2">
-                                    <Info size={14} />
-                                    <span>Isso irá popular seu sistema com 20+ produtos, insumos e receitas simuladas do JC Espetaria.</span>
-                                </div>
-                            </div>
-                        </div>
+
 
                     </div>
 

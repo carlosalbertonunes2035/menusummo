@@ -61,6 +61,15 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
         }
     }, [editData.name, selectedProduct, editData.slug, setEditData]);
 
+    // Cleanup Effect: Reset UI states when editor opens/closes or product changes
+    useEffect(() => {
+        if (!selectedProduct) {
+            setShowUnsavedModal(false);
+            setShowDeleteConfirm(false);
+            setIsOptionManagerOpen(false);
+        }
+    }, [selectedProduct]);
+
     const onCloseRequest = async () => {
         if (logic.isDirty) {
             setShowUnsavedModal(true);
@@ -327,6 +336,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                                     linkRecipe={linkRecipe}
                                     unlinkRecipe={unlinkRecipe}
                                     onChannelDataChange={handleChannelDataChange}
+                                    onComboUpdate={logic.handleComboUpdate}
                                 />
                             )}
 
@@ -473,7 +483,10 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                             </button>
                             <div className="flex gap-3">
                                 <button
-                                    onClick={() => handleClose(true)}
+                                    onClick={() => {
+                                        logic.discardChanges();
+                                        setShowUnsavedModal(false);
+                                    }}
                                     className="flex-1 py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl font-bold hover:bg-red-100 transition"
                                 >
                                     Descartar Alterações

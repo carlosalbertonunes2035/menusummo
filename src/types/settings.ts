@@ -1,3 +1,5 @@
+import { BankAccount } from './finance';
+
 export interface SEO {
     title: string;
     description: string;
@@ -89,14 +91,46 @@ export interface StoreSettings {
         };
     };
     address: string; // Plain text version for display
+    bankAccounts: BankAccount[]; // [NEW] Financial Module 2.0
     storefront: {
         storeName: string;
         slug: string; // Unique URL slug (e.g., "my-store")
+    };
+    loyalty: {
+        enabled: boolean;
+        pointsPerCurrency: number; // e.g., 1 point per R$ 1.00
+        redemptionRate: number;    // e.g., 100 points = R$ 5.00 discount (Rate: 20 points per R$1 OR defined as conversion factor)
+        // Let's use: Value in R$ per 100 points. e.g. 5.00
+        cashbackValuePer100Points: number;
+        minRedemptionPoints: number;
+        branding: {
+            name: string; // "Cashback", "Moedas", "Pontos"
+            color: string;
+        };
     };
     financial: {
         taxRate: number;
         fixedCostRate: number;
         packagingAvgCost: number;
+        // Advanced Financial Settings
+        payment: {
+            provider: 'STONE' | 'MERCADO_PAGO' | 'REDE' | 'CIELO' | 'PAGSEGURO' | 'CUSTOM';
+            rates: {
+                debit: number;
+                creditCash: number;
+                creditInstallment: number; // Average or specific term
+                pix: number;
+            };
+        };
+        ifood: {
+            plan: 'BASIC' | 'DELIVERY'; // Básico vs Entrega
+            payoutModel: 'WEEKLY' | 'MONTHLY'; // Repasse Semanal (Antecipado) vs Mensal (30 dias)
+            commission: number; // e.g. 12% or 23%
+            paymentFee: number; // e.g. 3.2% (Pay online)
+            anticipationFee: number; // e.g. 1.5% to 2.5% (Se semanal)
+            monthlyFee: number; // e.g. 130.00
+            isFreeMonth?: boolean; // New partners promo
+        };
     };
     schedule: ScheduleDay[];
     digitalMenu?: DigitalMenuSettings;

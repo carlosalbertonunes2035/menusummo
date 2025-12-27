@@ -15,7 +15,7 @@ interface CartModalProps {
     user: any;
     onUpdateUser?: (u: Partial<{ name: string; phone: string }>) => void;
     onOpenAddressModal: () => void;
-    onSendOrder: () => void;
+    onSendOrder: (loyaltyDiscount?: number, loyaltyPointsUsed?: number) => void;
     isSending: boolean;
     orderMode: OrderType;
     setOrderMode: (mode: OrderType) => void;
@@ -53,24 +53,46 @@ const CartModal: React.FC<CartModalProps> = ({
 
     const isDelivery = orderMode === OrderType.DELIVERY;
 
+    // Loyalty State
+    const [redeemPoints, setRedeemPoints] = useState(false);
+    const userPoints = user?.loyaltyPoints || 0;
+    const loyaltySettings = settings.loyalty;
+
     const deliveryFee = useMemo(() => {
         if (!isDelivery) return 0;
         if (settings.delivery?.freeShippingThreshold && cartTotal >= settings.delivery.freeShippingThreshold) return 0;
         return settings.delivery?.baseFee || 0;
     }, [isDelivery, cartTotal, settings.delivery]);
 
-    const discountValue = useMemo(() => {
-        if (!appliedCoupon) return 0;
-        if (cartTotal < (appliedCoupon.minOrderValue || 0)) return 0;
+    const loyaltyDiscount = useMemo(() => {
+        if (!redeemPoints || !loyaltySettings?.enabled) return 0;
+        if (userPoints < (loyaltySettings.minRedemptionPoints || 0)) return 0;
 
-        if (appliedCoupon.type === DiscountType.FIXED) {
-            return appliedCoupon.value;
-        } else {
-            return (cartTotal * appliedCoupon.value) / 100;
+        // Formula: Discount = (Points / 100) * cashbackValuePer100Points
+        // Example: 150 points. ValuePer100 = 5.00. Result = 1.5 * 5 = 7.50
+        const potentialDiscount = (userPoints / 100) * (loyaltySettings.cashbackValuePer100Points || 0);
+
+        // Cap discount at total cart value? Usually yes.
+        return Math.min(potentialDiscount, cartTotal);
+    }, [redeemPoints, loyaltySettings, userPoints, cartTotal]);
+
+    const discountValue = useMemo(() => {
+        // If redeeming points, maybe disable coupons? Or allow STACKING?
+        // For simplicity: If Coupon Applied, disable points? Or Stack?
+        // Let's allow STACKING but cap at total.
+
+        let couponDiscount = 0;
+        if (appliedCoupon) {
+            if (cartTotal >= (appliedCoupon.minOrderValue || 0)) {
+                couponDiscount = appliedCoupon.type === DiscountType.FIXED
+                    ? appliedCoupon.value
+                    : (cartTotal * appliedCoupon.value) / 100;
+            }
         }
+        return couponDiscount;
     }, [appliedCoupon, cartTotal]);
 
-    const finalTotal = cart.length === 0 ? 0 : Math.max(0, cartTotal + deliveryFee - discountValue);
+    const finalTotal = cart.length === 0 ? 0 : Math.max(0, cartTotal + deliveryFee - discountValue - loyaltyDiscount);
 
     useEffect(() => {
         if (isOpen) {
@@ -395,6 +417,39 @@ const CartModal: React.FC<CartModalProps> = ({
                         </div>
                     )}
 
+                    {/* Loyalty Redemption Widget */}
+                    {loyaltySettings?.enabled && userPoints > 0 && (
+                        <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-4 rounded-xl text-white shadow-xl flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white/10 p-2 rounded-full"><Sparkles className="text-amber-400" size={20} /></div>
+                                <div>
+                                    <p className="text-xs font-bold text-white/60 uppercase tracking-wider">Seu Saldo Cashback</p>
+                                    <p className="font-bold text-white text-lg flex items-center gap-1">
+                                        {userPoints} <span className="text-xs font-normal opacity-70">{loyaltySettings.branding?.name || 'Pontos'}</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            {userPoints >= (loyaltySettings.minRedemptionPoints || 0) ? (
+                                <div className="flex items-center gap-2">
+                                    <div className="text-right mr-2">
+                                        <p className="text-[10px] text-gray-300">Desconto disp.</p>
+                                        <p className="font-bold text-green-400">R$ {((userPoints / 100) * (loyaltySettings.cashbackValuePer100Points || 0)).toFixed(2)}</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={redeemPoints} onChange={() => setRedeemPoints(!redeemPoints)} className="sr-only peer" />
+                                        <div className="w-11 h-6 bg-white/20 peer-focus:outline-none ring-0 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                    </label>
+                                </div>
+                            ) : (
+                                <div className="text-right">
+                                    <p className="text-[10px] text-gray-400">Mínimo para uso</p>
+                                    <p className="font-bold text-xs text-gray-300">{loyaltySettings.minRedemptionPoints} pts</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="space-y-2 pt-2">
                         <h4 className="font-bold text-gray-800 text-sm">Resumo de valores</h4>
                         <div className="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span>R$ {cartTotal.toFixed(2)}</span></div>
@@ -402,6 +457,12 @@ const CartModal: React.FC<CartModalProps> = ({
                             <div className="flex justify-between text-sm text-green-600 font-bold">
                                 <span>Desconto ({appliedCoupon.code})</span>
                                 <span>- R$ {discountValue.toFixed(2)}</span>
+                            </div>
+                        )}
+                        {loyaltyDiscount > 0 && (
+                            <div className="flex justify-between text-sm text-amber-500 font-bold">
+                                <span>Cashback Utilizado</span>
+                                <span>- R$ {loyaltyDiscount.toFixed(2)}</span>
                             </div>
                         )}
                         {appliedCoupon && cartTotal < (appliedCoupon.minOrderValue || 0) && (
@@ -481,7 +542,14 @@ const CartModal: React.FC<CartModalProps> = ({
                         <button onClick={handleContinue} disabled={cart.length === 0} className="bg-summo-primary text-white px-8 py-3.5 rounded-xl font-bold text-base hover:bg-summo-dark transition shadow-lg shadow-summo-primary/30 flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">Continuar <ArrowRight size={18} /></button>
                     </div>
                 ) : (
-                    <button onClick={onSendOrder} disabled={isSending} className="w-full py-4 bg-summo-primary text-white rounded-xl font-bold text-lg hover:bg-summo-dark transition shadow-lg shadow-summo-primary/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none active:scale-95">{isSending ? <Loader2 className="animate-spin" /> : 'Fazer Pedido'}</button>
+                    <button onClick={() => {
+                        // Reverse calc for points used if discount is capped
+                        // Discount = (Points / 100) * Value
+                        // Points = (Discount * 100) / Value
+                        const valuePer100 = loyaltySettings?.cashbackValuePer100Points || 1;
+                        const pointsUsed = loyaltyDiscount > 0 ? Math.ceil((loyaltyDiscount * 100) / valuePer100) : 0;
+                        onSendOrder(loyaltyDiscount, pointsUsed);
+                    }} disabled={isSending} className="w-full py-4 bg-summo-primary text-white rounded-xl font-bold text-lg hover:bg-summo-dark transition shadow-lg shadow-summo-primary/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none active:scale-95">{isSending ? <Loader2 className="animate-spin" /> : 'Fazer Pedido'}</button>
                 )}
             </div>
         </div>

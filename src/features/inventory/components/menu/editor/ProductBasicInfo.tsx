@@ -244,45 +244,46 @@ export const ProductBasicInfo: React.FC<ProductBasicInfoProps> = ({
                             <button
                                 type="button"
                                 onClick={async () => {
-                                    if (!editData.name && !product.name) return;
-
-                                    const apiKey = settings.ai?.apiKey;
-                                    if (!apiKey) {
-                                        // TODO: Show toast error: Configure AI in settings
-                                        alert("Configure a API Key da IA nas Configurações > Avançado/IA");
-                                        return;
-                                    }
+                                    const pName = editData.name || product.name;
+                                    if (!pName) return;
 
                                     setIsGenerating(true);
                                     try {
-                                        // Dynamic import to avoid circular deps if any, or just import at top. 
-                                        // For now I'll use a mocked local function if import fails or standard import.
-                                        // Actually let's just assume I imported AIService at top.
-                                        const { AIService } = await import('@/services/aiService');
-                                        const ai = new AIService(apiKey);
+                                        // Import here to avoid circular dependencies if any
+                                        const { functionsUS } = await import('@/lib/firebase/client');
+                                        const { httpsCallable } = await import('@firebase/functions');
 
-                                        const result = await ai.generateProductCopy(
-                                            editData.name || product.name || '',
-                                            product.type || 'NORMAL',
-                                            settings.businessProfile
-                                        );
+                                        // Call the Marketing Agent (Cloud Function)
+                                        const generateMarketingFn = httpsCallable(functionsUS, 'generateMarketingCopy');
 
-                                        if (result) {
-                                            onUpdate('description', result.description);
-                                            // Optional: Update name if it's much better? User asked for description mostly here inside this box
-                                            // but mentioned "Internal vs External".
-                                            // Maybe show a confirmation? For now let's fill description.
+                                        const response = await generateMarketingFn({
+                                            productName: pName,
+                                            ingredients: editData.description || product.description || '',
+                                            restaurantName: settings.businessProfile?.name || 'Restaurante'
+                                        });
+
+                                        const result = response.data as any;
+
+                                        // The agent returns { ifoodDescription, siteDescription, seo, slug }
+                                        if (result && result.ifoodDescription) {
+                                            console.log('[AI Marketing] Generated:', result);
+
+                                            // User requested "Delivery Optimized" description
+                                            onUpdate('description', result.ifoodDescription);
+
+                                            // If we got a better category from AI? No, keep manual for now.
+                                            // If we generated SEO data, maybe store it later? For now, stick to Description.
                                         }
                                     } catch (error) {
-                                        console.error(error);
-                                        alert("Erro ao gerar com IA.");
+                                        console.error('[AI Marketing] Error:', error);
+                                        alert("Erro ao gerar descrição com IA. Tente novamente.");
                                     } finally {
                                         setIsGenerating(false);
                                     }
                                 }}
-                                disabled={isGenerating}
+                                disabled={isGenerating || (!editData.name && !product.name)}
                                 className="absolute right-3 bottom-3 p-2 bg-white text-summo-primary shadow-sm border border-gray-100 hover:bg-summo-bg rounded-lg opacity-100 transition disabled:opacity-50 z-10 cursor-pointer"
-                                title="Melhorar com IA (Baseado no seu Perfil)"
+                                title="Otimizar Descrição para Delivery (IA)"
                             >
                                 {isGenerating ? <div className="animate-spin w-4 h-4 border-2 border-summo-primary border-t-transparent rounded-full" /> : <Wand2 size={16} />}
                             </button>

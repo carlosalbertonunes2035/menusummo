@@ -109,23 +109,12 @@ export const IntegrationsForm: React.FC<SettingsFormProps> = ({ settings, onChan
                     </label>
                 </div>
                 <div className={`space-y-4 ${!settings.integrations?.ifood?.enabled ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className={labelClass}>Plano iFood</label>
-                            <select name="integrations.ifood.plan" value={settings.integrations?.ifood?.plan} onChange={onChange} className={inputClass}>
-                                <option value="BASICO">Básico (Entrega Própria)</option>
-                                <option value="ENTREGA">Entrega Parceira</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className={labelClass}>Comissão (%)</label>
-                            <div className="relative"><input type="number" name="integrations.ifood.commissionRate" value={settings.integrations?.ifood?.commissionRate} onChange={onChange} className={`${inputClass} pr-8`} /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span></div>
-                        </div>
-                    </div>
-                    <div>
-                        <label className={labelClass}>Taxas Financeiras Ocultas (Pagamento Online/Antecipação)</label>
-                        <div className="relative"><input type="number" step="0.1" name="integrations.ifood.financialFee" value={settings.integrations?.ifood?.financialFee || 3.2} onChange={onChange} className={`${inputClass} pr-8`} /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span></div>
-                        <p className="text-[10px] text-red-400 mt-1 flex items-center gap-1"><AlertTriangle size={10} /> Geralmente 3.2% a 4% (taxa de cartão + antecipação semanal).</p>
+                    <div className="p-4 bg-blue-50 text-blue-700 rounded-xl text-sm flex gap-2 items-start">
+                        <Info size={16} className="shrink-0 mt-0.5" />
+                        <p>
+                            As taxas e planos financeiros do iFood agora são gerenciados na aba <b>Financeiro & Taxas</b>.
+                            <br />Esta seção controla apenas a conexão técnica da API (Pedidos/Cardápio).
+                        </p>
                     </div>
                 </div>
             </div>

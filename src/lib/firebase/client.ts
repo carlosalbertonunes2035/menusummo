@@ -45,8 +45,11 @@ import { getFunctions, connectFunctionsEmulator } from '@firebase/functions';
 import { connectFirestoreEmulator } from '@firebase/firestore';
 import { connectAuthEmulator } from '@firebase/auth';
 
-// Initialize Cloud Functions (using Brazil region)
+// Initialize Cloud Functions (using Brazil region for general logic)
 export const functions = getFunctions(app, 'southamerica-east1');
+
+// AI Functions (US Central for better Model Availability)
+export const functionsUS = getFunctions(app, 'us-central1');
 
 // Connect to emulators in development
 if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true') {

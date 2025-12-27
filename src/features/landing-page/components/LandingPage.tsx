@@ -1,110 +1,159 @@
 
-import React from 'react';
-import { ArrowRight, BarChart3, TrendingUp, HandCoins, ChefHat, LayoutDashboard, Sparkles, ChevronRight, CheckCircle2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { Link } from 'react-router-dom';
+import {
+    ChevronRight, CheckCircle2, Star,
+    Zap, TrendingUp, Smartphone, MessageCircle,
+    Menu, X, Laptop, ShieldCheck, Mail, Phone, MapPin,
+    Instagram, Facebook, Youtube, Play, ArrowRight
+} from 'lucide-react';
 
 const LandingPage: React.FC = () => {
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
     return (
-        <div className="min-h-screen bg-summo-bg font-sans selection:bg-summo-primary selection:text-white">
+        <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-orange-100 selection:text-orange-600 overflow-x-hidden">
             <Helmet>
-                <title>SUMMO | Sistema de Gestão para Restaurantes e Delivery</title>
-                <meta name="description" content="Pare de trabalhar pelo prejuízo. O SUMMO extrai o máximo de lucro do seu restaurante com inteligência financeira, cardápio digital e gestão de custos." />
-                <meta name="keywords" content="sistema restaurante, gestão financeira, delivery, cardápio digital, kds, pdv, automação comercial, summo" />
-
-                {/* Open Graph / Facebook */}
-                <meta property="og:type" content="website" />
-                <meta property="og:url" content="https://summo.app/" />
-                <meta property="og:title" content="SUMMO | Extraia o Máximo de Lucro" />
-                <meta property="og:description" content="Sistema de gestão completo com inteligência financeira para restaurantes. Teste grátis." />
-                <meta property="og:image" content="https://summo.app/assets/cover-social.png" />
-
-                {/* Twitter */}
-                <meta property="twitter:card" content="summary_large_image" />
-                <meta property="twitter:url" content="https://summo.app/" />
-                <meta property="twitter:title" content="SUMMO | Gestão de Lucro" />
-                <meta property="twitter:description" content="Pare de trabalhar pelo prejuízo. Extraia o lucro real do seu negócio." />
-                <meta property="twitter:image" content="https://summo.app/assets/cover-social.png" />
+                <title>SUMMO | Sistema de Gestão e Delivery Próprio para Restaurantes</title>
+                <meta name="description" content="Tenha seu próprio aplicativo de delivery, cardápio digital e sistema de gestão completo. Fuja das taxas e fidelize seu cliente." />
             </Helmet>
 
-            {/* Header / Nav */}
-            <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-summo-border">
+            {/* --- HEADER --- */}
+            <header className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm transition-all">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="bg-summo-primary p-2 rounded-lg">
-                            <span className="text-white font-display font-bold text-xl tracking-tighter">SUMMO</span>
-                        </div>
+                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-orange-500/20">S</div>
+                        <span className="font-extrabold text-2xl tracking-tight text-slate-900">SUMMO</span>
                     </div>
-                    <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-summo-text-muted">
-                        <a href="#solucao" className="hover:text-summo-primary transition-colors">Solução</a>
-                        <a href="#funcionalidades" className="hover:text-summo-primary transition-colors">Funcionalidades</a>
-                        <a href="#sobre" className="hover:text-summo-primary transition-colors">Manifesto</a>
+
+                    <nav className="hidden lg:flex items-center gap-8 font-medium text-slate-600 text-sm">
+                        <a href="#solucoes" className="hover:text-orange-600 transition-colors">Soluções</a>
+                        <a href="#funcionalidades" className="hover:text-orange-600 transition-colors">Funcionalidades</a>
+                        <a href="#planos" className="hover:text-orange-600 transition-colors">Planos</a>
+                        <a href="#depoimentos" className="hover:text-orange-600 transition-colors">Depoimentos</a>
                     </nav>
-                    <div className="flex items-center gap-4">
-                        <Link to="/app/launchpad" className="text-sm font-bold text-summo-text hover:text-summo-primary transition-colors px-4 py-2">Acessar App</Link>
-                        <Link to="/app/launchpad" className="bg-summo-primary text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-summo-primary/20 hover:scale-105 transition-transform">Extrair Lucro Agora</Link>
+
+                    <div className="hidden lg:flex items-center gap-4">
+                        <Link to="/app/launchpad" className="text-sm font-bold text-slate-600 hover:text-orange-600">Entrar</Link>
+                        <Link to="/app/launchpad" className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-xl shadow-orange-600/20 hover:shadow-orange-600/40 hover:-translate-y-0.5 transition-all">
+                            Experimentar Grátis
+                        </Link>
                     </div>
+
+                    <button className="lg:hidden p-2 text-slate-600" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                        {isMobileMenuOpen ? <X /> : <Menu />}
+                    </button>
                 </div>
+
+                {/* Mobile Menu */}
+                {isMobileMenuOpen && (
+                    <div className="lg:hidden bg-white border-t border-gray-100 p-6 flex flex-col gap-4 shadow-xl absolute w-full animate-fade-in-down">
+                        <a href="#solucoes" className="font-medium text-slate-600 py-2 border-b border-gray-50">Soluções</a>
+                        <a href="#funcionalidades" className="font-medium text-slate-600 py-2 border-b border-gray-50">Funcionalidades</a>
+                        <a href="#planos" className="font-medium text-slate-600 py-2 border-b border-gray-50">Planos</a>
+                        <Link to="/app/launchpad" className="bg-orange-600 text-white text-center py-3 rounded-xl font-bold">Começar Agora</Link>
+                    </div>
+                )}
             </header>
 
-            {/* Hero Section */}
-            <section className="relative pt-40 pb-24 overflow-hidden">
+            {/* --- HERO SECTION --- */}
+            <section className="relative pt-40 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-gradient-to-b from-orange-50/80 via-white to-white">
                 <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                    <div className="relative z-10 animate-fade-in">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-summo-primary/10 border border-summo-primary/20 text-summo-primary text-xs font-bold uppercase tracking-widest mb-6">
-                            <Sparkles size={14} /> Inteligência Financeira
+                    <div className="space-y-8 animate-fade-in-up relative z-10">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 border border-orange-200 text-orange-700 text-xs font-bold uppercase tracking-widest">
+                            <Star size={12} className="fill-orange-700" /> A plataforma completa
                         </div>
-                        <h1 className="text-6xl md:text-7xl font-display font-bold text-summo-text leading-[1.1] mb-8">
-                            Extraia o <span className="text-summo-primary">Máximo</span> de Lucro.
+                        <h1 className="text-5xl lg:text-7xl font-extrabold leading-[0.95] tracking-tight text-slate-900">
+                            Venda mais. <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">Pague menos.</span>
                         </h1>
-                        <p className="text-xl text-summo-text-muted leading-relaxed mb-10 max-w-lg">
-                            Pare de trabalhar pelo prejuízo. O SUMMO é a prensa que espreme os custos invisíveis do seu restaurante e entrega o lucro real no seu bolso.
+                        <p className="text-xl text-slate-500 leading-relaxed max-w-lg">
+                            Tenha seu próprio aplicativo de delivery e site de pedidos.
+                            Livre-se das taxas abusivas dos marketplaces e assuma o controle do seu lucro.
                         </p>
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <Link to="/app/launchpad" className="flex items-center justify-center gap-2 bg-summo-primary text-white text-lg font-bold px-8 py-4 rounded-2xl shadow-xl shadow-summo-primary/20 hover:bg-orange-600 transition-colors">
-                                Começar Gratuitamente <ArrowRight size={20} />
+
+                        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                            <Link to="/app/launchpad" className="flex items-center justify-center gap-3 bg-orange-600 text-white text-lg font-bold px-8 py-4 rounded-2xl hover:bg-orange-700 transition-all shadow-xl shadow-orange-600/30 hover:scale-[1.02]">
+                                Criar Loja Grátis <ArrowRight size={20} />
                             </Link>
-                            <a href="#solucao" className="flex items-center justify-center gap-2 bg-white text-summo-text text-lg font-bold px-8 py-4 rounded-2xl border border-summo-border hover:bg-gray-50 transition-colors">
-                                Ver como funciona
-                            </a>
+                            <button className="flex items-center justify-center gap-3 bg-white text-slate-700 text-lg font-bold px-8 py-4 rounded-2xl border-2 border-slate-100 hover:border-orange-200 hover:bg-orange-50 transition-colors">
+                                <Play size={20} className="fill-slate-700" /> Ver Vídeo
+                            </button>
                         </div>
-                        <p className="mt-6 text-sm text-summo-text-muted italic flex items-center gap-2">
-                            ✓  Não deixe seu negócio virar só bagaço.
-                        </p>
+                        <div className="flex items-center gap-6 text-sm font-medium text-slate-400">
+                            <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-green-500" /> Setup em 2 minutos</span>
+                            <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-green-500" /> Sem fidelidade</span>
+                        </div>
                     </div>
 
-                    <div className="relative animate-slide-in-right lg:block hidden">
-                        <div className="absolute -top-20 -right-20 w-96 h-96 bg-summo-primary/10 rounded-full blur-3xl"></div>
-                        <div className="relative bg-white p-8 rounded-[40px] shadow-2xl border border-summo-border overflow-hidden group">
-                            <div className="flex justify-between items-center mb-10">
-                                <div>
-                                    <p className="text-xs font-bold text-summo-text-muted uppercase tracking-widest">Lucro Extraído de Hoje</p>
-                                    <h3 className="text-3xl font-display font-bold text-summo-text">R$ 4.280,00</h3>
-                                </div>
-                                <div className="p-3 bg-summo-secondary/10 rounded-2xl text-summo-secondary">
-                                    <TrendingUp size={32} />
+                    {/* HERO MOCKUP (CSS Composition) */}
+                    <div className="relative perspective-1000 lg:h-[600px] flex items-center justify-center">
+                        {/* Background Blobs */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-orange-400/20 to-purple-400/20 rounded-full blur-[100px]"></div>
+
+                        {/* Laptop Mockup */}
+                        <div className="relative w-[340px] md:w-[600px] bg-slate-900 rounded-2xl p-2 shadow-2xl transform rotate-y-[-10deg] rotate-x-[5deg] hover:rotate-0 transition-all duration-700 z-10 border border-slate-800">
+                            <div className="bg-slate-800 rounded-t-xl h-6 flex items-center px-4 gap-1.5 border-b border-slate-700">
+                                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            </div>
+                            <div className="bg-slate-900 aspect-video rounded-b-xl overflow-hidden relative group">
+                                {/* Fake Dashboard UI */}
+                                <div className="absolute inset-0 bg-slate-50 flex">
+                                    <div className="w-16 bg-slate-900 h-full flex flex-col items-center pt-4 gap-4">
+                                        <div className="w-8 h-8 rounded-lg bg-orange-600"></div>
+                                        <div className="w-8 h-8 rounded-lg bg-white/10"></div>
+                                        <div className="w-8 h-8 rounded-lg bg-white/10"></div>
+                                    </div>
+                                    <div className="flex-1 p-6">
+                                        <div className="flex justify-between items-center mb-8">
+                                            <div className="h-6 w-32 bg-slate-200 rounded"></div>
+                                            <div className="h-8 w-8 rounded-full bg-slate-300"></div>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-4 mb-6">
+                                            <div className="h-24 bg-white rounded-xl shadow-sm p-4 border border-slate-100">
+                                                <div className="h-8 w-8 rounded-full bg-green-100 mb-2"></div>
+                                                <div className="h-4 w-16 bg-slate-100 rounded"></div>
+                                            </div>
+                                            <div className="h-24 bg-white rounded-xl shadow-sm p-4 border border-slate-100">
+                                                <div className="h-8 w-8 rounded-full bg-blue-100 mb-2"></div>
+                                                <div className="h-4 w-16 bg-slate-100 rounded"></div>
+                                            </div>
+                                            <div className="h-24 bg-white rounded-xl shadow-sm p-4 border border-slate-100">
+                                                <div className="h-8 w-8 rounded-full bg-orange-100 mb-2"></div>
+                                                <div className="h-4 w-16 bg-slate-100 rounded"></div>
+                                            </div>
+                                        </div>
+                                        <div className="h-32 bg-white rounded-xl shadow-sm border border-slate-100"></div>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-6">
-                                <div className="h-4 bg-gray-100 rounded-full w-full overflow-hidden">
-                                    <div className="h-full bg-summo-primary w-[75%]"></div>
+                        </div>
+
+                        {/* Phone Mockup (Floating) */}
+                        <div className="absolute -right-4 -bottom-10 w-[140px] h-[280px] bg-slate-900 rounded-[2.5rem] border-[6px] border-slate-900 shadow-2xl z-20 transform rotate-[10deg] animate-float">
+                            <div className="w-full h-full bg-white rounded-[2rem] overflow-hidden relative">
+                                <div className="bg-orange-600 h-24 p-4 flex items-end pb-2">
+                                    <div className="h-4 w-20 bg-white/30 rounded"></div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-summo-bg rounded-2xl border border-summo-border">
-                                        <p className="text-[10px] font-bold text-summo-text-muted uppercase">Eficiência</p>
-                                        <p className="text-lg font-display font-bold text-summo-secondary">+28%</p>
+                                <div className="p-3 space-y-2">
+                                    <div className="h-20 bg-white shadow-md rounded-xl p-2 flex gap-2">
+                                        <div className="h-14 w-14 bg-slate-200 rounded-lg"></div>
+                                        <div className="flex-1 space-y-1">
+                                            <div className="h-3 w-16 bg-slate-200 rounded"></div>
+                                            <div className="h-2 w-10 bg-slate-100 rounded"></div>
+                                        </div>
                                     </div>
-                                    <div className="p-4 bg-summo-bg rounded-2xl border border-summo-border">
-                                        <p className="text-[10px] font-bold text-summo-text-muted uppercase">Desperdício</p>
-                                        <p className="text-lg font-display font-bold text-red-500">-12%</p>
+                                    <div className="h-20 bg-white shadow-md rounded-xl p-2 flex gap-2">
+                                        <div className="h-14 w-14 bg-slate-200 rounded-lg"></div>
                                     </div>
                                 </div>
-                                <div className="p-6 bg-summo-text rounded-3xl text-white">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <ChefHat size={18} className="text-summo-primary" />
-                                        <p className="text-xs font-medium opacity-80 italic">Ação recomendada pela IA:</p>
-                                    </div>
-                                    <p className="text-sm leading-relaxed">"O custo do insumo **Alcatra** subiu 15%. Recomendo atualizar a ficha técnica do espetinho agora para manter a margem de 35%."</p>
+                                {/* Floating Order Notification */}
+                                <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[90%] bg-white/90 backdrop-blur shadow-lg rounded-lg p-2 text-[10px] flex items-center gap-2 animate-bounce-slow">
+                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                    Novo Pedido #192
                                 </div>
                             </div>
                         </div>
@@ -112,130 +161,145 @@ const LandingPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* Problem / Pain Section */}
-            <section id="solucao" className="py-24 bg-summo-text text-white relative">
+            {/* --- SOCIAL PROOF --- */}
+            <section id="depoimentos" className="py-12 border-y border-gray-100 bg-slate-50">
+                <div className="max-w-7xl mx-auto px-6 text-center">
+                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8">Confiado por grandes operações</p>
+                    <div className="flex flex-wrap justify-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+                        {/* Placeholder Logos */}
+                        <div className="h-8 w-32 bg-slate-300 rounded"></div>
+                        <div className="h-8 w-32 bg-slate-300 rounded"></div>
+                        <div className="h-8 w-32 bg-slate-300 rounded"></div>
+                        <div className="h-8 w-32 bg-slate-300 rounded"></div>
+                    </div>
+                </div>
+            </section>
+
+            {/* --- SOLUTIONS GRID --- */}
+            <section id="solucoes" className="py-24 bg-white">
                 <div className="max-w-7xl mx-auto px-6">
-                    <div className="max-w-3xl mb-16">
-                        <h2 className="text-4xl md:text-5xl font-display font-bold mb-8">
-                            Você trabalha o dia todo e, no fim, só fica com o <span className="text-summo-primary">bagaço?</span>
-                        </h2>
-                        <p className="text-lg text-gray-400 leading-relaxed">
-                            Muitos sistemas de gestão são apenas repositórios de dados. Eles mostram o que aconteceu, mas não dizem o que fazer. O SUMMO inverte a lógica.
-                        </p>
+                    <div className="text-center max-w-3xl mx-auto mb-16">
+                        <span className="text-orange-600 font-bold tracking-widest uppercase text-sm">Sua operação unificada</span>
+                        <h2 className="text-4xl font-extrabold text-slate-900 mt-2 mb-4">Tudo que você precisa em um só lugar.</h2>
+                        <p className="text-lg text-slate-500">Substitua 5 ferramentas diferentes pelo SUMMO. Economize tempo e dinheiro.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-summo-primary/50 transition-all group">
-                            <div className="w-12 h-12 bg-red-500/20 text-red-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <HandCoins size={24} />
-                            </div>
-                            <h4 className="text-xl font-bold mb-4">Taxas Abusivas</h4>
-                            <p className="text-gray-400 text-sm leading-relaxed">
-                                iFood e Adquirentes comem sua margem em silêncio. Nós calculamos o impacto real em cada venda.
-                            </p>
-                        </div>
-                        <div className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-summo-primary/50 transition-all group">
-                            <div className="w-12 h-12 bg-red-500/20 text-red-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <BarChart3 size={24} />
-                            </div>
-                            <h4 className="text-xl font-bold mb-4">Precificação Cega</h4>
-                            <p className="text-gray-400 text-sm leading-relaxed">
-                                Se você não conhece o custo de cada gota de óleo, você está trabalhando para pagar o fornecedor.
-                            </p>
-                        </div>
-                        <div className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-summo-primary/50 transition-all group">
-                            <div className="w-12 h-12 bg-red-500/20 text-red-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <HandCoins size={24} />
-                            </div>
-                            <h4 className="text-xl font-bold mb-4">Gestão Exaustiva</h4>
-                            <p className="text-gray-400 text-sm leading-relaxed">
-                                Menos relatórios confusos, mais ações diretas. A IA do SUMMO pensa por você.
-                            </p>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <FeatureCard
+                            icon={<Smartphone className="text-orange-600" />}
+                            title="App Delivery Próprio"
+                            desc="Android e iOS com sua marca. Notificações Push ilimitadas e zero taxas por pedido."
+                        />
+                        <FeatureCard
+                            icon={<Zap className="text-yellow-500" />}
+                            title="Cardápio Digital QR"
+                            desc="Para mesas e balcão. O cliente pede pelo celular e o pedido sai direto na cozinha."
+                        />
+                        <FeatureCard
+                            icon={<Laptop className="text-blue-600" />}
+                            title="Frente de Caixa (PDV)"
+                            desc="Sistema PDV rápido, integrado com iFood e impressoras térmicas."
+                        />
+                        <FeatureCard
+                            icon={<TrendingUp className="text-green-600" />}
+                            title="Gestão Financeira"
+                            desc="DRE automático, contas a pagar/receber e controle de fluxo de caixa."
+                        />
+                        <FeatureCard
+                            icon={<MessageCircle className="text-purple-600" />}
+                            title="Robô de Vendas (WhatsApp)"
+                            desc="Atendimento automático no Zap. Esqueça ficar respondendo 'qual o cardápio?'."
+                        />
+                        <FeatureCard
+                            icon={<ShieldCheck className="text-slate-600" />}
+                            title="Estoque & Ficha Técnica"
+                            desc="Baixa automática de ingredientes conforme as vendas. Controle total do CMV."
+                        />
                     </div>
                 </div>
             </section>
 
-            {/* Feature Section */}
-            <section id="funcionalidades" className="py-24 bg-white">
-                <div className="max-w-7xl mx-auto px-6">
-                    <div className="text-center max-w-2xl mx-auto mb-20">
-                        <h2 className="text-4xl font-display font-bold text-summo-text mb-6">A prensa do lucro.</h2>
-                        <p className="text-summo-text-muted">Tudo o que você precisa para extrair o máximo de cada prato.</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-                        <div className="space-y-4">
-                            {[
-                                { title: "PDV Inteligente e Rápido", desc: "Venda em segundos, controle em detalhes. Feito para escala." },
-                                { title: "Engenharia de Cardápio", desc: "Saiba quais produtos são estrelas e quais estão drenando seu capital." },
-                                { title: "Custo de Insumos em Tempo Real", desc: "Integração automática para recalcular margens conforme os preços variam." },
-                                { title: "Cozinha (KDS) Sem Fios", desc: "Organize seus pedidos por ordem de prioridade e tempo de preparo." },
-                                { title: "Gestão Multiloja", desc: "Controle todas as suas unidades em uma única tela de gestão." }
-                            ].map((f, i) => (
-                                <div key={i} className="p-6 rounded-2xl border border-summo-border hover:bg-summo-bg transition-colors flex gap-5">
-                                    <div className="mt-1 text-summo-primary">
-                                        <CheckCircle2 size={24} />
-                                    </div>
-                                    <div>
-                                        <h5 className="font-bold text-lg text-summo-text mb-1">{f.title}</h5>
-                                        <p className="text-summo-text-muted text-sm leading-relaxed">{f.desc}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-summo-primary/20 blur-[100px] rounded-full"></div>
-                            <div className="relative bg-summo-bg rounded-[40px] p-2 border border-summo-border shadow-2xl overflow-hidden aspect-square flex items-center justify-center">
-                                <LayoutDashboard className="w-1/2 h-1/2 text-summo-primary/20 absolute opacity-50" />
-                                <div className="relative z-10 w-full p-8 text-center">
-                                    <h4 className="text-3xl font-display font-bold text-summo-text mb-6">Pronto para ver a diferença?</h4>
-                                    <Link to="/app/launchpad" className="inline-flex items-center gap-2 bg-summo-primary text-white font-bold px-10 py-5 rounded-3xl shadow-2xl shadow-summo-primary/40 hover:scale-105 transition-transform">
-                                        Explorar a Plataforma <ChevronRight size={20} />
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            {/* --- CTA STRIPE --- */}
+            <section className="py-20 bg-slate-900 text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-1/2 h-full bg-orange-600/10 skew-x-12 translate-x-32"></div>
+                <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
+                    <h2 className="text-4xl font-bold mb-6">Pronto para dominar seu delivery?</h2>
+                    <p className="text-slate-300 text-lg mb-10 max-w-2xl mx-auto">
+                        Junte-se a centenas de restaurantes que aumentaram seu lucro em até 30% saindo da dependência exclusiva dos marketplaces.
+                    </p>
+                    <Link to="/app/launchpad" className="bg-orange-600 text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-orange-500 transition-colors shadow-2xl shadow-orange-900/50">
+                        Quero meu Teste Grátis
+                    </Link>
                 </div>
             </section>
 
-            {/* Footer */}
-            <footer className="py-20 bg-summo-bg border-t border-summo-border">
-                <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
-                    <div className="col-span-1 md:col-span-2">
-                        <span className="text-summo-primary font-display font-bold text-3xl tracking-tighter mb-6 block">SUMMO</span>
-                        <p className="text-summo-text-muted max-w-md leading-relaxed">
-                            Extraímos a clareza do caos tributário e operacional. Gestão inteligente para quem cansou de ficar só com o bagaço.
+            {/* --- FOOTER --- */}
+            <footer className="bg-white border-t border-gray-100 pt-20 pb-10">
+                <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                    <div className="col-span-1 md:col-span-1">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center text-white font-bold">S</div>
+                            <span className="font-extrabold text-xl text-slate-900">SUMMO</span>
+                        </div>
+                        <p className="text-slate-500 text-sm leading-relaxed mb-6">
+                            Tecnologia de ponta para food service. Simplificamos a gestão para você focar no que importa: a comida.
                         </p>
+                        <div className="flex gap-4 opacity-70">
+                            <Instagram className="cursor-pointer hover:text-orange-600 transition-colors" />
+                            <Facebook className="cursor-pointer hover:text-orange-600 transition-colors" />
+                            <Youtube className="cursor-pointer hover:text-orange-600 transition-colors" />
+                        </div>
                     </div>
+
                     <div>
-                        <h6 className="font-bold text-summo-text mb-6">Plataforma</h6>
-                        <ul className="space-y-4 text-sm text-summo-text-muted">
-                            <li><a href="#" className="hover:text-summo-primary">Funcionalidades</a></li>
-                            <li><a href="#" className="hover:text-summo-primary">Preços</a></li>
-                            <li><a href="#" className="hover:text-summo-primary">Integrações</a></li>
+                        <h4 className="font-bold text-slate-900 mb-6">Produto</h4>
+                        <ul className="space-y-4 text-sm text-slate-500">
+                            <li><a href="#" className="hover:text-orange-600">Cardápio Digital</a></li>
+                            <li><a href="#" className="hover:text-orange-600">Gestão de Pedidos</a></li>
+                            <li><a href="#" className="hover:text-orange-600">Sistema Financeiro</a></li>
+                            <li><a href="#" className="hover:text-orange-600">Integração iFood</a></li>
                         </ul>
                     </div>
+
                     <div>
-                        <h6 className="font-bold text-summo-text mb-6">Empresa</h6>
-                        <ul className="space-y-4 text-sm text-summo-text-muted">
-                            <li><a href="#" className="hover:text-summo-primary">Sobre nós</a></li>
-                            <li><a href="#" className="hover:text-summo-primary">Manifesto</a></li>
-                            <li><a href="#" className="hover:text-summo-primary">Contato</a></li>
+                        <h4 className="font-bold text-slate-900 mb-6">Institucional</h4>
+                        <ul className="space-y-4 text-sm text-slate-500">
+                            <li><a href="#" className="hover:text-orange-600">Sobre Nós</a></li>
+                            <li><a href="#" className="hover:text-orange-600">Carreiras</a></li>
+                            <li><Link to="/terms" className="hover:text-orange-600">Termos de Uso</Link></li>
+                            <li><Link to="/privacy" className="hover:text-orange-600">Política de Privacidade</Link></li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 className="font-bold text-slate-900 mb-6">Contato</h4>
+                        <ul className="space-y-4 text-sm text-slate-500">
+                            <li className="flex items-center gap-2"><Mail size={16} /> contato@menusummo.com.br</li>
+                            <li className="flex items-center gap-2"><Phone size={16} /> (17) 99123-4567</li>
+                            <li className="flex items-center gap-2"><MapPin size={16} /> São José do Rio Preto, SP</li>
                         </ul>
                     </div>
                 </div>
-                <div className="max-w-7xl mx-auto px-6 mt-20 pt-10 border-t border-summo-border flex flex-col md:row items-center justify-between gap-6">
-                    <p className="text-xs text-summo-text-muted">© 2024 SUMMO Enterprise. Todos os direitos reservados.</p>
-                    <div className="flex gap-6 text-xs text-summo-text-muted underline decoration-gray-300 underline-offset-4">
-                        <a href="#">Privacidade</a>
-                        <a href="#">Termos</a>
-                    </div>
+
+                <div className="max-w-7xl mx-auto px-6 pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center text-xs text-slate-400 gap-4">
+                    <p>&copy; 2025 SUMMO TECNOLOGIA INOVA SIMPLES. CNPJ 64.162.119/0001-43</p>
+                    <p>Feito com ❤️ para o Food Service.</p>
                 </div>
             </footer>
         </div>
     );
 };
+
+// --- SUB COMPONENTS ---
+
+const FeatureCard = ({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) => (
+    <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-xl hover:bg-white hover:-translate-y-1 transition-all duration-300 group cursor-default">
+        <div className="w-14 h-14 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            {icon}
+        </div>
+        <h3 className="text-xl font-bold text-slate-900 mb-4">{title}</h3>
+        <p className="text-slate-500 leading-relaxed text-sm">{desc}</p>
+    </div>
+);
 
 export default LandingPage;

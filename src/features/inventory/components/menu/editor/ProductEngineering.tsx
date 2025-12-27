@@ -6,6 +6,7 @@ import { Calculator, ChefHat, Link2Off, Trash2, AlertTriangle, DollarSign, Trend
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 import { useProductPricing, calculateIdealPrice } from '../../../hooks/useProductPricing';
+import { ComboBuilder } from './ComboBuilder';
 
 // Extended Product Interface to handle optional recipe/combo fields
 interface ExtendedProduct extends Product {
@@ -20,6 +21,7 @@ interface ProductEngineeringProps {
     linkRecipe: (id: string) => void;
     unlinkRecipe: () => void;
     onChannelDataChange: (field: keyof Omit<ChannelConfig, 'channel'>, value: any, channel?: SalesChannel) => void;
+    onComboUpdate?: (comboItems: any[]) => void;
 }
 
 const ChannelPricingCard: React.FC<{
@@ -34,12 +36,12 @@ const ChannelPricingCard: React.FC<{
     const pricing = useProductPricing(product, settings, channel);
 
     const channelFees = channel === 'ifood'
-        ? ((settings.integrations?.ifood?.commissionRate || 0) + (settings.integrations?.ifood?.financialFee || 0))
+        ? ((settings.financial?.ifood?.commission || 0) + (settings.financial?.ifood?.paymentFee || 0))
         : 0;
 
     const suggestedPrice = calculateIdealPrice(
         pricing.cost,
-        25, // Target Margin 25%
+        20, // Target Net Margin 20% (Conservative target)
         settings.financial?.taxRate || 0,
         settings.financial?.fixedCostRate || 0,
         channelFees,
@@ -59,16 +61,20 @@ const ChannelPricingCard: React.FC<{
                         <h5 className="font-black text-xs uppercase tracking-tight text-gray-800">{label}</h5>
                         <div className="flex items-center gap-1">
                             <div className={`w-1.5 h-1.5 rounded-full ${pricing.profit > 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                            <span className="text-[10px] font-bold text-gray-400">Lucro: {pricing.margin.toFixed(0)}%</span>
+                            <span className="text-[10px] font-bold text-gray-400">Margem Liq: {pricing.margin.toFixed(1)}%</span>
                         </div>
                     </div>
                 </div>
                 <div className="text-right">
-                    <span className="block text-[8px] font-black text-gray-400 uppercase">Sugestão Summo</span>
-                    <span className="text-[10px] font-black text-summo-primary">{formatCurrency(suggestedPrice)}</span>
+                    <span className="block text-[8px] font-black text-gray-400 uppercase">Sugestão (20%)</span>
+                    <span className="text-[10px] font-black text-summo-primary cursor-pointer hover:underline"
+                        onClick={() => onChannelDataChange('price', parseFloat(suggestedPrice.toFixed(2)), channel)}>
+                        {formatCurrency(suggestedPrice)}
+                    </span>
                 </div>
             </div>
 
+            {/* Price Input Area */}
             <div className="space-y-3 mb-6">
                 <div>
                     <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Preço de Venda</label>
@@ -84,25 +90,22 @@ const ChannelPricingCard: React.FC<{
                         />
                     </div>
                 </div>
+            </div>
 
-                {channel !== 'ifood' && (
-                    <div>
-                        <label className="text-[10px] font-black text-summo-primary uppercase mb-1 block flex items-center gap-1">
-                            <Tag size={10} /> Preço Promo
-                        </label>
-                        <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-summo-primary/50 text-xs font-bold">R$</span>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={chData.promotionalPrice || ''}
-                                onChange={(e) => onChannelDataChange('promotionalPrice', e.target.value === '' ? null : parseFloat(e.target.value), channel)}
-                                className="w-full pl-9 pr-3 py-2.5 bg-summo-bg/30 border-2 border-transparent focus:border-summo-primary focus:bg-white rounded-xl outline-none text-sm font-black text-summo-primary transition"
-                                placeholder="Opcional"
-                            />
-                        </div>
-                    </div>
-                )}
+            {/* Financial X-Ray Table */}
+            <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-[10px] text-gray-500 border-b border-gray-50 pb-1">
+                    <span>Receita Liq. (após taxas)</span>
+                    <span className="font-bold">{formatCurrency(pricing.netRevenue)}</span>
+                </div>
+                <div className="flex justify-between text-[10px] px-2 py-1 bg-red-50 rounded text-red-700">
+                    <span>Taxas & Impostos</span>
+                    <span className="font-bold">-{formatCurrency(pricing.taxes + pricing.channelFees)}</span>
+                </div>
+                <div className="flex justify-between text-[10px] px-2 py-1 bg-amber-50 rounded text-amber-700">
+                    <span>Custo Var. (CMV+Emb)</span>
+                    <span className="font-bold">-{formatCurrency(pricing.cost)}</span>
+                </div>
             </div>
 
             <div className="flex-1 min-h-[140px] relative mb-4">
@@ -112,8 +115,8 @@ const ChannelPricingCard: React.FC<{
                             data={pricing.pieData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={35}
-                            outerRadius={55}
+                            innerRadius={30}
+                            outerRadius={50}
                             paddingAngle={2}
                             dataKey="value"
                             stroke="none"
@@ -138,14 +141,21 @@ const ChannelPricingCard: React.FC<{
 
             <div className="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-gray-100">
                 <div className="text-center p-2 bg-gray-50 rounded-xl">
-                    <span className="block text-[8px] font-black text-gray-400 uppercase">CMV Real</span>
-                    <span className={`text-xs font-black ${pricing.cmvPercent > 35 ? 'text-red-500' : 'text-gray-700'}`}>{pricing.cmvPercent.toFixed(1)}%</span>
+                    <span className="block text-[8px] font-black text-gray-400 uppercase">Markup</span>
+                    <span className="text-xs font-black text-blue-600">{(pricing.markup || 0).toFixed(0)}%</span>
                 </div>
                 <div className="text-center p-2 bg-gray-50 rounded-xl">
-                    <span className="block text-[8px] font-black text-gray-400 uppercase">Margem</span>
+                    <span className="block text-[8px] font-black text-gray-400 uppercase">Margem Liq.</span>
                     <span className={`text-xs font-black ${pricing.margin < 15 ? 'text-red-500' : 'text-green-600'}`}>{pricing.margin.toFixed(0)}%</span>
                 </div>
             </div>
+            {pricing.margin < 10 && pricing.price > 0 && (
+                <div className="mt-2 text-center">
+                    <span className="text-[9px] font-bold text-red-500 flex items-center justify-center gap-1">
+                        <AlertTriangle size={10} /> Margem perigosa!
+                    </span>
+                </div>
+            )}
         </div>
     );
 };
@@ -155,8 +165,9 @@ export const ProductEngineering: React.FC<ProductEngineeringProps> = ({
     linkRecipe,
     unlinkRecipe,
     onChannelDataChange,
+    onComboUpdate,
 }) => {
-    const { ingredients, recipes } = useData();
+    const { ingredients, recipes, products } = useData();
     const { settings } = useApp();
 
     return (
@@ -180,75 +191,105 @@ export const ProductEngineering: React.FC<ProductEngineeringProps> = ({
                             <span className="block text-[10px] font-black text-summo-primary uppercase tracking-widest mb-1">Custo de Produção</span>
                             <div className="flex items-baseline gap-1 justify-end">
                                 <span className="text-xs font-bold text-gray-400">R$</span>
-                                <span className="text-4xl font-black">{(product.realCost || 0).toFixed(2)}</span>
+                                <span className="text-4xl font-black">{(product.realCost || product.cost || 0).toFixed(2)}</span>
                             </div>
                         </div>
                         <div className="h-12 w-px bg-white/10 hidden md:block"></div>
                         <div className="text-right">
-                            <span className="block text-[10px] font-black text-green-400 uppercase tracking-widest mb-1">Média de Lucro</span>
-                            <div className="flex items-baseline gap-1 justify-end">
-                                <span className="text-4xl font-black text-green-400">~25</span>
-                                <span className="text-xl font-black text-green-400">%</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Insumos e Receita */}
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl space-y-6">
-                <div className="flex justify-between items-center">
-                    <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center gap-2">
-                        <ChefHat size={18} className="text-summo-primary" /> Ficha Técnica e Insumos
-                    </h4>
-                    {product.recipe?.id && (
-                        <button onClick={unlinkRecipe} className="text-[10px] font-black text-red-500 hover:underline flex items-center gap-1 uppercase">
-                            <Link2Off size={12} /> Desvincular Receita
-                        </button>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                        <label className="text-xs font-black text-gray-400 uppercase block mb-1">Vincular Base de Custo</label>
-                        <select
-                            value={product.recipe?.id || ''}
-                            onChange={(e) => linkRecipe(e.target.value)}
-                            className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-summo-primary focus:bg-white rounded-2xl outline-none text-sm font-bold transition"
-                        >
-                            <option value="">-- Selecionar Receita ou Insumo Base --</option>
-                            {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                        </select>
-                    </div>
-                </div>
-
-                {product.recipe?.ingredients && product.recipe.ingredients.length > 0 && (
-                    <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
-                        <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-                            {product.recipe.ingredients.map((item: any, idx: number) => {
-                                const ing = ingredients.find(i => i.id === item.ingredientId);
-                                const subRec = recipes.find(r => r.id === item.ingredientId);
-                                const costPerUnit = ing ? (ing.costPerUnit || ing.cost || 0) : ((subRec?.totalCost || 0) / (subRec?.yield || 1));
+                            {/* Displaying Markup based on POS price (primary reference) */}
+                            {(() => {
+                                const posChannel = product.channels?.find(c => c.channel === 'pos');
+                                const cost = product.realCost || product.cost || 0;
+                                const price = posChannel?.price || 0;
+                                const markup = cost > 0 ? ((price - cost) / cost) * 100 : 0;
 
                                 return (
-                                    <div key={idx} className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-50 shadow-sm transition hover:shadow-md">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
-                                                <Layers size={14} />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-black text-gray-800 leading-none">{ing?.name || subRec?.name || 'Item'}</p>
-                                                <p className="text-[10px] text-gray-400 font-bold mt-1">{item.quantity} {item.unit} x {formatCurrency(costPerUnit)}</p>
-                                            </div>
+                                    <>
+                                        <span className="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Markup (PDV)</span>
+                                        <div className="flex items-baseline gap-1 justify-end">
+                                            <span className="text-4xl font-black text-blue-400">{markup.toFixed(0)}</span>
+                                            <span className="text-xl font-black text-blue-400">%</span>
                                         </div>
-                                        <span className="text-xs font-black text-gray-800">{formatCurrency(item.quantity * costPerUnit)}</span>
-                                    </div>
+                                    </>
                                 );
-                            })}
+                            })()}
                         </div>
                     </div>
-                )}
+                </div>
             </div>
+
+            {/* Combo Builder OR Recipe Manager */}
+            {product.type === 'COMBO' ? (
+                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl">
+                    <div className="flex justify-between items-center mb-6">
+                        <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                            🎁 Construtor de Combo
+                        </h4>
+                        <span className="text-xs text-gray-500 bg-purple-50 px-3 py-1 rounded-full font-bold">
+                            Custo Automático
+                        </span>
+                    </div>
+                    <ComboBuilder
+                        product={product}
+                        products={products}
+                        onUpdate={(items) => onComboUpdate?.(items)}
+                    />
+                </div>
+            ) : (
+                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                            <ChefHat size={18} className="text-summo-primary" /> Ficha Técnica e Insumos
+                        </h4>
+                        {product.recipe?.id && (
+                            <button onClick={unlinkRecipe} className="text-[10px] font-black text-red-500 hover:underline flex items-center gap-1 uppercase">
+                                <Link2Off size={12} /> Desvincular Receita
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <label className="text-xs font-black text-gray-400 uppercase block mb-1">Vincular Base de Custo</label>
+                            <select
+                                value={product.recipe?.id || ''}
+                                onChange={(e) => linkRecipe(e.target.value)}
+                                className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-summo-primary focus:bg-white rounded-2xl outline-none text-sm font-bold transition"
+                            >
+                                <option value="">-- Selecionar Receita ou Insumo Base --</option>
+                                {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    {product.recipe?.ingredients && product.recipe.ingredients.length > 0 && (
+                        <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
+                            <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                                {product.recipe.ingredients.map((item: any, idx: number) => {
+                                    const ing = ingredients.find(i => i.id === item.ingredientId);
+                                    const subRec = recipes.find(r => r.id === item.ingredientId);
+                                    const costPerUnit = ing ? (ing.costPerUnit || ing.cost || 0) : ((subRec?.totalCost || 0) / (subRec?.yield || 1));
+
+                                    return (
+                                        <div key={idx} className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-50 shadow-sm transition hover:shadow-md">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
+                                                    <Layers size={14} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-black text-gray-800 leading-none">{ing?.name || subRec?.name || 'Item'}</p>
+                                                    <p className="text-[10px] text-gray-400 font-bold mt-1">{item.quantity} {item.unit} x {formatCurrency(costPerUnit)}</p>
+                                                </div>
+                                            </div>
+                                            <span className="text-xs font-black text-gray-800">{formatCurrency(item.quantity * costPerUnit)}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Cenários de Precificação */}
             <div>

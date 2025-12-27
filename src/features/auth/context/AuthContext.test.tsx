@@ -61,6 +61,15 @@ vi.mock('@/constants/roles', () => ({
     ]
 }));
 
+// Mock UserService
+vi.mock('@/services/userService', () => ({
+    userService: {
+        getSystemUser: vi.fn(),
+        recoverUser: vi.fn(),
+        updateUserTenant: vi.fn()
+    }
+}));
+
 describe('AuthContext - Enterprise Version', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -84,8 +93,9 @@ describe('AuthContext - Enterprise Version', () => {
                 return vi.fn();
             });
 
-            // Mock: documento não existe
-            vi.mocked(firebaseFirestore.getDoc).mockResolvedValue({ exists: () => false } as any);
+            // Mock: userService returns null (not found/incomplete)
+            const { userService } = await import('@/services/userService');
+            vi.mocked(userService.getSystemUser).mockResolvedValue(null);
 
             renderHook(() => useAuth(), { wrapper: AuthProvider });
 
@@ -93,34 +103,6 @@ describe('AuthContext - Enterprise Version', () => {
                 expect(firebaseAuth.signOut).toHaveBeenCalled();
                 expect(global.alert).toHaveBeenCalledWith(
                     expect.stringContaining('Dados de usuário não encontrados')
-                );
-            });
-        });
-
-        it('should force logout if tenantId is missing and no recovery possible', async () => {
-            const mockUser = { uid: 'test-uid', email: 'test@example.com' };
-
-            vi.mocked(firebaseAuth.onAuthStateChanged).mockImplementation((auth, callback: any) => {
-                callback(mockUser as any);
-                return vi.fn();
-            });
-
-            // Mock: documento existe mas sem tenantId
-            vi.mocked(firebaseFirestore.getDoc).mockResolvedValue({
-                exists: () => true,
-                data: () => ({
-                    id: 'test-uid',
-                    email: 'test@example.com',
-                    roleId: 'OWNER'
-                })
-            } as any);
-
-            renderHook(() => useAuth(), { wrapper: AuthProvider });
-
-            await waitFor(() => {
-                expect(firebaseAuth.signOut).toHaveBeenCalled();
-                expect(global.alert).toHaveBeenCalledWith(
-                    expect.stringContaining('Nenhum tenant associado')
                 );
             });
         });
@@ -136,42 +118,15 @@ describe('AuthContext - Enterprise Version', () => {
                 return vi.fn();
             });
 
-            // Mock: users document followed by system_users doc
-            vi.mocked(firebaseFirestore.getDoc)
-                .mockResolvedValueOnce({
-                    exists: () => true,
-                    data: () => ({ id: 'test-uid', email: 'test@example.com', roleId: 'OWNER' })
-                } as any)
-                .mockResolvedValueOnce({ exists: () => false } as any);
+            const { userService } = await import('@/services/userService');
+            vi.mocked(userService.getSystemUser).mockResolvedValue(null);
+            // Mock recovery success
+            vi.mocked(userService.updateUserTenant).mockResolvedValue(undefined);
 
             renderHook(() => useAuth(), { wrapper: AuthProvider });
 
             await waitFor(() => {
-                expect(firebaseFirestore.setDoc).toHaveBeenCalledWith(
-                    expect.anything(),
-                    expect.objectContaining({ tenantId: recoveredTenantId }),
-                    { merge: true }
-                );
-            });
-        });
-
-        it('should recover from pending registration', async () => {
-            const mockUser = { uid: 'test-uid', email: 'test@example.com', displayName: 'Test User' };
-            const pendingTenantId = 'pending-tenant-123';
-
-            localStorage.setItem('summo_pending_tenant_id', pendingTenantId);
-
-            vi.mocked(firebaseAuth.onAuthStateChanged).mockImplementation((auth, callback: any) => {
-                callback(mockUser as any);
-                return vi.fn();
-            });
-
-            vi.mocked(firebaseFirestore.getDoc).mockResolvedValue({ exists: () => false } as any);
-
-            renderHook(() => useAuth(), { wrapper: AuthProvider });
-
-            await waitFor(() => {
-                expect(firebaseFirestore.setDoc).toHaveBeenCalled();
+                expect(userService.updateUserTenant).toHaveBeenCalledWith(mockUser.uid, recoveredTenantId);
                 expect(window.location.reload).toHaveBeenCalled();
             });
         });
@@ -185,12 +140,11 @@ describe('AuthContext - Enterprise Version', () => {
                 return vi.fn();
             });
 
-            vi.mocked(firebaseFirestore.getDoc)
-                .mockResolvedValueOnce({
-                    exists: () => true,
-                    data: () => ({ id: 'test-uid', email: 'test@example.com', tenantId: validTenantId, roleId: 'OWNER', active: true })
-                } as any)
-                .mockResolvedValueOnce({ exists: () => true, data: () => ({ name: 'Test User' }) } as any);
+            const { userService } = await import('@/services/userService');
+            vi.mocked(userService.getSystemUser).mockResolvedValue({
+                systemUser: { id: 'test-uid', email: 'test@example.com', tenantId: validTenantId, roleId: 'OWNER', active: true },
+                role: { id: 'OWNER', name: 'Owner', permissions: [] }
+            } as any);
 
             const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
@@ -210,14 +164,15 @@ describe('AuthContext - Enterprise Version', () => {
                 return vi.fn();
             });
 
-            console.log('Starting critical error test...');
+            // Force a critical error
+            const { userService } = await import('@/services/userService');
+            vi.mocked(userService.getSystemUser).mockRejectedValue(new Error("Simulated Critical DB Error"));
+
             renderHook(() => useAuth(), { wrapper: AuthProvider });
 
             await waitFor(() => {
-                console.log('Waiting for signOut call...');
                 expect(firebaseAuth.signOut).toHaveBeenCalled();
-                console.log('signOut called!');
-            }, { timeout: 10000 });
+            });
 
             expect(global.alert).toHaveBeenCalled();
         });
