@@ -145,7 +145,8 @@ export const registrationService = {
                     createdAt: serverTimestamp(),
                     businessName: businessName,
                     cnpj: cnpj,
-                    isMasterUser: true
+                    isMasterUser: true,
+                    ownerUid: user.uid
                 };
                 transaction.set(userRef, userData);
                 console.log('[Registration] Transaction: users document queued for UID:', user.uid);
@@ -159,7 +160,8 @@ export const registrationService = {
                     tenantId: tenantId,
                     roleId: 'OWNER',
                     active: true,
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
+                    ownerUid: user.uid
                 };
                 transaction.set(systemUserRef, systemUserData);
                 console.log('[Registration] Transaction: system_users document queued');
@@ -199,7 +201,8 @@ export const registrationService = {
                         step4_sale: false,
                         isCompleted: false
                     },
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
+                    ownerUid: user.uid
                 };
 
                 // Add location if available
@@ -220,7 +223,8 @@ export const registrationService = {
                         name: catName,
                         type: 'CATEGORY',
                         active: true,
-                        createdAt: serverTimestamp()
+                        createdAt: serverTimestamp(),
+                        ownerUid: user.uid
                     });
                 }
                 console.log('[Registration] Transaction: option_groups queued');

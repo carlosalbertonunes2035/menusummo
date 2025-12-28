@@ -22,6 +22,8 @@ import { slugify } from '../../../../lib/seoUtils';
 import { isReservedSlug } from '../../../../lib/reservedSlugs';
 import ErrorBoundary from '../../../../components/ui/ErrorBoundary';
 
+import { AiRecipeModal } from './editor/AiRecipeModal';
+
 interface ProductEditorProps {
     logic: ReturnType<typeof useMenuEditor>;
 }
@@ -78,7 +80,24 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
         }
     };
 
+    const [showAiModal, setShowAiModal] = useState(false);
+
     const handleSaveAndClose = async () => {
+        // AI INTERCEPTOR:
+        // If it's a NEW product (or manual edit) AND has no recipe yet,
+        // and has a reasonably descriptive name, suggest the AI Recipe.
+        const isNewOrNoRecipe = !selectedProduct?.id || !currentEditingProduct?.recipe?.id;
+        const hasName = !!(editData.name || selectedProduct?.name);
+
+        // Ensure we don't track loop (if coming from AI modal accept, we proceed)
+        // We use a simple check: if the EditData already has a 'recipe' object injected (from AI accept), skip this.
+        const recipeJustInjected = !!editData.recipe;
+
+        if (isNewOrNoRecipe && hasName && !recipeJustInjected) {
+            setShowAiModal(true);
+            return;
+        }
+
         // Optimistic Close: Close UI immediately
         handleClose(true);
         // Then perform save in background
@@ -502,8 +521,47 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                     </div>
                 </div>
             )}
+
+            {/* AI Proactive Modal */}
+            <AiRecipeModal
+                isOpen={showAiModal}
+                onClose={() => {
+                    setShowAiModal(false);
+                    // If user cancels AI, proceed with normal save
+                    handleSave();
+                    handleClose(true);
+                }}
+                onAccept={(aiRecipe: any) => {
+                    // Inject AI Recipe into Edits
+                    // We map the AI format to our Recipe Format
+                    const newRecipe = {
+                        name: aiRecipe.name,
+                        ingredients: aiRecipe.ingredients.map((ing: any) => ({
+                            ingredientId: null, // Will be matched/created by backend
+                            name: ing.name,
+                            quantity: ing.quantity,
+                            unit: ing.unit,
+                            cost: ing.estimatedCost
+                        })),
+                        yield: 1,
+                        totalCost: aiRecipe.totalCost
+                    };
+
+                    // Update state and THEN save
+                    setEditData(prev => ({ ...prev, recipe: newRecipe } as any));
+
+                    // Small delay to ensure state update before save (in a real scenario we'd use useEffect or specific saver)
+                    setTimeout(() => {
+                        handleSave();
+                        handleClose(true);
+                        setShowAiModal(false);
+                    }, 100);
+                }}
+                productName={editData.name || selectedProduct.name || ''}
+            />
         </>
     );
 };
+
 
 export default ProductEditor;

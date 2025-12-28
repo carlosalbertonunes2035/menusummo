@@ -67,6 +67,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setSystemUser(profile.systemUser);
                     setRole(profile.role);
                     logger.info('User profile loaded', { email: profile.systemUser.email, tenant: profile.systemUser.tenantId });
+
+                    // SECURITY SYNC: Ensure Custom Claims are synchronized
+                    // If the database has a tenantId but the token doesn't, force a refresh.
+                    const tokenResult = await firebaseUser.getIdTokenResult();
+                    if (!tokenResult.claims.tenantId && profile.systemUser.tenantId) {
+                        logger.warn('Custom claims missing. Forcing token refresh...', { uid: firebaseUser.uid });
+                        try {
+                            await firebaseUser.getIdToken(true);
+                        } catch (e) {
+                            logger.error('Failed to force refresh token', e);
+                        }
+                    }
                 } else {
                     // Profile not found - attempted recovery logic
                     logger.error('CRITICAL: User authenticated but profile missing/incomplete');

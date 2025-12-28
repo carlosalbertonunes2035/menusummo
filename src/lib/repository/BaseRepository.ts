@@ -7,6 +7,8 @@ import {
 } from '@firebase/firestore';
 import { getCollection, setCollection } from '../localStorage';
 import { CollectionName } from '@/types/collections';
+import { auditService, AuditEventType } from '@/services/AuditService';
+import { auth } from '../firebase/client';
 
 export abstract class BaseRepository<T extends { id: string; createdAt?: any; updatedAt?: any }> {
     protected collectionName: CollectionName;
@@ -29,6 +31,7 @@ export abstract class BaseRepository<T extends { id: string; createdAt?: any; up
             const items = getCollection(tenantId, this.collectionName as any);
             const newItem = {
                 ...data,
+                id,
                 tenantId,
                 createdAt: timestamp,
                 updatedAt: timestamp
@@ -40,10 +43,23 @@ export abstract class BaseRepository<T extends { id: string; createdAt?: any; up
             const docRef = doc(db, this.collectionName, id);
             await setDoc(docRef, {
                 ...data,
+                id, // Ensure id is inside document
                 tenantId,
                 createdAt: timestamp,
                 updatedAt: timestamp
             });
+
+            // Log Audit Event
+            auditService.logMutation(
+                tenantId,
+                auth.currentUser?.uid || 'system',
+                AuditEventType.CREATE,
+                this.collectionName,
+                id,
+                null,
+                data
+            );
+
             return id;
         }
     }
@@ -57,10 +73,24 @@ export abstract class BaseRepository<T extends { id: string; createdAt?: any; up
             setCollection(tenantId, this.collectionName as any, updated);
         } else {
             const docRef = doc(db, this.collectionName, id);
-            await updateDoc(docRef, {
+            // Use setDoc with merge instead of updateDoc to be more resilient
+            // and ensure tenantId is always present in the payload for rules validation
+            await setDoc(docRef, {
                 ...data,
+                tenantId,
                 updatedAt: timestamp
-            });
+            }, { merge: true });
+
+            // Log Audit Event
+            auditService.logMutation(
+                tenantId,
+                auth.currentUser?.uid || 'system',
+                AuditEventType.UPDATE,
+                this.collectionName,
+                id,
+                null, // Diffing is expensive, logging current change payload for now
+                data
+            );
         }
     }
 
@@ -71,6 +101,17 @@ export abstract class BaseRepository<T extends { id: string; createdAt?: any; up
             setCollection(tenantId, this.collectionName as any, filtered);
         } else {
             await deleteDoc(doc(db, this.collectionName, id));
+
+            // Log Audit Event
+            auditService.logMutation(
+                tenantId,
+                auth.currentUser?.uid || 'system',
+                AuditEventType.DELETE,
+                this.collectionName,
+                id,
+                null,
+                null
+            );
         }
     }
 

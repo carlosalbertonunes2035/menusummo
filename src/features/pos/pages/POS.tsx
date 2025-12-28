@@ -10,6 +10,7 @@ import { useData } from '@/contexts/DataContext';
 import { useApp } from '@/contexts/AppContext';
 import { usePOS } from '@/features/pos/hooks/usePOS';
 import { printingService } from '@/services/printingService';
+import { useProducts, useIngredients } from '@/features/inventory/hooks/queries';
 
 // Sub-components
 import ProductGrid from '../components/ProductGrid';
@@ -20,8 +21,9 @@ import { SummoButton } from '@/components/ui/SummoButton';
 
 const POS: React.FC = () => {
     // Hooks & Context
-    const { products, ingredients } = useData();
-    const { onPlaceOrder, cashRegister, setCashRegister, showToast, settings, tenantId } = useApp();
+    const { tenantId, onPlaceOrder, cashRegister, setCashRegister, showToast, settings } = useApp();
+    const { data: products = [] } = useProducts(tenantId);
+    const { data: ingredients = [] } = useIngredients(tenantId);
     const posLogic = usePOS();
     const { addToCart } = posLogic;
 

@@ -15,6 +15,8 @@ import MenuImportModal from '../components/menu/MenuImportModal';
 import { Product } from '../../../types';
 import { collection, query, orderBy, limit, onSnapshot, deleteDoc, doc } from '@firebase/firestore';
 import { db } from '../../../lib/firebase/client';
+import { useInfiniteProducts, useIngredients } from '../hooks/queries';
+import { useInView } from 'react-intersection-observer'; // Need to check if this is installed!
 
 // --- SUB-COMPONENT: PRODUCT CARD ---
 const MenuProductCard: React.FC<{
@@ -286,16 +288,39 @@ const MenuProductCard: React.FC<{
 };
 
 const MenuEngineering: React.FC = () => {
-    const { products, ingredients } = useData();
     // Hoist hooks
     const { systemUser } = useAuth();
     const { handleAction, showToast } = useApp();
+    const { data: ingredients = [] } = useIngredients(systemUser?.tenantId);
+
+    // 1. Pagination State
+    const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const {
+        data: paginatedData,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading: productsLoading
+    } = useInfiniteProducts(systemUser?.tenantId, selectedCategory);
+
+    const { ref: loadMoreRef, inView } = useInView();
+
+    useEffect(() => {
+        if (inView && hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+        }
+    }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    const products = useMemo(() => {
+        return paginatedData?.pages.flatMap(page => page.docs) || [];
+    }, [paginatedData]);
+
     const menuEditorLogic = useMenuEditor();
     const { openEditor, handleOpenCreator, toggleAvailability } = menuEditorLogic;
 
     // ... existing state ...
-    const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
-    const [searchQuery, setSearchQuery] = useState('');
     const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [activeJob, setActiveJob] = useState<any>(null); // New State
@@ -525,6 +550,7 @@ const MenuEngineering: React.FC = () => {
                 )}
 
                 {/* SCENARIO 2: PRODUCT LIST (OR EMPTY STATE) */}
+                {/* SCENARIO 2: PRODUCT LIST (OR EMPTY STATE) */}
                 {!activeJob && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                         {filteredProducts.map((product, index) => (
@@ -539,7 +565,7 @@ const MenuEngineering: React.FC = () => {
                         ))}
 
                         {/* Empty State */}
-                        {filteredProducts.length === 0 && (
+                        {!productsLoading && filteredProducts.length === 0 && (
                             <div className="col-span-full py-20 text-center text-gray-400 flex flex-col items-center max-w-md mx-auto">
                                 <div className="bg-gray-100 p-6 rounded-full mb-6">
                                     <Wand2 size={48} className="text-purple-500 opacity-80" />
@@ -563,68 +589,89 @@ const MenuEngineering: React.FC = () => {
                         )}
                     </div>
                 )}
+
+                {/* Loading State for Infinite Scroll */}
+                <div
+                    ref={loadMoreRef}
+                    className="py-10 flex flex-col items-center justify-center gap-2"
+                >
+                    {isFetchingNextPage ? (
+                        <>
+                            <Loader2 className="animate-spin text-summo-primary" size={24} />
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Carregando mais...</p>
+                        </>
+                    ) : hasNextPage ? (
+                        <p className="text-xs text-gray-400 font-medium">Continue rolando para carregar mais</p>
+                    ) : products.length > 0 ? (
+                        <p className="text-xs text-gray-300 font-medium italic">Fim da lista. Todos os {products.length} itens carregados.</p>
+                    ) : null}
+                </div>
             </div>
 
             <ProductEditor logic={menuEditorLogic} />
 
             {/* --- TYPE SELECTION MODAL --- */}
-            {isTypeModalOpen && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-scale-in relative overflow-hidden">
-                        {/* Decorative Background */}
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-summo-primary/10 to-transparent rounded-full -translate-y-32 translate-x-32 blur-3xl pointer-events-none" />
+            {
+                isTypeModalOpen && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+                        <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-scale-in relative overflow-hidden">
+                            {/* Decorative Background */}
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-summo-primary/10 to-transparent rounded-full -translate-y-32 translate-x-32 blur-3xl pointer-events-none" />
 
-                        <div className="text-center mb-8 relative z-10">
-                            <h2 className="text-2xl font-black text-gray-900 mb-2">O que vamos criar?</h2>
-                            <p className="text-gray-500">Escolha o tipo de item para começar.</p>
-                        </div>
+                            <div className="text-center mb-8 relative z-10">
+                                <h2 className="text-2xl font-black text-gray-900 mb-2">O que vamos criar?</h2>
+                                <p className="text-gray-500">Escolha o tipo de item para começar.</p>
+                            </div>
 
-                        <div className="grid grid-cols-2 gap-4 relative z-10">
-                            <button
-                                onClick={() => handleCreateType('SIMPLE')}
-                                className="flex flex-col items-center p-6 rounded-2xl border-2 border-gray-100 bg-gray-50 hover:bg-white hover:border-summo-primary hover:shadow-xl transition-all group"
-                            >
-                                <div className="w-16 h-16 bg-white rounded-full shadow-md flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                    <div className="w-8 h-8 bg-summo-primary rounded-lg" />
-                                </div>
-                                <span className="font-bold text-lg text-gray-800 group-hover:text-summo-primary">Produto Simples</span>
-                                <span className="text-xs text-gray-500 text-center mt-2">Item único, com ficha técnica e preço fixo.</span>
-                            </button>
-
-                            <button
-                                onClick={() => handleCreateType('COMBO')}
-                                className="flex flex-col items-center p-6 rounded-2xl border-2 border-gray-100 bg-gray-50 hover:bg-white hover:border-orange-500 hover:shadow-xl transition-all group"
-                            >
-                                <div className="w-16 h-16 bg-white rounded-full shadow-md flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                    <div className="flex gap-1">
-                                        <div className="w-4 h-6 bg-orange-500 rounded-sm" />
-                                        <div className="w-4 h-4 bg-orange-400 rounded-full self-end" />
+                            <div className="grid grid-cols-2 gap-4 relative z-10">
+                                <button
+                                    onClick={() => handleCreateType('SIMPLE')}
+                                    className="flex flex-col items-center p-6 rounded-2xl border-2 border-gray-100 bg-gray-50 hover:bg-white hover:border-summo-primary hover:shadow-xl transition-all group"
+                                >
+                                    <div className="w-16 h-16 bg-white rounded-full shadow-md flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                        <div className="w-8 h-8 bg-summo-primary rounded-lg" />
                                     </div>
-                                </div>
-                                <span className="font-bold text-lg text-gray-800 group-hover:text-orange-600">Combo</span>
-                                <span className="text-xs text-gray-500 text-center mt-2">Conjunto de produtos com preço promocional.</span>
+                                    <span className="font-bold text-lg text-gray-800 group-hover:text-summo-primary">Produto Simples</span>
+                                    <span className="text-xs text-gray-500 text-center mt-2">Item único, com ficha técnica e preço fixo.</span>
+                                </button>
+
+                                <button
+                                    onClick={() => handleCreateType('COMBO')}
+                                    className="flex flex-col items-center p-6 rounded-2xl border-2 border-gray-100 bg-gray-50 hover:bg-white hover:border-orange-500 hover:shadow-xl transition-all group"
+                                >
+                                    <div className="w-16 h-16 bg-white rounded-full shadow-md flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                        <div className="flex gap-1">
+                                            <div className="w-4 h-6 bg-orange-500 rounded-sm" />
+                                            <div className="w-4 h-4 bg-orange-400 rounded-full self-end" />
+                                        </div>
+                                    </div>
+                                    <span className="font-bold text-lg text-gray-800 group-hover:text-orange-600">Combo</span>
+                                    <span className="text-xs text-gray-500 text-center mt-2">Conjunto de produtos com preço promocional.</span>
+                                </button>
+                            </div>
+
+                            <button
+                                onClick={() => setIsTypeModalOpen(false)}
+                                className="mt-8 w-full py-3 text-gray-400 font-bold hover:text-gray-600 transition"
+                            >
+                                Cancelar
                             </button>
                         </div>
-
-                        <button
-                            onClick={() => setIsTypeModalOpen(false)}
-                            className="mt-8 w-full py-3 text-gray-400 font-bold hover:text-gray-600 transition"
-                        >
-                            Cancelar
-                        </button>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {isImportModalOpen && (
-                <MenuImportModal
-                    isOpen={isImportModalOpen}
-                    onClose={() => setIsImportModalOpen(false)}
-                    onSuccess={handleImportSuccess}
-                />
-            )}
+            {
+                isImportModalOpen && (
+                    <MenuImportModal
+                        isOpen={isImportModalOpen}
+                        onClose={() => setIsImportModalOpen(false)}
+                        onSuccess={handleImportSuccess}
+                    />
+                )
+            }
 
-        </div>
+        </div >
     );
 };
 

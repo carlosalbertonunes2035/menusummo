@@ -6,9 +6,12 @@ import { httpsCallable } from '@firebase/functions';
 import { useData } from '@/contexts/DataContext';
 import { useOrders } from '@/hooks/useOrders';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useProducts } from '@/features/inventory/hooks/queries';
 
 const AiInsightsCard: React.FC = () => {
-    const { products } = useData();
+    const { systemUser } = useAuth();
+    const { data: products = [] } = useProducts(systemUser?.tenantId);
     const { data: orders, loading: ordersLoading } = useOrders({ limit: 50 });
     const { data: expenses, loading: expensesLoading } = useExpenses({ limit: 20 });
     const [insights, setInsights] = useState<string[]>([]);

@@ -465,6 +465,7 @@ export const useMenuEditor = () => {
         handleGenerateCopy, handleTagToggle,
         activeChannel, setActiveChannel, handleChannelDataChange,
         linkOptionGroup, unlinkOptionGroup,
-        linkRecipe, unlinkRecipe
+        linkRecipe, unlinkRecipe,
+        handleComboUpdate
     };
 };

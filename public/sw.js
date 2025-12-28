@@ -46,16 +46,31 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         fetch(event.request)
             .then((response) => {
-                // Clone the response to store it in cache
+                // Return original response if not ok or not a GET
+                if (!response || response.status !== 200 || response.type !== 'basic' || event.request.method !== 'GET') {
+                    return response;
+                }
+
+                // Clone and cache successful GET requests
                 const responseClone = response.clone();
                 caches.open(CACHE_NAME).then((cache) => {
                     cache.put(event.request, responseClone);
                 });
                 return response;
             })
-            .catch(() => {
-                // If network fails, try to get it from cache
-                return caches.match(event.request);
+            .catch(async () => {
+                const cachedResponse = await caches.match(event.request);
+                if (cachedResponse) return cachedResponse;
+
+                // Fallback for document requests
+                if (event.request.headers.get('accept').includes('text/html')) {
+                    return caches.match('/');
+                }
+
+                return new Response('Network error occurred', {
+                    status: 408,
+                    headers: { 'Content-Type': 'text/plain' }
+                });
             })
     );
 });

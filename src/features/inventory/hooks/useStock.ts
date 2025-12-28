@@ -9,6 +9,8 @@ import { searchMatch } from '../../../lib/utils';
 import { functions } from '@/lib/firebase/client';
 import { httpsCallable } from '@firebase/functions';
 import { parseNFeXML } from '../../../services/nfeParser';
+import { useInfiniteIngredients } from './queries';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 export type ModalType = 'ADD' | 'EDIT' | 'RESTOCK' | 'LOSS' | 'SHOPPING_ADD' | null;
 export type TabType = 'OVERVIEW' | 'INVENTORY' | 'HISTORY' | 'SHOPPING';
@@ -22,7 +24,22 @@ export interface BulkItemCandidate {
 }
 
 export const useStock = () => {
-    const { ingredients, recipes } = useData();
+    const { systemUser } = useAuth();
+    const { ingredients: globalIngredients, recipes } = useData(); // We still need global for some syncs? No, let's use the local paginated
+
+    // 1. Pagination State
+    const {
+        data: paginatedIngredients,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading: ingredientsLoading
+    } = useInfiniteIngredients(systemUser?.tenantId);
+
+    const ingredients = useMemo(() => {
+        return paginatedIngredients?.pages.flatMap(page => page.docs) || [];
+    }, [paginatedIngredients]);
+
     const { data: stockMovements } = useStockMovements({ limit: 500 });
     const { data: shoppingList } = useShoppingList();
     const { handleAction, showToast } = useApp();
@@ -258,6 +275,9 @@ export const useStock = () => {
         ingredients, stockMovements, shoppingList,
         filteredIngredients, filteredIngredientsForShopping,
         selectedIngredient, costPreview,
+
+        // Pagination
+        fetchNextPage, hasNextPage, isFetchingNextPage, ingredientsLoading,
 
         // Handlers
         openAddModal, openEditModal, openRestockModal, openLossModal, openShoppingAdd, closeModal, handleFormSubmit,

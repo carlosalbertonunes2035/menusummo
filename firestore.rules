@@ -7,22 +7,78 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Função para verificar se o documento pertence ao tenant do usuário
+    function belongsToTenant() {
+      return request.auth != null && 
+             (request.auth.token.tenantId == resource.data.tenantId ||
+              request.auth.token.uid == resource.data.tenantId || // Fallback UID matches tenantId (bootstrap)
+              request.auth.uid == resource.data.ownerUid); // NEW: Fallback ownerUid
+    }
+
+    // Função para verificar se pode criar documento para o tenant
+    function canCreateForTenant() {
+      return request.auth != null && 
+             (request.auth.token.tenantId == request.resource.data.tenantId ||
+              request.auth.token.uid == request.resource.data.tenantId || // Fallback UID matches tenantId (bootstrap)
+              request.auth.uid == request.resource.data.ownerUid); // NEW: Fallback ownerUid
+    }
+
     // ============================================================================
     // 🌐 COLEÇÕES RAÍZES (Usadas pelo App principal / hooks.ts)
     // ============================================================================
     // O App usa "collection(db, 'products')" filtrando por tenantId.
     // Portanto, precisamos de regras na raiz.
     
-    match /products/{id} { allow read, write: if isAuthenticated(); }
-    match /ingredients/{id} { allow read, write: if isAuthenticated(); }
-    match /recipes/{id} { allow read, write: if isAuthenticated(); }
-    match /orders/{id} { allow read, write: if isAuthenticated(); }
-    match /option_groups/{id} { allow read, write: if isAuthenticated(); }
-    match /coupons/{id} { allow read, write: if isAuthenticated(); }
-    match /customers/{id} { allow read, write: if isAuthenticated(); }
-    match /expenses/{id} { allow read, write: if isAuthenticated(); }
-    match /settings/{id} { allow read, write: if isAuthenticated(); }
-    match /print_jobs/{id} { allow read, write: if isAuthenticated(); }
+    match /products/{id} { 
+      allow read: if belongsToTenant();
+      allow create: if canCreateForTenant();
+      allow update, delete: if belongsToTenant();
+    }
+    match /ingredients/{id} { 
+      allow read: if belongsToTenant();
+      allow create: if canCreateForTenant();
+      allow update, delete: if belongsToTenant();
+    }
+    match /recipes/{id} { 
+      allow read: if belongsToTenant();
+      allow create: if canCreateForTenant();
+      allow update, delete: if belongsToTenant();
+    }
+    match /orders/{id} { 
+      allow read: if belongsToTenant();
+      allow create: if canCreateForTenant();
+      allow update, delete: if belongsToTenant();
+    }
+    match /option_groups/{id} { 
+      allow read: if belongsToTenant();
+      allow create: if canCreateForTenant();
+      allow update, delete: if belongsToTenant();
+    }
+    match /coupons/{id} { 
+      allow read: if belongsToTenant();
+      allow create: if canCreateForTenant();
+      allow update, delete: if belongsToTenant();
+    }
+    match /customers/{id} { 
+      allow read: if belongsToTenant();
+      allow create: if canCreateForTenant();
+      allow update, delete: if belongsToTenant();
+    }
+    match /expenses/{id} { 
+      allow read: if belongsToTenant();
+      allow create: if canCreateForTenant();
+      allow update, delete: if belongsToTenant();
+    }
+    match /settings/{id} { 
+      allow read: if belongsToTenant();
+      allow create: if canCreateForTenant();
+      allow update, delete: if belongsToTenant();
+    }
+    match /print_jobs/{id} { 
+      allow read: if belongsToTenant();
+      allow create: if canCreateForTenant();
+      allow update, delete: if belongsToTenant();
+    }
 
     // ============================================================================
     // 🏢 TENANTS & IMPORTAÇÃO (Usado pelo useMenuImport.ts)
@@ -46,6 +102,11 @@ service cloud.firestore {
 
     match /system_users/{userId} {
       allow read, write: if isAuthenticated();
+    }
+
+    match /audit_logs/{logId} {
+      allow create: if isAuthenticated();
+      allow read: if belongsToTenant();
     }
 
     // Bloqueia todo o resto

@@ -26,6 +26,8 @@ export { cleanupOrphanedSystemUsers } from './triggers/cronTriggers';
 
 export { onMenuImportCreated } from './triggers/menuImportTrigger';
 
+export { setTenantCustomClaim } from './triggers/customClaimsTrigger';
+
 // Export Marketing AI Flows
 import { onCall } from 'firebase-functions/v2/https';
 import { generateSocialMediaContent, generateStoreSeo as generateStoreSeoAgent } from './ai/agents/marketingAgent';

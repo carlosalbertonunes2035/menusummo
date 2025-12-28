@@ -28,6 +28,7 @@ const ProductPage = React.lazy(() => import('./features/digital-menu/components/
 const LandingPage = React.lazy(() => import('./features/landing-page/components/LandingPage'));
 const Terms = React.lazy(() => import('./features/landing-page/components/Terms'));
 const Privacy = React.lazy(() => import('./features/landing-page/components/Privacy'));
+const SecurityAudit = React.lazy(() => import('./features/auth/pages/SecurityAudit'));
 
 
 // Wrapper for public routes with PublicDataProvider
@@ -140,6 +141,10 @@ export const router = createBrowserRouter([
             {
                 path: 'support',
                 element: <Suspense fallback={<LoadingFallback />}><ErrorBoundary scope="Suporte"><Support /></ErrorBoundary></Suspense>
+            },
+            {
+                path: 'security',
+                element: <Suspense fallback={<LoadingFallback />}><ErrorBoundary scope="Seguranca"><SecurityAudit /></ErrorBoundary></Suspense>
             },
         ]
     },

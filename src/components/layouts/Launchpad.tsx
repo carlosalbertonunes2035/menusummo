@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../../contexts/DataContext';
 import { useOrders } from '@/hooks/useOrders';
 import { useCustomers } from '@/hooks/useCustomers';
+import { useIngredients } from '@/features/inventory/hooks/queries';
 import { useApp } from '../../contexts/AppContext';
 import { OrderStatus } from '@/types';
 import { LaunchpadHeader, AlertWidgets, AppGrid, FooterWidget, GrowthWidget } from './launchpad/LaunchpadWidgets';
@@ -18,11 +19,11 @@ interface LaunchpadProps {
 }
 
 const Launchpad: React.FC<LaunchpadProps> = ({ isLoading = false }) => {
-    const { ingredients } = useData();
+    const { systemUser, isMockMode } = useAuth();
+    const { data: ingredients = [] } = useIngredients(systemUser?.tenantId);
     const { data: orders } = useOrders({ limit: 100 });
     const { data: customers } = useCustomers({ limit: 100 });
     const { settings } = useApp();
-    const { isMockMode } = useAuth();
     const navigate = useNavigate();
 
     const handleNavigate = (path: string) => {

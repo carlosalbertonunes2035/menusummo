@@ -1,6 +1,7 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Package, Plus, Search, ScanLine, ShoppingCart, History, TrendingDown, Edit3, Wand2, Send, Trash2, Power, TrendingUp } from 'lucide-react';
+import { useInView } from 'react-intersection-observer';
 import { Loader2 } from 'lucide-react';
 import { useStock } from '../hooks/useStock';
 import StockModals from '../components/stock/StockModals';
@@ -20,8 +21,17 @@ const Stock: React.FC = () => {
     const {
         activeTab, setActiveTab, searchTerm, setSearchTerm,
         ingredients, stockMovements, shoppingList, filteredIngredients, recipes,
-        openAddModal, openEditModal, openRestockModal, openLossModal, openShoppingAdd, setModalType
+        openAddModal, openEditModal, openRestockModal, openLossModal, openShoppingAdd, setModalType,
+        fetchNextPage, hasNextPage, isFetchingNextPage, ingredientsLoading
     } = logic;
+
+    const { ref: loadMoreRef, inView } = useInView();
+
+    useEffect(() => {
+        if (inView && hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+        }
+    }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     const [showAiEntry, setShowAiEntry] = React.useState(false);
     const [subTab, setSubTab] = React.useState<'BASIC' | 'RECIPES'>('BASIC');
@@ -179,6 +189,22 @@ const Stock: React.FC = () => {
                                 </div>
                             ) : (
                                 <RecipeManager externalSearch={searchTerm} onSearchChange={setSearchTerm} hideSearch={true} />
+                            )}
+
+                            {/* Pagination Loader */}
+                            {activeTab === 'INVENTORY' && subTab === 'BASIC' && (
+                                <div ref={loadMoreRef} className="py-10 flex flex-col items-center justify-center gap-2">
+                                    {isFetchingNextPage ? (
+                                        <>
+                                            <Loader2 className="animate-spin text-summo-primary" size={24} />
+                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Carregando mais...</p>
+                                        </>
+                                    ) : hasNextPage ? (
+                                        <p className="text-xs text-gray-400 font-medium">Continue rolando para carregar mais</p>
+                                    ) : ingredients.length > 0 ? (
+                                        <p className="text-xs text-gray-300 font-medium italic">Fim da lista de insumos.</p>
+                                    ) : null}
+                                </div>
                             )}
                         </div>
                     )}

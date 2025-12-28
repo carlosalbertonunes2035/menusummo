@@ -29,17 +29,19 @@ export abstract class BaseService<T extends { id: string }, R extends BaseReposi
 
     async save(data: T, tenantId: string): Promise<string> {
         try {
-            // Standard validation or processing could go here
+            if (!tenantId) throw new Error("TenantId is required for saving.");
+
+            // If it has an ID, we try to update it as our Repository.update now uses setDoc(merge:true)
+            // which works as an upsert if the ID is known.
             if (data.id) {
-                const existing = await this.repository.getById(data.id, tenantId);
-                if (existing) {
-                    await this.repository.update(data.id, data, tenantId);
-                    return data.id;
-                }
+                await this.repository.update(data.id, data, tenantId);
+                return data.id;
             }
+
+            // If no ID, create a new one
             return await this.repository.create(data, tenantId);
         } catch (error) {
-            console.error(`Error in BaseService.save:`, error);
+            console.error(`Error in BaseService.save for ${this.repository.constructor.name}:`, error);
             throw error;
         }
     }
