@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { X, Plus, Search, Check, Link, Trash2, Circle, CheckCircle, GripVertical } from 'lucide-react';
-import { useData } from '../../../../contexts/DataContext';
 import { useApp } from '../../../../contexts/AppContext';
+import { useOptionGroupsQuery } from '@/lib/react-query/queries/useOptionGroupsQuery';
 import { Option, OptionGroup } from '../../../../types';
 
 interface OptionGroupSelectorModalProps {
@@ -13,8 +13,8 @@ interface OptionGroupSelectorModalProps {
 }
 
 const OptionGroupSelectorModal: React.FC<OptionGroupSelectorModalProps> = ({ isOpen, onClose, onLinkGroup, existingGroupIds }) => {
-    const { optionGroups } = useData();
-    const { handleAction, showToast } = useApp();
+    const { tenantId, showToast } = useApp();
+    const { optionGroups, saveOptionGroup } = useOptionGroupsQuery(tenantId);
 
     const [activeTab, setActiveTab] = useState<'EXISTING' | 'NEW'>('EXISTING');
     const [searchTerm, setSearchTerm] = useState('');
@@ -80,7 +80,7 @@ const OptionGroupSelectorModal: React.FC<OptionGroupSelectorModalProps> = ({ isO
             options: newGroup.options.map(o => ({ ...o, id: `opt-${Date.now()}-${Math.random()}` }))
         };
 
-        await handleAction('option_groups', 'add', newGroupId, finalGroup);
+        await saveOptionGroup(finalGroup);
         onLinkGroup(newGroupId);
         showToast('Grupo criado e vinculado!', 'success');
         onClose();

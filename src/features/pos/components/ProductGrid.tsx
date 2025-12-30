@@ -32,7 +32,7 @@ const ProductCard = memo(({
 
     // Helper to check availability
     const checkAvailability = (product: Product) => {
-        for (const item of product.ingredients) {
+        for (const item of product.ingredients || []) {
             const ing = ingredients.find(i => i.id === item.ingredientId);
             if (!ing) return { available: false, reason: 'Ingrediente faltando' };
             if (ing.isActive === false) return { available: false, reason: `Sem ${ing.name}` };

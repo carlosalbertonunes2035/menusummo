@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Wifi, WifiOff, RefreshCw, HardDrive, Printer, Plus, Zap, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useApp } from '../../../../contexts/AppContext';
-import { useData } from '../../../../contexts/DataContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useProductsQuery } from '@/lib/react-query/queries/useProductsQuery';
 import { PrinterDevice } from '../../../../types';
 import { SettingsFormProps } from './types';
 import { inputClass, labelClass } from './shared';
 
 export const PrinterForm: React.FC<SettingsFormProps> = ({ settings, onChange }) => {
-    const { showToast } = useApp();
-    const { products } = useData();
+    const { tenantId } = useApp();
+    const { showToast } = useToast();
+    const { products } = useProductsQuery(tenantId);
     const [agentStatus, setAgentStatus] = useState<'ONLINE' | 'OFFLINE' | 'CHECKING'>('CHECKING');
     const [isLoadingStatus, setIsLoadingStatus] = useState(false);
     const [systemPrinters, setSystemPrinters] = useState<string[]>([]);

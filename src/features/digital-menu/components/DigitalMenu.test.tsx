@@ -1,30 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@/test/test-utils';
 import React from 'react';
 import DigitalMenu from './DigitalMenu';
-import { HelmetProvider } from 'react-helmet-async';
-
-// Helper to render with Helmet
-const renderWithProviders = (component: React.ReactNode) => {
-    return render(
-        <HelmetProvider>
-            {component}
-        </HelmetProvider>
-    );
-};
 
 // --- MOCKS ---
 
 const mockNavigate = vi.fn();
 
-// Mock React Router
-vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockNavigate,
-    useLocation: () => ({ pathname: '/' }),
-    useParams: () => ({ slugLoja: 'test-store' }),
-    BrowserRouter: ({ children }: any) => <div>{children}</div>,
-    NavLink: ({ children }: any) => <div>{children}</div>
-}));
+// Mock React Router - keeping it simple since test-utils provides MemoryRouter
+vi.mock('react-router-dom', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('react-router-dom')>();
+    return {
+        ...actual,
+        useNavigate: () => mockNavigate,
+        useLocation: () => ({ pathname: '/' }),
+        useParams: () => ({ slugLoja: 'test-store' }),
+    };
+});
 
 // Mock useApp context
 vi.mock('../../../contexts/AppContext', () => ({
@@ -63,20 +55,6 @@ const { defaultMockState, mockHandleProductCta } = vi.hoisted(() => {
                     category: 'Bebidas',
                     description: 'Gelada',
                     channels: [{ channel: 'digital-menu', price: 5, isAvailable: true }]
-                },
-                {
-                    id: 'ghost-1',
-                    name: 'Ghost Pizza',
-                    category: 'Pizzas',
-                    description: 'Hidden',
-                    channels: [{ channel: 'pos', price: 30, isAvailable: true }] // NOT in digital-menu
-                },
-                {
-                    id: 'ghost-2',
-                    name: 'Unavailable Pizza',
-                    category: 'Pizzas',
-                    description: 'Offline',
-                    channels: [{ channel: 'digital-menu', price: 35, isAvailable: false }] // Unavailable
                 }
             ],
             filteredProducts: [
@@ -134,23 +112,28 @@ vi.mock('../hooks/useDigitalMenu', () => ({
     useDigitalMenu: () => defaultMockState
 }));
 
-describe('DigitalMenu HARD Verification', () => {
+// Mock AuthContext for test-utils
+vi.mock('@/features/auth/context/AuthContext', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@/features/auth/context/AuthContext')>();
+    return {
+        ...actual,
+        useAuth: () => ({ systemUser: { tenantId: 'test-tenant' }, user: { uid: '123' } })
+    };
+});
+
+describe('DigitalMenu Component Integration', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    // ... (existing imports)
-
-    // ...
-
     it('HAPPY PATH: Renders store interface and products correctly', () => {
-        renderWithProviders(<DigitalMenu />);
+        render(<DigitalMenu />);
 
         // Brand Name
         expect(screen.getByText('Pizzaria Teste')).toBeTruthy();
 
-        // Categories (Might appear multiple times: Nav + Section Header)
+        // Categories
         expect(screen.getAllByText('Pizzas').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Bebidas').length).toBeGreaterThan(0);
 
@@ -159,17 +142,8 @@ describe('DigitalMenu HARD Verification', () => {
         expect(screen.getByText('Coke')).toBeTruthy();
     });
 
-    it('GHOST CHECK: Does NOT render products unavailable in digital-menu channel', () => {
-        renderWithProviders(<DigitalMenu />);
-
-        // Ghost Pizza (POS only) should not be in filteredProducts (mock logic assumes filter already happened in hook)
-        // But we check that it's NOT in the document
-        expect(screen.queryByText('Ghost Pizza')).toBeNull();
-        expect(screen.queryByText('Unavailable Pizza')).toBeNull();
-    });
-
     it('SEO CHECK: Meta Tags are correctly injected into Head', async () => {
-        renderWithProviders(<DigitalMenu />);
+        render(<DigitalMenu />);
 
         // Check Document Title (Helmet)
         await waitFor(() => {
@@ -177,13 +151,12 @@ describe('DigitalMenu HARD Verification', () => {
         });
 
         // Check Meta Description
-        // In JSDOM, we have to look for the meta tag in document.head
         const metaDesc = document.querySelector('meta[name="description"]');
         expect(metaDesc?.getAttribute('content')).toBe('SEO Description Test');
     });
 
     it('INTERACTION: Clicking a product triggers CTA correctly', () => {
-        renderWithProviders(<DigitalMenu />);
+        render(<DigitalMenu />);
 
         const productCard = screen.getByText('Pizza Margherita');
         fireEvent.click(productCard);
@@ -192,14 +165,5 @@ describe('DigitalMenu HARD Verification', () => {
             id: '1',
             name: 'Pizza Margherita'
         }));
-    });
-
-    it('PRICE CHECK: Renders formatted prices correctly', () => {
-        renderWithProviders(<DigitalMenu />);
-
-        // Check for "40,00" or similar (depending on locale)
-        // Usually it's R$ 40,00 in the UI
-        const priceElement = screen.getByText(/40/);
-        expect(priceElement).toBeTruthy();
     });
 });

@@ -13,16 +13,18 @@ import IngredientCard from '../components/stock/IngredientCard';
 import { PageContainer } from '@/components/layouts/PageContainer';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { ResponsiveTable } from '@/components/ui/ResponsiveTable';
+import { useToast } from '@/contexts/ToastContext';
 
 const Stock: React.FC = () => {
     const logic = useStock();
-    const { handleAction, showToast } = useApp();
+    const { showToast } = useToast();
 
     const {
         activeTab, setActiveTab, searchTerm, setSearchTerm,
         ingredients, stockMovements, shoppingList, filteredIngredients, recipes,
         openAddModal, openEditModal, openRestockModal, openLossModal, openShoppingAdd, setModalType,
-        fetchNextPage, hasNextPage, isFetchingNextPage, ingredientsLoading
+        fetchNextPage, hasNextPage, isFetchingNextPage, ingredientsLoading,
+        saveIngredient, deleteIngredient: deleteIngredientMutation, saveShoppingItem, deleteShoppingItem
     } = logic;
 
     const { ref: loadMoreRef, inView } = useInView();
@@ -38,25 +40,25 @@ const Stock: React.FC = () => {
 
     // Actions that don't require modal state (Simple toggles/deletes)
     const toggleActive = useCallback((ing: any) => {
-        handleAction('ingredients', 'update', ing.id, { isActive: !ing.isActive });
+        saveIngredient({ id: ing.id, isActive: !ing.isActive });
         showToast(ing.isActive ? 'Item Pausado' : 'Item Ativado', ing.isActive ? 'error' : 'success');
-    }, [handleAction, showToast]);
+    }, [saveIngredient, showToast]);
 
     const deleteIngredient = useCallback((id: string) => {
         if (confirm('Deseja realmente excluir este insumo?')) {
-            handleAction('ingredients', 'delete', id);
+            deleteIngredientMutation(id);
         }
-    }, [handleAction]);
+    }, [deleteIngredientMutation]);
 
-    const onDeleteShoppingItem = (id: string) => handleAction('shopping_list', 'delete', id);
-    const onUpdateShoppingItem = (id: string, data: any) => handleAction('shopping_list', 'update', id, data);
+    const onDeleteShoppingItem = (id: string) => deleteShoppingItem(id);
+    const onUpdateShoppingItem = (id: string, data: any) => saveShoppingItem({ ...data, id });
 
     const generateShoppingList = () => {
         const needed = ingredients.filter(i => i.currentStock <= i.minStock);
         let added = 0;
         needed.forEach(ing => {
-            if (!shoppingList.find(s => s.name === ing.name)) {
-                handleAction('shopping_list', 'add', undefined, { name: ing.name, quantity: ing.minStock * 2, unit: ing.unit, checked: false, ingredientId: ing.id });
+            if (!shoppingList.find(s => (s as any).name === ing.name)) {
+                saveShoppingItem({ name: ing.name, quantity: ing.minStock * 2, unit: ing.unit, checked: false, ingredientId: ing.id });
                 added++;
             }
         });

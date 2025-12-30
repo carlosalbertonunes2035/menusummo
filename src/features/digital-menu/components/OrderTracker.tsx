@@ -3,6 +3,8 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { Order, OrderStatus, OrderType } from '../../../types';
 import { useOrders } from '@/hooks/useOrders';
 import { useApp } from '../../../contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useOrdersQuery } from '@/lib/react-query/queries/useOrdersQuery';
 import { CheckCircle2, ChefHat, Truck, MapPin, MessageCircle, ChevronDown, Phone, Copy, Star } from 'lucide-react';
 import { generateWhatsAppLink } from '../../../lib/utils';
 
@@ -13,8 +15,10 @@ interface OrderTrackerProps {
 }
 
 const OrderTracker: React.FC<OrderTrackerProps> = ({ orderId, onClose, onNewOrder }) => {
+    const { tenantId } = useApp();
+    const { showToast } = useToast();
     const { data: orders } = useOrders({ limit: 50 });
-    const { handleAction, showToast } = useApp();
+    const { updateOrder } = useOrdersQuery(tenantId);
     const [isExpanded, setIsExpanded] = useState(false);
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
@@ -63,7 +67,8 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ orderId, onClose, onNewOrde
         if (rating === 0) return;
         setIsSubmittingFeedback(true);
         try {
-            await handleAction('orders', 'update', orderId, {
+            await updateOrder({
+                id: orderId,
                 feedback: {
                     rating,
                     comment,

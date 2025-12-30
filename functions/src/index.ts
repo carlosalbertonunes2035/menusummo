@@ -3,10 +3,13 @@ import * as admin from 'firebase-admin';
 // Initialize Admin for all functions
 admin.initializeApp();
 
-// Export AI Flows
+// Export Flows
 export { startSmartImport } from './flows/importFlow';
 export { getProfitInsights } from './flows/profitFlow';
 export { secureCheckout } from './flows/checkoutFlow';
+export * from './flows/onboardingFlow';
+export * from './flows/teamFlow';
+export { getProductInsights } from './flows/productConsultantFlow';
 
 
 // Export Triggers
@@ -128,5 +131,19 @@ export const enhanceProductImage = onCall({
         });
         // Rethrow as HttpsError with detailed message for client visibility
         throw new HttpsError('internal', `Backend AI Failure: ${error.message}`, error);
+    }
+});
+
+import { engineerProductRecipe } from './ai/agents/engineerAgent';
+export const generateRecipeSuggestion = onCall({ region: 'us-central1' }, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Você precisa estar logado.");
+    }
+    const { productName, price, storeContext, restaurantName } = request.data;
+    try {
+        return await engineerProductRecipe(productName, price, storeContext, restaurantName);
+    } catch (error: any) {
+        logger.error('[generateRecipeSuggestion] Error:', error);
+        throw new HttpsError('internal', error.message);
     }
 });

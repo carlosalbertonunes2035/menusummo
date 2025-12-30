@@ -4,13 +4,17 @@ import { Expense } from '../../../../types';
 import { FINANCIAL_CATEGORIES, COST_CENTERS } from '../../../../constants';
 import { Plus, Trash2, X, Calendar, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useApp } from '../../../../contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useFinanceQuery } from '@/lib/react-query/queries/useFinanceQuery';
 
 interface FinancePayablesProps {
     expenses: Expense[];
 }
 
 const FinancePayables: React.FC<FinancePayablesProps> = ({ expenses }) => {
-    const { handleAction, showToast } = useApp();
+    const { tenantId } = useApp();
+    const { showToast } = useToast();
+    const { saveExpense, deleteExpense } = useFinanceQuery(tenantId);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'PENDING' | 'PAID'>('PENDING');
 
@@ -33,10 +37,10 @@ const FinancePayables: React.FC<FinancePayablesProps> = ({ expenses }) => {
     const totalPayable = useMemo(() => expenses.filter(e => e.status === 'PENDING').reduce((acc, e) => acc + e.amount, 0), [expenses]);
     const overdueCount = useMemo(() => expenses.filter(e => e.status === 'PENDING' && e.dueDate && new Date(e.dueDate) < new Date()).length, [expenses]);
 
-    const handleDelete = (id: string) => { if (confirm('Excluir conta?')) handleAction('expenses', 'delete', id); };
+    const handleDelete = (id: string) => { if (confirm('Excluir conta?')) deleteExpense(id); };
 
     const handlePay = (expense: Expense) => {
-        handleAction('expenses', 'update', expense.id, { status: 'PAID', paidAt: new Date() });
+        saveExpense({ id: expense.id, status: 'PAID', paidAt: new Date() });
         showToast('Conta paga!', 'success');
     };
 
@@ -45,9 +49,9 @@ const FinancePayables: React.FC<FinancePayablesProps> = ({ expenses }) => {
             showToast('Preencha os campos obrigatórios', 'error');
             return;
         }
-        handleAction('expenses', 'add', undefined, {
+        saveExpense({
             ...formData,
-            id: Date.now().toString(),
+            id: undefined, // Let query generate or keep current if it's an edit (but here it's 'add')
             date: new Date(),
             amount: Number(formData.amount),
             status: formData.status || 'PENDING'

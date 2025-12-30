@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
 import {
     Plus, ChefHat, Search, Trash2, Edit3,
     Calculator, ArrowRight, BookOpen, Clock,
     AlertTriangle, Sparkles, Filter
 } from 'lucide-react';
-import { useData } from '../../../../contexts/DataContext';
 import { useApp } from '../../../../contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useRecipesQuery } from '@/lib/react-query/queries/useRecipesQuery';
+import { useIngredientsQuery } from '@/lib/react-query/queries/useIngredientsQuery';
 import { Recipe } from '../../../../types/recipe';
 import { formatCurrency } from '../../../../lib/utils';
 import { RecipeForm } from './RecipeForm';
@@ -17,8 +18,10 @@ interface RecipeManagerProps {
 }
 
 export const RecipeManager: React.FC<RecipeManagerProps> = ({ externalSearch, onSearchChange, hideSearch }) => {
-    const { recipes, ingredients } = useData();
-    const { handleAction, showToast } = useApp();
+    const { tenantId } = useApp();
+    const { showToast } = useToast();
+    const { recipes, deleteRecipe: deleteRecipeMutation } = useRecipesQuery(tenantId);
+    const { ingredients } = useIngredientsQuery(tenantId);
     const [localSearch, setLocalSearch] = useState('');
     const [editingRecipe, setEditingRecipe] = useState<Recipe | 'new' | null>(null);
 
@@ -36,7 +39,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ externalSearch, on
 
     const deleteRecipe = async (id: string) => {
         if (confirm("Deseja realmente excluir esta ficha técnica?")) {
-            await handleAction('recipes', 'delete', id);
+            await deleteRecipeMutation(id);
             showToast("Receita excluída.", 'info');
         }
     };

@@ -40,19 +40,23 @@ export abstract class BaseRepository<T extends { id: string; createdAt?: any; up
             setCollection(tenantId, this.collectionName as any, items);
             return id;
         } else {
-            const docRef = doc(db, this.collectionName, id);
-            await setDoc(docRef, {
+            // SECURITY: Always inject ownerUid for permission fallback
+            const currentUser = auth.currentUser;
+            const payload = {
                 ...data,
-                id, // Ensure id is inside document
+                id,
                 tenantId,
                 createdAt: timestamp,
-                updatedAt: timestamp
-            });
+                updatedAt: timestamp,
+                ownerUid: (data as any).ownerUid || currentUser?.uid // Auto-inject if not present
+            };
+            const docRef = doc(db, this.collectionName, id);
+            await setDoc(docRef, payload);
 
             // Log Audit Event
             auditService.logMutation(
                 tenantId,
-                auth.currentUser?.uid || 'system',
+                currentUser?.uid || 'system',
                 AuditEventType.CREATE,
                 this.collectionName,
                 id,

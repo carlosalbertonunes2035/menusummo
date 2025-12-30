@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
-import { useData } from '@/contexts/DataContext';
 import { useApp } from '@/contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useFinanceQuery } from '@/lib/react-query/queries/useFinanceQuery';
 import { CheckCircle2, Circle, Calendar, Filter, DollarSign, ArrowUpRight, ArrowDownRight, Search } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils'; // Assuming custom util or internal
 import { Revenue, Expense } from '@/types/finance';
@@ -20,8 +21,9 @@ interface LedgerItem {
 
 export const FinanceReconciliation: React.FC = () => {
     // 1. Contexts
-    const { revenues, expenses } = useData(); // Only fetching loaded data for now. In real app might need dedicated hook.
-    const { handleAction, showToast } = useApp();
+    const { tenantId } = useApp();
+    const { showToast } = useToast();
+    const { revenues, expenses, saveExpense, saveRevenue } = useFinanceQuery(tenantId);
 
     // 2. State
     const [filterDate, setFilterDate] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
@@ -75,11 +77,12 @@ export const FinanceReconciliation: React.FC = () => {
     // 5. Actions
     const toggleReconcile = async (item: LedgerItem) => {
         const newStatus = item.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
-        const collection = item.type === 'INCOME' ? 'revenues' : 'expenses';
-
         try {
-            await handleAction(collection, 'update', item.id, { status: newStatus });
-            // Ideally optimistic update or wait for realtime
+            if (item.type === 'INCOME') {
+                await saveRevenue({ id: item.id, status: newStatus });
+            } else {
+                await saveExpense({ id: item.id, status: newStatus });
+            }
             showToast(newStatus === 'COMPLETED' ? 'Conciliado!' : 'Marcado como Pendente', 'success');
         } catch (e) {
             showToast("Erro ao atualizar status", "error");

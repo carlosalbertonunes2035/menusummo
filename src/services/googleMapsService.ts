@@ -2,6 +2,7 @@
  * Google Maps & Places API Service
  * Handles address autocomplete, geocoding, and distance calculations
  */
+import { logger } from '@/lib/logger';
 
 export interface PlacePrediction {
     placeId: string;
@@ -80,7 +81,7 @@ export const searchAddressPredictions = async (
     if (!input || input.length < 3) return [];
 
     if (!window.google?.maps?.places) {
-        console.error('Google Maps Places API not loaded');
+        logger.error('Google Maps Places API not loaded');
         return [];
     }
 
@@ -113,7 +114,7 @@ export const searchAddressPredictions = async (
                 } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
                     resolve([]);
                 } else {
-                    console.error('Places Autocomplete error:', status);
+                    logger.error('Places Autocomplete error:', status);
                     resolve([]);
                 }
             }
@@ -126,7 +127,7 @@ export const searchAddressPredictions = async (
  */
 export const getPlaceDetails = async (placeId: string): Promise<GeocodeResult | null> => {
     if (!window.google?.maps?.places) {
-        console.error('Google Maps Places API not loaded');
+        logger.error('Google Maps Places API not loaded');
         return null;
     }
 
@@ -153,7 +154,7 @@ export const getPlaceDetails = async (placeId: string): Promise<GeocodeResult | 
                         placeId: place.place_id || placeId,
                     });
                 } else {
-                    console.error('Place Details error:', status);
+                    logger.error('Place Details error:', status);
                     resolve(null);
                 }
             }
@@ -166,7 +167,7 @@ export const getPlaceDetails = async (placeId: string): Promise<GeocodeResult | 
  */
 export const geocodeAddress = async (address: string): Promise<GeocodeResult | null> => {
     if (!window.google?.maps) {
-        console.error('Google Maps API not loaded');
+        logger.error('Google Maps API not loaded');
         return null;
     }
 
@@ -183,7 +184,7 @@ export const geocodeAddress = async (address: string): Promise<GeocodeResult | n
                     placeId: result.place_id,
                 });
             } else {
-                console.error('Geocoding error:', status);
+                logger.error('Geocoding error:', status);
                 resolve(null);
             }
         });

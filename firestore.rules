@@ -18,10 +18,12 @@ service cloud.firestore {
     // Função para verificar se pode criar documento para o tenant
     function canCreateForTenant() {
       return request.auth != null && 
+             request.resource.data.ownerUid != null && 
              (request.auth.token.tenantId == request.resource.data.tenantId ||
-              request.auth.token.uid == request.resource.data.tenantId || // Fallback UID matches tenantId (bootstrap)
-              request.auth.uid == request.resource.data.ownerUid); // NEW: Fallback ownerUid
+              request.auth.token.uid == request.resource.data.tenantId || 
+              request.auth.uid == request.resource.data.ownerUid); 
     }
+
 
     // ============================================================================
     // 🌐 COLEÇÕES RAÍZES (Usadas pelo App principal / hooks.ts)
@@ -70,8 +72,9 @@ service cloud.firestore {
       allow update, delete: if belongsToTenant();
     }
     match /settings/{id} { 
-      allow read: if belongsToTenant();
-      allow create: if canCreateForTenant();
+      allow get: if true; // Public access to check slug uniqueness (collision detection)
+      allow list: if belongsToTenant();
+      allow create: if false; // Creation strictly managed by Cloud Functions (Admin SDK)
       allow update, delete: if belongsToTenant();
     }
     match /print_jobs/{id} { 
@@ -101,7 +104,7 @@ service cloud.firestore {
     }
 
     match /system_users/{userId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthenticated() && request.auth.uid == userId; // 🛡️ SECURITY PATCH
     }
 
     match /audit_logs/{logId} {

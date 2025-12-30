@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Building2, Search, Loader2, Sparkles, MapPin, Calculator, Lock, Edit3 } from 'lucide-react';
 import { useApp } from '../../../../contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
 import AddressAutocomplete from '../../../../components/ui/AddressAutocomplete';
 import { GeocodeResult } from '../../../../services/googleMapsService';
 import { fetchCNPJData, formatCNPJ, validateCNPJ } from '../../../../services/cnpjService';
@@ -8,7 +9,7 @@ import { SettingsFormProps } from './types';
 import { inputClass, labelClass, cardClass } from './shared';
 
 export const StoreForm: React.FC<SettingsFormProps> = ({ settings, onChange }) => {
-    const { showToast } = useApp();
+    const { showToast } = useToast();
     const [isLoadingCNPJ, setIsLoadingCNPJ] = useState(false);
 
     const handleCNPJLookup = async () => {

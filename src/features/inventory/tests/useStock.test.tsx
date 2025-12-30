@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act } from '../../../test/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useStock } from '../hooks/useStock';
 import { StockMovementType } from '@/types';
@@ -25,30 +25,68 @@ vi.mock('@/services/nfeParser', () => ({
 }));
 
 // Mock relative path used by hook
-vi.mock('../../../contexts/DataContext', () => ({
-    useData: () => ({
-        ingredients: mockIngredients,
-        stockMovements: [],
+// Mock TanStack Queries
+vi.mock('@/lib/react-query/queries/useStockQuery', () => ({
+    useStockQuery: () => ({
+        movements: [],
         shoppingList: [],
+        addMovement: mockHandleAction, // Reuse mock for convenience or create new
+        saveShoppingItem: vi.fn(),
+        deleteShoppingItem: vi.fn()
+    })
+}));
+
+vi.mock('@/lib/react-query/queries/useIngredientsQuery', () => ({
+    useIngredientsQuery: () => ({
+        saveIngredient: mockHandleAction, // Reuse mock for checking calls
+        deleteIngredient: vi.fn(),
+        ingredients: [] // unused in hook directly, hook uses paginated
+    })
+}));
+
+vi.mock('@/lib/react-query/queries/useRecipesQuery', () => ({
+    useRecipesQuery: () => ({
         recipes: []
-    }),
+    })
 }));
 
-// Mock relative path used by hook
-vi.mock('../../../contexts/AppContext', () => ({
-    useApp: () => ({
-        handleAction: mockHandleAction,
-        showToast: mockShowToast,
-    }),
+// Mock the local queries file for ingredients pagination
+vi.mock('../hooks/queries', () => ({
+    useInfiniteIngredients: () => ({
+        data: {
+            pages: [{ docs: mockIngredients }]
+        },
+        fetchNextPage: vi.fn(),
+        hasNextPage: false,
+        isFetchingNextPage: false,
+        isLoading: false
+    })
 }));
 
-vi.mock('@/features/auth/context/AuthContext', () => ({
-    useAuth: () => ({
-        user: { uid: 'test-uid' },
-        tenantId: 'test-tenant',
-        role: 'owner'
-    }),
-}));
+// AppContext mock simplified
+vi.mock('../../../contexts/AppContext', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../../contexts/AppContext')>();
+    return {
+        ...actual,
+        useApp: () => ({
+            showToast: mockShowToast,
+            tenantId: 'test-tenant'
+        }),
+    };
+});
+
+vi.mock('@/features/auth/context/AuthContext', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@/features/auth/context/AuthContext')>();
+    return {
+        ...actual,
+        useAuth: () => ({
+            user: { uid: 'test-uid' },
+            systemUser: { tenantId: 'test-tenant' },
+            tenantId: 'test-tenant',
+            role: 'owner'
+        }),
+    };
+});
 
 describe('useStock Hook', () => {
     beforeEach(() => {
@@ -115,7 +153,7 @@ describe('useStock Hook', () => {
             result.current.handleFormSubmit(e);
         });
 
-        expect(mockHandleAction).toHaveBeenCalledWith('ingredients', 'add', undefined, expect.objectContaining({
+        expect(mockHandleAction).toHaveBeenCalledWith(expect.objectContaining({
             name: 'Sal',
             currentStock: 10,
             unit: 'kg'
@@ -137,9 +175,9 @@ describe('useStock Hook', () => {
         });
 
         // Should update ingredient stock
-        expect(mockHandleAction).toHaveBeenCalledWith('ingredients', 'update', ing.id, { currentStock: 15 });
+        expect(mockHandleAction).toHaveBeenCalledWith(expect.objectContaining({ id: ing.id, currentStock: 15 }));
         // Should add stock movement
-        expect(mockHandleAction).toHaveBeenCalledWith('stock_movements', 'add', undefined, expect.objectContaining({
+        expect(mockHandleAction).toHaveBeenCalledWith(expect.objectContaining({
             type: StockMovementType.IN,
             quantity: 5,
             ingredientId: ing.id
@@ -161,9 +199,9 @@ describe('useStock Hook', () => {
         });
 
         // Should update ingredient stock (10 - 2 = 8)
-        expect(mockHandleAction).toHaveBeenCalledWith('ingredients', 'update', ing.id, { currentStock: 8 });
+        expect(mockHandleAction).toHaveBeenCalledWith(expect.objectContaining({ id: ing.id, currentStock: 8 }));
         // Should add stock movement
-        expect(mockHandleAction).toHaveBeenCalledWith('stock_movements', 'add', undefined, expect.objectContaining({
+        expect(mockHandleAction).toHaveBeenCalledWith(expect.objectContaining({
             type: StockMovementType.LOSS,
             quantity: -2,
             reason: 'Vencimento'

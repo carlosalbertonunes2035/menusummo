@@ -32,6 +32,8 @@ export interface Ingredient {
     category?: string; // e.g., 'Meat', 'Vegetable', 'Packaging'
     purchaseUnit?: string; // e.g., 'Fardo', 'Caixa'
     conversionFactor?: number; // e.g., 12
+    tenantId?: string;
+    ownerUid?: string;
 }
 
 export interface Product {
@@ -65,6 +67,7 @@ export interface Product {
     imageFit?: 'cover' | 'contain';
     description?: string;
     realCost?: number; // Added to fix useProductPricing error
+    trackStock?: boolean; // New: If false, stock won't be deducted on sale
     // New inventory & recipe fields
     recipeId?: string;
     preparationTime?: number; // In minutes
@@ -74,6 +77,7 @@ export interface Product {
     slug?: string;
     likes?: number;
     tenantId?: string;
+    ownerUid?: string;
     // Legacy/Migration fields
     price?: number; // Root price for simple products
     categoryId?: string; // Reference to category doc

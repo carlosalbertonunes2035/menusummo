@@ -10,6 +10,8 @@ import AuthForms from '@/features/auth/components/AuthForms';
 import { Loader2 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 
+import { Toaster } from 'react-hot-toast';
+
 export const RootLayout: React.FC = () => {
     const { user, loading: authLoading, isMockMode } = useAuth();
     const { settings } = useApp();
@@ -30,6 +32,7 @@ export const RootLayout: React.FC = () => {
 
     return (
         <div className={`fixed inset-0 overflow-hidden bg-summo-bg font-sans text-summo-text flex ${navigationMode === 'SIDEBAR' ? 'flex-col md:flex-row' : 'flex-col'} md:pb-0`}>
+            <Toaster position="top-right" />
             <a href="#main-content" className="skip-to-content focus:z-50">Pular para o conteúdo principal</a>
 
 

@@ -38,7 +38,13 @@ vi.mock('@firebase/firestore', () => ({
 }));
 
 vi.mock('../../lib/firebase/client', () => ({
-    db: {}
+    db: {},
+    auth: { currentUser: { uid: 'test-user' } }
+}));
+
+vi.mock('@/services/AuditService', () => ({
+    auditService: { logMutation: vi.fn() },
+    AuditEventType: { CREATE: 'CREATE', UPDATE: 'UPDATE', DELETE: 'DELETE' }
 }));
 
 describe('OrderRepository', () => {
@@ -83,10 +89,10 @@ describe('OrderRepository', () => {
         await repository.update(mockOrder.id, updateData, 'store-1');
 
         expect(mockDoc).toHaveBeenCalledWith(expect.anything(), 'orders', mockOrder.id);
-        expect(mockUpdateDoc).toHaveBeenCalledWith('doc-ref', expect.objectContaining({
+        expect(mockSetDoc).toHaveBeenCalledWith('doc-ref', expect.objectContaining({
             ...updateData,
             updatedAt: expect.anything()
-        }));
+        }), { merge: true });
     });
 
     it('should get an order by id', async () => {

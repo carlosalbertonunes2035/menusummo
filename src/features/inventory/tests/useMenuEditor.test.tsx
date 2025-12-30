@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act } from '@/test/test-utils';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useMenuEditor } from '../hooks/useMenuEditor';
 import { Product, Ingredient, OrderType, SalesChannel, Recipe } from '@/types';
@@ -15,9 +15,13 @@ const { mockHandleAction, mockShowToast, mockGenerateMarketingCopy, mockProducts
                 name: 'Burger',
                 category: 'Food',
                 cost: 5,
+                description: 'Delicious burger',
+                status: 'ACTIVE',
+                type: 'SIMPLE',
                 tags: [],
                 ingredients: [],
                 optionGroupIds: [],
+                ownerUid: 'user1',
                 channels: [
                     { channel: 'pos', price: 10, isAvailable: true },
                     { channel: 'digital-menu', price: 12, isAvailable: true }
@@ -32,20 +36,48 @@ const { mockHandleAction, mockShowToast, mockGenerateMarketingCopy, mockProducts
     };
 });
 
+const mockSaveProduct = vi.fn().mockResolvedValue('p1');
+const mockDeleteProduct = vi.fn();
+const mockSaveRecipe = vi.fn();
+const mockDeleteRecipe = vi.fn();
+
+vi.mock('@/lib/react-query/queries/useProductsQuery', () => ({
+    useProductsQuery: () => ({
+        products: mockProducts,
+        saveProduct: mockSaveProduct,
+        deleteProduct: mockDeleteProduct
+    })
+}));
+
+vi.mock('@/lib/react-query/queries/useRecipesQuery', () => ({
+    useRecipesQuery: () => ({
+        recipes: mockRecipes,
+        saveRecipe: mockSaveRecipe,
+        deleteRecipe: mockDeleteRecipe
+    })
+}));
+
+vi.mock('@/lib/react-query/queries/useIngredientsQuery', () => ({
+    useIngredientsQuery: () => ({
+        ingredients: mockIngredients
+    })
+}));
+
 vi.mock('@/contexts/AppContext', () => ({
     useApp: () => ({
-        handleAction: mockHandleAction,
-        showToast: mockShowToast,
+        tenantId: 'test-tenant'
     }),
 }));
 
-vi.mock('@/contexts/DataContext', () => ({
-    useData: () => ({
-        products: mockProducts,
-        ingredients: mockIngredients,
-        recipes: mockRecipes,
+vi.mock('@/contexts/ToastContext', () => ({
+    useToast: () => ({
+        showToast: mockShowToast
     }),
+    ToastProvider: ({ children }: any) => <div>{children}</div>
 }));
+
+// mockHandleAction is removed from context usage, but kept in code if needed for other tests? 
+// Actually we should replace its usage in expects.
 
 vi.mock('@/services/geminiService', () => ({
     generateMarketingCopy: mockGenerateMarketingCopy
@@ -113,7 +145,7 @@ describe('useMenuEditor Hook', () => {
             await result.current.handleSave();
         });
 
-        expect(mockHandleAction).toHaveBeenCalledWith('products', 'update', 'p1', expect.objectContaining({
+        expect(mockSaveProduct).toHaveBeenCalledWith(expect.objectContaining({
             name: 'Valid Name'
         }));
         expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('sucesso'), 'success');
@@ -134,7 +166,7 @@ describe('useMenuEditor Hook', () => {
         });
 
         // Should NOT call handleAction if validation fails
-        expect(mockHandleAction).not.toHaveBeenCalled();
+        expect(mockSaveProduct).not.toHaveBeenCalled();
         expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('deve ter pelo menos 2 caracteres'), 'error');
     });
 
@@ -213,7 +245,7 @@ describe('useMenuEditor Hook', () => {
 
         // Should close (selectedProduct null) and NOT save
         expect(result.current.selectedProduct).toBeNull();
-        expect(mockHandleAction).not.toHaveBeenCalled();
+        expect(mockSaveProduct).not.toHaveBeenCalled();
     });
 
     it('should confirm saving changes before closing', async () => {
@@ -233,7 +265,7 @@ describe('useMenuEditor Hook', () => {
         });
 
         // Should save and then close
-        expect(mockHandleAction).toHaveBeenCalled();
+        expect(mockSaveProduct).toHaveBeenCalled();
         expect(result.current.selectedProduct).toBeNull();
     });
 });

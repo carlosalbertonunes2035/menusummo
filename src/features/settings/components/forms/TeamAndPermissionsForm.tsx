@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Users, Shield, Plus, Edit3, Trash2, CheckSquare, Square, Save, X } from 'lucide-react';
 import { writeBatch, doc, where } from '@firebase/firestore';
 import { useApp } from '@/contexts/AppContext';
-import { useFirestoreCollection } from '@/lib/firebase/hooks';
+import { useToast } from '@/contexts/ToastContext';
+import { useTeamQuery } from '@/lib/react-query/queries/useTeamQuery';
 import { SystemUser, Role } from '@/types';
 import { ALL_MODULES } from '@/components/layouts/Sidebar';
 import { db } from '@/lib/firebase/client';
@@ -11,12 +12,14 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 
 // --- TEAM & PERMISSIONS MANAGEMENT ---
 export const TeamAndPermissionsForm: React.FC = () => {
-    const { handleAction, showToast } = useApp();
+    const { tenantId: appTenantId } = useApp();
+    const { showToast } = useToast();
     const { systemUser } = useAuth();
-    const tenantId = systemUser?.tenantId;
+    const tenantId = systemUser?.tenantId || appTenantId;
 
-    const { data: users, loading: usersLoading } = useFirestoreCollection<SystemUser>('system_users', tenantId ? [where('tenantId', '==', tenantId)] : []);
-    const { data: roles, loading: rolesLoading } = useFirestoreCollection<Role>('roles' as any, tenantId ? [where('tenantId', '==', tenantId)] : []);
+    const { users, roles, saveUser, deleteUser, saveRole, deleteRole } = useTeamQuery(tenantId || '');
+    const usersLoading = false; // TanStack handles this via status
+    const rolesLoading = false;
 
     const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
 
@@ -57,42 +60,19 @@ export const TeamAndPermissionsForm: React.FC = () => {
     const handleSaveUser = async () => {
         if (!editingUser || !editingUser.name || !editingUser.email || !editingUser.roleId) return showToast('Preencha os campos obrigatórios.', 'error');
         const isUpdate = !!editingUser.id;
-        const id = editingUser.id || `user_${Date.now()}`;
-        const finalUserData = { ...editingUser, id, tenantId };
 
         try {
-            const batch = writeBatch(db);
-
-            // 1. Create/Update the main system user document
-            const systemUserRef = doc(db, 'system_users', id);
-            isUpdate ? batch.update(systemUserRef, finalUserData) : batch.set(systemUserRef, finalUserData);
-
-            // 2. CRITICAL SYNC: Create/Update the core 'users' document for RBAC
-            if (editingUser.email) {
-                const coreUserRef = doc(db, 'users', id);
-                const coreUserData = {
-                    id,
-                    name: editingUser.name,
-                    email: editingUser.email,
-                    roleId: editingUser.roleId,
-                    tenantId: tenantId,
-                    active: editingUser.active
-                };
-                // Use set with merge to perform an "upsert" safely
-                batch.set(coreUserRef, coreUserData, { merge: true });
-            }
-
-            await batch.commit();
+            await saveUser(editingUser);
             setIsUserModalOpen(false);
             setEditingUser(null);
             showToast(`Colaborador ${isUpdate ? 'atualizado' : 'adicionado'}!`, 'success');
         } catch (error) {
-            console.error("Atomic user save failed:", error);
+            console.error("User save failed:", error);
             showToast("Falha ao salvar colaborador. Tente novamente.", "error");
         }
     };
 
-    const handleDeleteUser = (id: string) => { if (confirm('Remover?')) handleAction('system_users', 'delete', id); };
+    const handleDeleteUser = (id: string) => { if (confirm('Remover?')) deleteUser(id); };
 
     const openRoleModal = (role: Role | null = null) => {
         if (role && typeof role !== 'string') {
@@ -105,15 +85,14 @@ export const TeamAndPermissionsForm: React.FC = () => {
 
     const handleSaveRole = async () => {
         if (!editingRole || typeof editingRole === 'string' || !editingRole.name) return showToast('Nome do cargo obrigatório.', 'error');
-        const action = editingRole.id ? 'update' : 'add';
-        const id = editingRole.id || `role-${Date.now()}`;
-        await handleAction('roles' as any, action, id, editingRole);
+        const id = editingRole.id;
+        await saveRole(editingRole);
         setIsRoleModalOpen(false);
         setEditingRole(null);
-        showToast(`Cargo ${action === 'add' ? 'criado' : 'atualizado'}!`, 'success');
+        showToast(`Cargo ${id ? 'atualizado' : 'criado'}!`, 'success');
     };
 
-    const handleDeleteRole = (id: string) => { if (confirm('Excluir cargo?')) handleAction('roles' as any, 'delete', id); };
+    const handleDeleteRole = (id: string) => { if (confirm('Excluir cargo?')) deleteRole(id); };
 
     const handlePermissionToggle = (permissionId: string) => {
         setRolePermissions(prev => prev.includes(permissionId) ? prev.filter(p => p !== permissionId) : [...prev, permissionId]);
@@ -121,7 +100,7 @@ export const TeamAndPermissionsForm: React.FC = () => {
 
     const savePermissions = async () => {
         if (!selectedRole || typeof selectedRole === 'string') return;
-        await handleAction('roles' as any, 'update', selectedRole.id, { permissions: rolePermissions });
+        await saveRole({ ...selectedRole, id: selectedRole.id, permissions: rolePermissions });
         showToast('Permissões salvas!', 'success');
     };
 

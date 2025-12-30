@@ -23,7 +23,10 @@ const {
 
 // Mock Firebase imports
 vi.mock('../../lib/firebase/client', () => ({
-    db: mockDb
+    db: mockDb,
+    auth: {
+        currentUser: { uid: 'test-user-123' }
+    }
 }));
 
 vi.mock('@firebase/firestore', () => ({
@@ -89,10 +92,11 @@ describe('ProductRepository (Firebase Mode)', () => {
         await repository.update(mockProduct.id, updates, tenantId);
 
         expect(mockDoc).toHaveBeenCalledWith(mockDb, 'products', mockProduct.id);
-        expect(mockUpdateDoc).toHaveBeenCalledWith('doc-ref', expect.objectContaining({
+        expect(mockSetDoc).toHaveBeenCalledWith('doc-ref', expect.objectContaining({
             ...updates,
+            tenantId,
             updatedAt: expect.anything()
-        }));
+        }), { merge: true });
     });
 
     it('should delete a product from Firestore', async () => {

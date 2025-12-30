@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { Product, Ingredient, ChannelConfig, SalesChannel } from '@/types';
-import { useData } from '@/contexts/DataContext';
 import { useApp } from '@/contexts/AppContext';
+import { useIngredientsQuery } from '@/lib/react-query/queries/useIngredientsQuery';
+import { useRecipesQuery } from '@/lib/react-query/queries/useRecipesQuery';
+import { useProductsQuery } from '@/lib/react-query/queries/useProductsQuery';
 import { Calculator, ChefHat, Link2Off, Trash2, AlertTriangle, DollarSign, TrendingUp, Layers, Info, ListPlus, Plus, Tag, CheckCircle2, ShoppingCart, Tv, Globe, Monitor } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
@@ -167,8 +169,10 @@ export const ProductEngineering: React.FC<ProductEngineeringProps> = ({
     onChannelDataChange,
     onComboUpdate,
 }) => {
-    const { ingredients, recipes, products } = useData();
-    const { settings } = useApp();
+    const { tenantId, settings } = useApp();
+    const { ingredients } = useIngredientsQuery(tenantId);
+    const { recipes } = useRecipesQuery(tenantId);
+    const { products } = useProductsQuery(tenantId);
 
     return (
         <div className="space-y-8 animate-fade-in pb-10">

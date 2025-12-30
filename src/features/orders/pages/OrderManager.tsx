@@ -8,7 +8,7 @@ import OrderDetailModal from '../components/OrderDetailModal';
 import { getChannelInfo, getPaymentLabel } from '../components/OrderManagerUtils';
 import { searchMatch, formatCurrency } from '../../../lib/utils';
 import { useDebounce } from '../../../lib/hooks';
-import { useData } from '../../../contexts/DataContext';
+import { useProductsQuery } from '@/lib/react-query/queries/useProductsQuery';
 import { useApp } from '../../../contexts/AppContext';
 import { printingService } from '../../../services/printingService';
 import { useOrders } from '../../../hooks/useOrders';
@@ -16,9 +16,9 @@ import { useOrders } from '../../../hooks/useOrders';
 type HistoryDateRange = 'TODAY' | 'YESTERDAY' | '7D' | 'MONTH' | 'ALL';
 
 const OrderManager: React.FC = () => {
-    const { data: orders, loading: ordersLoading } = useOrders({ limit: 200 });
-    const { products } = useData();
-    const { handleUpdateStatus, settings, tenantId } = useApp();
+    const { settings, tenantId } = useApp();
+    const { data: orders, loading: ordersLoading, updateStatus } = useOrders({ limit: 200 });
+    const { products } = useProductsQuery(tenantId);
 
     // PERSISTENCE: Initialize from sessionStorage to maintain context on tab switch
     const [searchQuery, setSearchQuery] = useState(() => {
@@ -26,11 +26,11 @@ const OrderManager: React.FC = () => {
         return '';
     });
     const [viewMode, setViewMode] = useState<'ACTIVE' | 'HISTORY'>(() => {
-        if (typeof window !== 'undefined') return (sessionStorage.getItem('om_view') as any) || 'ACTIVE';
+        if (typeof window !== 'undefined') return (sessionStorage.getItem('om_view') as 'ACTIVE' | 'HISTORY') || 'ACTIVE';
         return 'ACTIVE';
     });
     const [historyDateRange, setHistoryDateRange] = useState<HistoryDateRange>(() => {
-        if (typeof window !== 'undefined') return (sessionStorage.getItem('om_date_range') as any) || 'TODAY';
+        if (typeof window !== 'undefined') return (sessionStorage.getItem('om_date_range') as HistoryDateRange) || 'TODAY';
         return 'TODAY';
     });
 
@@ -56,14 +56,14 @@ const OrderManager: React.FC = () => {
             default: break;
         }
         if (next) {
-            handleUpdateStatus(order.id, next);
+            updateStatus({ orderId: order.id, status: next });
 
             // Auto-print to Kitchen when approved/preparing
             if (next === OrderStatus.PREPARING) {
                 printingService.printOrder(order, products, settings, tenantId, 'KITCHEN');
             }
         }
-    }, [handleUpdateStatus, products, settings, tenantId]);
+    }, [updateStatus, products, settings, tenantId]);
 
     const getActionButtonLabel = useCallback((order: Order) => {
         switch (order.status) {
@@ -85,7 +85,7 @@ const OrderManager: React.FC = () => {
         setActivePrintMode(mode);
     }, [products, settings, tenantId]);
 
-    const handleCancel = useCallback((id: string) => handleUpdateStatus(id, OrderStatus.CANCELLED), [handleUpdateStatus]);
+    const handleCancel = useCallback((id: string) => updateStatus({ orderId: id, status: OrderStatus.CANCELLED }), [updateStatus]);
     const handlePrintSelect = useCallback((id: string) => setPrintModeSelect(id), []);
 
     // Columns for Kanban (Active Mode)
@@ -210,7 +210,7 @@ const OrderManager: React.FC = () => {
                                                 <OrderCard
                                                     order={order}
                                                     isArchived={false}
-                                                    onUpdateStatus={handleUpdateStatus}
+                                                    onUpdateStatus={(id, status) => updateStatus({ orderId: id, status })}
                                                     onCancel={handleCancel}
                                                     onPrintSelect={handlePrintSelect}
                                                     onInitiatePrint={initiatePrint}

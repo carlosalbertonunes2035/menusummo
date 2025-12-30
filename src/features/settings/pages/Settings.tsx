@@ -6,10 +6,12 @@ import {
     Save, Printer, Store as StoreIcon, Clock, Truck,
     Bike, AlertTriangle, CreditCard, LayoutGrid, Monitor,
     Plus, Trash2, ChevronRight, Bell, Activity, Building2, Check, Briefcase, SlidersHorizontal, Cpu, Users, Shield, Lock, Plug, Key, LogOut, Smartphone, Loader2,
-    Wand2, Info, Brain, Wallet
+    Wand2, Info, Brain, Wallet, Utensils
 } from 'lucide-react';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useApp } from '@/contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useDriversQuery } from '@/lib/react-query/queries/useDriversQuery';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { requestNotificationPermission } from '@/services/notificationService';
 import { ALL_MODULES } from '@/components/layouts/Sidebar';
@@ -20,6 +22,7 @@ import {
     BusinessProfileForm, OperationsHub, BankAccountsForm
 } from '../components/SettingsForms';
 import { FinancialSettings } from '../components/FinancialSettings';
+import { TableSettings } from '../components/restaurant/TableSettings';
 import SubscriptionSection from '../components/SubscriptionSection';
 import MotoboysSection from '../components/MotoboysSection';
 import SystemSection from '../components/SystemSection';
@@ -33,8 +36,10 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { MenuImporter } from '../../../scripts/menu-importer/importer';
 
 const Settings: React.FC = () => {
-    const { settings: contextSettings, setSettings: setContextSettings, handleAction, showToast, tenantId, switchTenant } = useApp();
+    const { settings: contextSettings, setSettings: setContextSettings, tenantId, switchTenant } = useApp();
+    const { showToast } = useToast();
     const { logout, user, role, systemUser } = useAuth();
+    const { data: drivers } = useDrivers();
     const isMockMode = false;
 
     const [activeTab, setActiveTab] = useState('STORE');
@@ -57,6 +62,7 @@ const Settings: React.FC = () => {
         { id: 'BUSINESS_CONTEXT', label: 'Contexto do Negócio', icon: Brain, description: 'Identidade para IA e Marketing.', permission: 'manage:settings' },
         { id: 'TEAM', label: 'Gestão de Equipe', icon: Users, description: 'Colaboradores, acessos e cargos.', permission: 'manage:team' },
         { id: 'OPERATIONS_HUB', label: 'Operação & Logística', icon: SlidersHorizontal, description: 'Horários, delivery e modos de pedido.', permission: 'manage:settings' }, // NEW HUB
+        { id: 'TABLES', label: 'Mesas & Layout', icon: Utensils, description: 'Configure quantidade e organização de mesas.', permission: 'manage:settings' },
         { id: 'FINANCIAL', label: 'Financeiro & Taxas', icon: CreditCard, description: 'Taxas, pagamentos e iFood.', permission: 'manage:finance' },
         { id: 'BANKS', label: 'Bancos & Caixas', icon: Wallet, description: 'Contas bancárias, caixas e conciliação.', permission: 'manage:finance' }, // NEW MODULE
         { id: 'INTEGRATIONS', label: 'Integrações (API)', icon: Plug, description: 'Conexões externas (Gemini, iFood, WhatsApp).', permission: 'manage:settings' },
@@ -78,7 +84,7 @@ const Settings: React.FC = () => {
 
     useEffect(() => {
         const defaults = GET_DEFAULT_SETTINGS(tenantId);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+
         setLocalSettings(prev => ({
             ...defaults,
             ...contextSettings,
@@ -185,7 +191,6 @@ const Settings: React.FC = () => {
         setHasChanges(true);
     };
 
-    const { data: drivers } = useDrivers();
     const [isImporting, setIsImporting] = useState(false);
 
     const handleImportMenu = async () => {
@@ -205,14 +210,9 @@ const Settings: React.FC = () => {
         }
     };
 
-    const handleAddDriver = (driver: { name: string; phone: string; vehicle: string }) => {
-        if (!driver.name || !driver.phone) return showToast("Nome e telefone são obrigatórios.", "error");
-        handleAction('drivers', 'add', undefined, driver);
-    };
 
-    const handleDeleteDriver = (driverId: string) => {
-        handleAction('drivers', 'delete', driverId);
-    };
+
+
 
     const handleRequestNotifications = async () => {
         const granted = await requestNotificationPermission();
@@ -281,6 +281,7 @@ const Settings: React.FC = () => {
                     </ErrorBoundary>
                 );
             case 'OPERATIONS_HUB': return <OperationsHub {...commonProps} onScheduleChange={handleScheduleChange} />; // NEW HUB
+            case 'TABLES': return <TableSettings />;
             case 'FINANCIAL': return <FinancialSettings settings={localSettings} onChange={handleInputChange} />;
             case 'BANKS': return <BankAccountsForm settings={localSettings} onChange={handleInputChange} />;
             case 'INTEGRATIONS': return <IntegrationsForm {...commonProps} />;
@@ -288,7 +289,7 @@ const Settings: React.FC = () => {
             case 'INTERFACE': return <InterfaceForm {...commonProps} onToggleDockItem={toggleDockItem} />;
 
             case 'PRINTER': return <PrinterForm {...commonProps} />;
-            case 'MOTOBOYS': return <MotoboysSection drivers={drivers} onAddDriver={handleAddDriver} onDeleteDriver={handleDeleteDriver} />;
+            case 'MOTOBOYS': return <MotoboysSection drivers={drivers} />;
             case 'SYSTEM': return <SystemSection userEmail={user?.email ?? undefined} tenantId={tenantId} onLogout={logout} settings={localSettings} onUpdateSettings={setContextSettings} />;
             case 'ADVANCED': return <AdvancedSection settings={localSettings} onChange={handleInputChange} notificationStatus={notificationStatus} onRequestNotifications={handleRequestNotifications} />;
             default: return null;

@@ -7,6 +7,7 @@ import { ProductRepository } from '@/lib/repository/ProductRepository';
 import { StockMovementType } from '@/types/stock';
 import { Order } from '@/types/order';
 import { BaseService } from './BaseService';
+import { logger } from '@/lib/logger';
 
 export class StockService extends BaseService<Ingredient, IngredientRepository> {
     private stockMovementRepo: StockMovementRepository;
@@ -26,7 +27,7 @@ export class StockService extends BaseService<Ingredient, IngredientRepository> 
         for (const item of order.items) {
             const product = await this.productRepo.getById(item.productId, tenantId);
             if (!product || !product.ingredients || product.ingredients.length === 0) {
-                console.warn(`[StockService] Sem ingredientes/receita para o produto: ${item.productId}`);
+                logger.warn(`[StockService] Sem ingredientes/receita para o produto: ${item.productId}`);
                 continue;
             }
 
@@ -70,7 +71,7 @@ export class StockService extends BaseService<Ingredient, IngredientRepository> 
             return;
         }
 
-        console.error(`Reduction failed: ID ${id} not found in ingredients or recipes.`);
+        logger.error(`Reduction failed: ID ${id} not found in ingredients or recipes.`);
     }
 
     async getLowStockAlerts(tenantId: string) {

@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
-import { CheckCircle2, Circle, ArrowRight, Store, UtensilsCrossed, Package, CreditCard, Sparkles } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Store, UtensilsCrossed, Package, CreditCard, Sparkles } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
-import { useData } from '@/contexts/DataContext';
+import { useProductsQuery } from '@/lib/react-query/queries/useProductsQuery';
+import { useIngredientsQuery } from '@/lib/react-query/queries/useIngredientsQuery';
 
 interface OnboardingItemProps {
     title: string;
@@ -15,8 +16,8 @@ const OnboardingItem: React.FC<OnboardingItemProps> = ({ title, description, isC
     <button
         onClick={onClick}
         className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 text-left group ${isCompleted
-                ? 'bg-emerald-50/50 border-emerald-100 opacity-75 grayscale-[0.5]'
-                : 'bg-white border-slate-100 hover:border-summo-primary hover:shadow-lg hover:shadow-summo-primary/5 active:scale-[0.98]'
+            ? 'bg-emerald-50/50 border-emerald-100 opacity-75 grayscale-[0.5]'
+            : 'bg-white border-slate-100 hover:border-summo-primary hover:shadow-lg hover:shadow-summo-primary/5 active:scale-[0.98]'
             }`}
     >
         <div className={`p-3 rounded-xl transition-colors ${isCompleted ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-50 text-slate-400 group-hover:bg-summo-primary/10 group-hover:text-summo-primary'
@@ -36,8 +37,9 @@ const OnboardingItem: React.FC<OnboardingItemProps> = ({ title, description, isC
 );
 
 export const OnboardingChecklist: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavigate }) => {
-    const { settings } = useApp();
-    const { products, ingredients } = useData();
+    const { tenantId, settings } = useApp();
+    const { products } = useProductsQuery(tenantId);
+    const { ingredients } = useIngredientsQuery(tenantId);
 
     const progress = useMemo(() => {
         const steps = [

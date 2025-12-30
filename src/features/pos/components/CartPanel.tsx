@@ -6,6 +6,7 @@ import {
     Navigation, Loader2, CheckCircle2, ShoppingBag, Utensils, Receipt, ArrowLeft, Phone, AlertTriangle
 } from 'lucide-react';
 import { useApp } from '../../../contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
 import { functions } from '@/lib/firebase/client';
 import { httpsCallable } from '@firebase/functions';
 import { useDebounce } from '../../../lib/hooks';
@@ -63,7 +64,7 @@ const CartPanel: React.FC<CartPanelProps> = ({
     paymentStep, setPaymentStep, payments, onAddPayment, onRemovePayment,
     onFinalize, isFinalizing, settings, products, setSelectedSuggestionCoords
 }) => {
-    const { showToast } = useApp();
+    const { showToast } = useToast();
     const [isCalculatingFee, setIsCalculatingFee] = useState(false);
     const [routeInfo, setRouteInfo] = useState<{ dist: number, dur: string } | null>(null);
 

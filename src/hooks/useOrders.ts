@@ -1,37 +1,29 @@
-import { useFirestoreCollection } from '@/lib/firebase/hooks';
-import { Order } from '@/types';
+import { useOrdersQuery } from '@/lib/react-query/queries/useOrdersQuery';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { OrderSchema } from '@/lib/schemas';
-import { useMemo } from 'react';
+import { OrderStatus } from '@/types';
 
 /**
  * Hook to fetch orders with optional filters and pagination
+ * Updated to use TanStack Query for Phase 2.
  */
 export const useOrders = (options?: {
-    status?: string;
+    status?: OrderStatus;
     limit?: number;
     enableCache?: boolean;
 }) => {
     const { systemUser } = useAuth();
-    const tenantId = systemUser?.tenantId;
+    const tenantId = systemUser?.tenantId || '';
 
-    const filters = useMemo(() => {
-        const f: any[] = [];
-        if (options?.status) {
-            f.push({ field: 'status', op: '==', value: options.status });
-        }
-        return f;
-    }, [options?.status]);
+    const { orders, isLoading, updateStatus, assignDriver } = useOrdersQuery(tenantId, {
+        status: options?.status,
+        limit: options?.limit
+    });
 
-    return useFirestoreCollection<Order>(
-        'orders',
-        tenantId,
-        filters,
-        OrderSchema,
-        {
-            enableCache: options?.enableCache ?? true,
-            limit: options?.limit,
-            orderBy: { field: 'createdAt', direction: 'desc' }
-        }
-    );
+    return {
+        data: orders,
+        loading: isLoading,
+        error: null,
+        updateStatus,
+        assignDriver
+    };
 };

@@ -1,4 +1,3 @@
-
 import js from '@eslint/js';
 import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -6,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-    { ignores: ['dist', 'summo-agent', 'node_modules'] },
+    { ignores: ['dist', 'node_modules', '**/*.config.js', '**/*.config.ts', 'summo-agent'] },
     {
         extends: [js.configs.recommended, ...tseslint.configs.recommended],
         files: ['**/*.{ts,tsx}'],
@@ -24,8 +23,19 @@ export default tseslint.config(
                 'warn',
                 { allowConstantExport: true },
             ],
-            '@typescript-eslint/no-explicit-any': 'warn',
-            '@typescript-eslint/ban-ts-comment': 'warn'
+            // PHASE 0: Permitir _ prefix para variáveis não utilizadas
+            '@typescript-eslint/no-unused-vars': [
+                'error',
+                {
+                    argsIgnorePattern: '^_',
+                    varsIgnorePattern: '^_',
+                    caughtErrorsIgnorePattern: '^_',
+                },
+            ],
+            // PHASE 0: Warnings aceitáveis temporariamente
+            '@typescript-eslint/no-explicit-any': 'warn', // Será error depois
+            '@typescript-eslint/no-require-imports': 'warn', // Cloud Functions legacy
+            'react-hooks/exhaustive-deps': 'warn', // Revisar depois
         },
     },
 );

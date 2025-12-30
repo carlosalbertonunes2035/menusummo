@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@/test/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import POS from '../pages/POS';
 import { OrderType } from '@/types';
@@ -30,6 +30,18 @@ const { mockUsePOS, mockUseApp, mockUseData } = vi.hoisted(() => ({
     }
 }));
 
+// Mock AuthContext using importOriginal to keep AuthProvider component intact
+vi.mock('@/features/auth/context/AuthContext', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@/features/auth/context/AuthContext')>();
+    return {
+        ...actual,
+        useAuth: () => ({
+            systemUser: { id: 'user1', tenantId: 'test-tenant' },
+            user: { uid: 'user1' }
+        })
+    };
+});
+
 vi.mock('../hooks/usePOS', () => ({
     usePOS: () => mockUsePOS
 }));
@@ -38,8 +50,19 @@ vi.mock('@/contexts/AppContext', () => ({
     useApp: () => mockUseApp
 }));
 
-vi.mock('@/contexts/DataContext', () => ({
-    useData: () => mockUseData
+const mockShowToast = vi.fn();
+vi.mock('@/contexts/ToastContext', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@/contexts/ToastContext')>();
+    return {
+        ...actual,
+        useToast: () => ({ showToast: mockShowToast })
+    };
+});
+
+
+vi.mock('@/features/inventory/hooks/queries', () => ({
+    useProducts: () => ({ data: mockUseData.products, isLoading: false }),
+    useIngredients: () => ({ data: mockUseData.ingredients, isLoading: false }),
 }));
 
 // Mock sub-components if necessary, but we are testing integration so let's try to keep them real
@@ -99,7 +122,7 @@ describe('POS Component', () => {
             expect.objectContaining({ name: 'Burger' }),
             1
         );
-        expect(mockUseApp.showToast).toHaveBeenCalled();
+        expect(mockShowToast).toHaveBeenCalled();
     });
 
     it('should filter products by search term', () => {

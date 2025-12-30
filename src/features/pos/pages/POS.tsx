@@ -4,10 +4,11 @@ import { Product, Order, OrderStatus, OrderType, PaymentMethod } from '@/types';
 import { Search, Wand2, CheckCircle2, Loader2, Banknote, Unlock, Receipt, X, ChevronUp } from 'lucide-react';
 import { httpsCallable } from '@firebase/functions';
 import { functions } from '@/lib/firebase/client';
-import { searchMatch } from '@/lib/utils';
+import { searchMatch, getProductChannel } from '@/lib/utils';
 import { useDebounce } from '@/lib/hooks';
-import { useData } from '@/contexts/DataContext';
 import { useApp } from '@/contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useCheckout } from '@/hooks/useCheckout';
 import { usePOS } from '@/features/pos/hooks/usePOS';
 import { printingService } from '@/services/printingService';
 import { useProducts, useIngredients } from '@/features/inventory/hooks/queries';
@@ -21,7 +22,9 @@ import { SummoButton } from '@/components/ui/SummoButton';
 
 const POS: React.FC = () => {
     // Hooks & Context
-    const { tenantId, onPlaceOrder, cashRegister, setCashRegister, showToast, settings } = useApp();
+    const { tenantId, cashRegister, setCashRegister, settings } = useApp();
+    const { showToast } = useToast();
+    const { placeOrder } = useCheckout();
     const { data: products = [] } = useProducts(tenantId);
     const { data: ingredients = [] } = useIngredients(tenantId);
     const posLogic = usePOS();
@@ -61,9 +64,7 @@ const POS: React.FC = () => {
 
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
-            // @FIX: Access channel-specific properties for filtering.
-            const posChannel = p.channels.find(c => c.channel === 'pos');
-            if (!posChannel) return false;
+            const posChannel = getProductChannel(p, 'pos');
 
             const matchCat = selectedCategory === 'Todos' || p.category === selectedCategory;
             const matchSearch = searchMatch(p.name, searchTerm) || (posChannel.description && searchMatch(posChannel.description, searchTerm));
@@ -95,7 +96,7 @@ const POS: React.FC = () => {
         try {
             const parseOrderFn = httpsCallable(functions, 'parseOrder');
             const { data } = await parseOrderFn({ text: aiInputText, products });
-            const items = data as any[];
+            const items = data as { productId: string; quantity: number; notes?: string }[];
             let addedCount = 0;
             for (const aiItem of items) {
                 const prod = products.find(p => p.id === aiItem.productId);
@@ -122,20 +123,25 @@ const POS: React.FC = () => {
         try {
             const totalCost = posLogic.cart.reduce((acc: number, item) => { const prod = products.find(p => p.id === item.productId); return acc + ((prod?.cost || 0) * item.quantity); }, 0);
 
-            const orderPayload: any = {
+            const orderPayload: Omit<Order, 'id' | 'createdAt'> = {
                 customerName: customerName || (posLogic.orderType === OrderType.STAFF_MEAL ? 'Consumo Equipe' : 'Cliente Balcão'),
-                items: [...posLogic.cart], total: posLogic.grandTotal, cost: totalCost,
+                items: [...posLogic.cart],
+                total: posLogic.grandTotal,
+                cost: totalCost,
                 status: posLogic.orderType === OrderType.STAFF_MEAL ? OrderStatus.COMPLETED : OrderStatus.PENDING,
                 type: posLogic.orderType,
                 origin: 'POS',
-                payments: posLogic.orderType === OrderType.STAFF_MEAL ? [{ id: Date.now().toString(), method: PaymentMethod.CREDIT_TAB, amount: posLogic.grandTotal, description: 'Staff Meal', timestamp: new Date() }] : [...posLogic.payments],
+                payments: posLogic.orderType === OrderType.STAFF_MEAL
+                    ? [{ id: Date.now().toString(), method: PaymentMethod.CREDIT_TAB, amount: posLogic.grandTotal, description: 'Staff Meal', timestamp: new Date() }]
+                    : [...posLogic.payments],
                 ...(customerPhone ? { customerPhone } : {}),
                 ...(posLogic.orderType === OrderType.DELIVERY && posLogic.address ? { deliveryAddress: posLogic.address } : {}),
                 ...(selectedSuggestionCoords ? { location: selectedSuggestionCoords } : {}),
                 ...(posLogic.changeDue > 0.01 ? { change: posLogic.changeDue } : {}),
+                tenantId // Ensure tenantId is present
             };
 
-            const newOrderId = await onPlaceOrder(orderPayload);
+            const newOrderId = await placeOrder(orderPayload);
             setLastOrderId(newOrderId); setShowSuccess(true); setIsMobileCartOpen(false);
 
             // AUTO-PRINT

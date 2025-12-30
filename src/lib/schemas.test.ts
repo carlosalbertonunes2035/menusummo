@@ -10,7 +10,8 @@ describe('Validation Schemas', () => {
                 category: 'Bebidas',
                 cost: 2.50,
                 ingredients: [],
-                channels: []
+                channels: [],
+                ownerUid: 'user-123'
             };
             const result = ProductSchema.safeParse(validProduct);
             expect(result.success).toBe(true);

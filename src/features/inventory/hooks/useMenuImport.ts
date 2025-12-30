@@ -1,6 +1,7 @@
 import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useApp } from '@/contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
 import { collection, addDoc, onSnapshot, doc, serverTimestamp, DocumentSnapshot } from '@firebase/firestore';
 
 export interface ImportJob {
@@ -17,7 +18,7 @@ export interface ImportJob {
 
 export function useMenuImport() {
     const { systemUser } = useAuth();
-    const { showToast } = useApp();
+    const { showToast } = useToast();
 
     const startImport = async (fileUrl: string, mimeType: string) => {
         if (!systemUser?.tenantId) {

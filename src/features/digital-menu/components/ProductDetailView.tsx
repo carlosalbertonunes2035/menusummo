@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Product, OptionGroup } from '@/types';
 import { Plus, Minus, CheckCircle, ChevronLeft } from 'lucide-react';
-import { useData } from '@/contexts/DataContext';
+import { useApp } from '@/contexts/AppContext';
+import { useOptionGroupsQuery } from '@/lib/react-query/queries/useOptionGroupsQuery';
 import { getProductChannel } from '@/lib/utils';
 import { getProductImage } from '../utils/imageMapper';
 
@@ -82,7 +83,8 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = (props) => {
 
 // Extracted Single Product View (Original Logic)
 const SingleProductDetailView: React.FC<ProductDetailViewProps> = ({ product, onAddToCart, onClose }) => {
-    const { optionGroups: optionGroupLibrary } = useData();
+    const { tenantId } = useApp();
+    const { optionGroups: optionGroupLibrary } = useOptionGroupsQuery(tenantId);
     const [quantity, setQuantity] = useState(1);
     const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
     const [notes, setNotes] = useState('');

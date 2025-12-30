@@ -1,12 +1,15 @@
-import * as functions from 'firebase-functions/v1';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as admin from 'firebase-admin';
 
 /**
  * Orphaned SystemUsers Cleanup
  */
-export const cleanupOrphanedSystemUsers = functions.region('southamerica-east1').pubsub
-    .schedule('every 24 hours')
-    .onRun(async (context) => {
+export const cleanupOrphanedSystemUsers = onSchedule(
+    {
+        schedule: 'every 24 hours',
+        region: 'southamerica-east1'
+    },
+    async (event) => {
         const db = admin.firestore();
         console.log('[cleanupOrphanedSystemUsers] Iniciando limpeza...');
 
@@ -24,4 +27,5 @@ export const cleanupOrphanedSystemUsers = functions.region('southamerica-east1')
         }
 
         console.log(`[cleanupOrphanedSystemUsers] ✅ Limpeza concluída. ${deletedCount} órfãos deletados.`);
-    });
+    }
+);

@@ -1,22 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@/test/test-utils';
 import Marketing from '../pages/Marketing';
 import * as AppContext from '@/contexts/AppContext';
-import * as DataContext from '@/contexts/DataContext';
+// import * as DataContext from '@/contexts/DataContext'; // Removed
 import * as AuthContext from '@/features/auth/context/AuthContext';
 
 // Mock contexts
-vi.mock('@/contexts/AppContext', () => ({
-    useApp: vi.fn()
+vi.mock('@/contexts/AppContext', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@/contexts/AppContext')>();
+    return {
+        ...actual,
+        useApp: vi.fn()
+    };
+});
+
+// TanStack Query Mocks
+vi.mock('@/lib/react-query/queries/useProductsQuery', () => ({
+    useProductsQuery: vi.fn(() => ({ products: [] }))
 }));
 
-vi.mock('@/contexts/DataContext', () => ({
-    useData: vi.fn()
+vi.mock('@/lib/react-query/queries/useCouponsQuery', () => ({
+    useCouponsQuery: vi.fn(() => ({ coupons: [] }))
 }));
 
-vi.mock('@/features/auth/context/AuthContext', () => ({
-    useAuth: vi.fn()
+// Mock stories if necessary (assuming useStoriesQuery or similar)
+vi.mock('@/lib/react-query/queries/useStoriesQuery', () => ({
+    useStoriesQuery: vi.fn(() => ({ stories: [] }))
 }));
+
+vi.mock('@/features/auth/context/AuthContext', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@/features/auth/context/AuthContext')>();
+    return {
+        ...actual,
+        useAuth: vi.fn()
+    };
+});
 
 vi.mock('@/hooks/useOrders', () => ({
     useOrders: vi.fn(() => ({ data: [] }))
@@ -60,12 +78,6 @@ describe('Marketing Component', () => {
             setSettings: setSettingsMock,
             showToast: vi.fn(),
             handleAction: vi.fn()
-        });
-        (DataContext.useData as any).mockReturnValue({
-            products: [],
-            stories: [],
-            coupons: [],
-            orders: []
         });
         (AuthContext.useAuth as any).mockReturnValue({
             systemUser: { tenantId: 'test-tenant' }

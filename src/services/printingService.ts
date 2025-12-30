@@ -3,6 +3,7 @@ import { collection, addDoc, serverTimestamp } from '@firebase/firestore';
 import { StoreSettings, PrinterDevice } from '../types/settings';
 import { Order, OrderItem } from '../types/order';
 import { Product } from '../types/product';
+import { logger } from '../lib/logger';
 
 export interface PrintJob {
     tenantId: string;
@@ -25,11 +26,11 @@ export const printingService = {
      * 3. Sends separate print jobs.
      */
     async printOrder(order: Order, products: Product[], settings: StoreSettings, tenantId: string, type: 'ORDER' | 'KITCHEN') {
-        console.log(`[PrintingService] Routing print for order ${order.id}...`);
+        logger.info(`[PrintingService] Routing print for order ${order.id}...`);
 
         const devices = settings.printer?.devices || [];
         if (devices.length === 0) {
-            console.warn('[PrintingService] No printers configured in settings.');
+            logger.warn('[PrintingService] No printers configured in settings.');
             return { success: false, error: 'NO_PRINTERS' };
         }
 
@@ -82,7 +83,7 @@ export const printingService = {
                 return { deviceId: device.id, method: 'LOCAL', success: true };
             }
         } catch (err) {
-            console.warn(`[PrintingService] Local agent unreachable for ${device.name}.`);
+            logger.warn(`[PrintingService] Local agent unreachable for ${device.name}.`);
         }
 
         // 2. Fallback to Cloud Sync

@@ -3,8 +3,10 @@ import {
     Plus, Trash2, Save, Calculator, ChefHat,
     ArrowLeft, Search, Scale, DollarSign, RefreshCcw, X
 } from 'lucide-react';
-import { useData } from '../../../../contexts/DataContext';
 import { useApp } from '../../../../contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useRecipesQuery } from '@/lib/react-query/queries/useRecipesQuery';
+import { useIngredientsQuery } from '@/lib/react-query/queries/useIngredientsQuery';
 import { Recipe, RecipeIngredient } from '../../../../types/recipe';
 import { formatCurrency } from '../../../../lib/utils';
 
@@ -14,8 +16,10 @@ interface RecipeFormProps {
 }
 
 export const RecipeForm: React.FC<RecipeFormProps> = ({ existingRecipe, onClose }) => {
-    const { ingredients } = useData();
-    const { handleAction, showToast } = useApp();
+    const { tenantId } = useApp();
+    const { showToast } = useToast();
+    const { saveRecipe } = useRecipesQuery(tenantId);
+    const { ingredients } = useIngredientsQuery(tenantId);
 
     const [recipe, setRecipe] = useState<Partial<Recipe>>(existingRecipe || {
         name: '',
@@ -91,12 +95,11 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ existingRecipe, onClose 
         try {
             const finalRecipe = {
                 ...recipe,
-                id: recipe.id || Date.now().toString(),
                 totalCost,
-                updatedAt: new Date()
+                updatedAt: new Date().toISOString()
             } as Recipe;
 
-            await handleAction('recipes', recipe.id ? 'update' : 'add', finalRecipe.id, finalRecipe);
+            await saveRecipe(finalRecipe);
             showToast('Receita salva com sucesso!', 'success');
             onClose();
         } catch (error) {

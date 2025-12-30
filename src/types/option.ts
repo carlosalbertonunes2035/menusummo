@@ -1,4 +1,4 @@
-import { SalesChannel } from './product';
+
 
 export interface Option {
     id: string;

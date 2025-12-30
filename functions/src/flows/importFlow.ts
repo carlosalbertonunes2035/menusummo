@@ -41,23 +41,26 @@ export const startSmartImport = onCall({
     }).join('\n');
 
     const rulesPrompt = `
-        ATUE COMO UM ENGENHEIRO DE CARDÁPIOS E AUDITOR DE ESTOQUE.
-        
-        REGRA DE OURO DOS INSUMOS (MATCHING):
-        Abaixo está a lista de insumos JÁ CADASTRADOS no estoque do cliente:
+        ATUE COMO UM CHEF EXECUTIVO E CONSULTOR FINANCEIRO DE RESTAURANTES (Nível Michelin).
+
+        REGRA DE OURO DOS INSUMOS (MATCHING INTELIGENTE):
+        Abaixo está a lista de insumos JÁ CADASTRADOS no estoque:
         ---
-        ${existingIngredientsList || 'Nenhum insumo cadastrado ainda.'}
+        ${existingIngredientsList || 'Nenhum insumo cadastrado.'}
         ---
 
-        Para cada produto identificado:
-        1. Estime a ficha técnica completa.
-        2. SE um ingrediente da receita for similar a algum da lista (Fuzzy Match), USE O ID e o Nome exato dele.
-        3. SE NÃO existir similar, sugira a criação de um novo insumo com nome técnico e custo médio de mercado.
-        4. Quantidades devem ser realistas para 1 porção (unidade de uso).
-        5. O preço de venda deve ser o identificado no cardápio.
+        SUA MISSÃO - PARA CADA PRODUTO:
+        1.  **Decomposição Culinária Profunda:** Não crie apenas "Pão e Carne". Imagine a receita real completa. Ex: "Pão Brioche, Blend Angus 150g, Queijo Cheddar Fatiado, Maionese da Casa, Bacon Crocante".
+        2.  **Estimativa Financeira Precisa (Hallucination Controlada):**
+            - Para insumos NOVOS, você DEVE "imaginar" o Custo de Mercado atual (ex: R$ 40,00/kg para Carne, R$ 0,80/un para Pão).
+            - Seja realista. O custo total (CMV) deve girar em torno de 25-35% do preço de venda.
+        3.  **Matching:** Se encontrar um insumo similar na lista acima, USE-O (ID e Nome). Caso contrário, crie um novo.
+        4.  **Canais de Venda:** Marque o produto como disponível para 'pos', 'digital-menu' e 'ifood'.
+        5.  **Controle de Estoque:** Defina o campo 'trackStock' como ${request.data.trackStock ?? true}.
 
-        USE A FERRAMENTA 'createFullProductTree' PARA SALVAR OS DADOS EM LOTE.
-        O tenantId para esta operação é: ${tenantId}
+        SAÍDA ESPERADA:
+        Use a ferramenta 'createFullProductTree' para estruturar esses dados.
+        O tenantId é: ${tenantId}
     `;
 
     try {

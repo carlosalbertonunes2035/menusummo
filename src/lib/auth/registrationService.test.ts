@@ -1,172 +1,141 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { registrationService } from './registrationService';
-import { auth, db } from '@/lib/firebase/client';
-import { createUserWithEmailAndPassword } from '@firebase/auth';
-import { runTransaction, getDocs, getDoc } from '@firebase/firestore';
+import { auth } from '@/lib/firebase/client';
+import { signInWithCustomToken } from '@firebase/auth';
+import { getFunctions, httpsCallable } from '@firebase/functions';
 
-// Mock Firebase
+// Mock Firebase Client
 vi.mock('@/lib/firebase/client', () => ({
-    auth: {},
+    auth: { currentUser: null },
     db: {}
 }));
 
+// Mock Firebase Auth
 vi.mock('@firebase/auth', () => ({
-    createUserWithEmailAndPassword: vi.fn(),
-    updateProfile: vi.fn()
+    signInWithCustomToken: vi.fn(),
+    getAuth: vi.fn(() => ({ currentUser: null }))
 }));
 
-vi.mock('@firebase/firestore', () => ({
-    doc: vi.fn(),
-    setDoc: vi.fn(),
-    getDoc: vi.fn().mockResolvedValue({ exists: () => false }), // Default: doc not found
-    collection: vi.fn(),
-    query: vi.fn(),
-    where: vi.fn(),
-    getDocs: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
-    runTransaction: vi.fn(),
-    serverTimestamp: vi.fn(() => new Date())
-}));
-
-vi.mock('@/services/googleMapsService', () => ({
-    geocodeAddress: vi.fn()
+// Mock Firebase Functions
+vi.mock('@firebase/functions', () => ({
+    getFunctions: vi.fn(),
+    httpsCallable: vi.fn()
 }));
 
 describe('registrationService - Enterprise Version', () => {
+    const mockRegistrationData = {
+        ownerName: 'John Doe',
+        ownerRole: 'owner' as const,
+        email: 'john@example.com',
+        phone: '11999999999',
+        password: 'SecurePass123!',
+        businessName: 'Test Business',
+        establishmentType: 'restaurant' as const,
+        operationTime: 'new' as const,
+        legalName: 'Test Business LTDA',
+        cnpj: '12345678000190',
+        address: {
+            zip: '12345-678',
+            street: 'Test Street',
+            number: '123',
+            neighborhood: 'Test Neighborhood',
+            city: 'Test City',
+            state: 'TS',
+            complement: ''
+        },
+        segment: 'Hamburgueria',
+        monthlyRevenue: 'R$ 10k - R$ 30k',
+        salesChannels: {
+            ownDelivery: true,
+            counter: true,
+            dineIn: true,
+            ifood: false,
+            rappi: false,
+            aiqfome: false,
+            otherApps: []
+        },
+        digitalMenu: {
+            hasOwn: false,
+            platform: ''
+        },
+        currentSystem: 'none' as const,
+        goals: ['cost_control' as const],
+        mainChallenge: 'profit' as const,
+        deliveryChannels: {
+            ownDelivery: true,
+            ifood: false,
+            rappi: false,
+            aiqfome: false,
+            others: false
+        },
+        serviceTypes: ['delivery']
+    };
+
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
+
+        // Setup default mock for functions
+        vi.mocked(getFunctions).mockReturnValue({} as any);
+        vi.mocked(httpsCallable).mockImplementation(() => {
+            return vi.fn().mockResolvedValue({
+                data: {
+                    success: true,
+                    token: 'mock-custom-token',
+                    tenantId: 'mock-tenant-id'
+                }
+            }) as any;
+        });
+
+        // Setup default mock for auth
+        vi.mocked(signInWithCustomToken).mockResolvedValue({
+            user: { uid: 'mock-uid', email: 'john@example.com' }
+        } as any);
     });
 
-    describe('generateUniqueTenantId', () => {
-        it('should generate slug from business name', async () => {
-            vi.mocked(getDoc).mockResolvedValue({ exists: () => false } as any);
-
-            const slug = await registrationService.generateUniqueTenantId('Hamburgueria do João');
-
-            expect(slug).toBe('hamburgueria-do-joao');
-        });
-
-        it('should add suffix if slug already exists', async () => {
-            vi.mocked(getDoc)
-                .mockResolvedValueOnce({ exists: () => true } as any) // First attempt exists
-                .mockResolvedValue({ exists: () => false } as any);   // Suffix attempt available
-
-            const slug = await registrationService.generateUniqueTenantId('Test Store');
-
-            expect(slug).toMatch(/^test-store-[a-z0-9]{3}$/);
-        });
-
-        it('should handle empty business name', async () => {
-            vi.mocked(getDoc).mockResolvedValue({ exists: () => false } as any);
-
-            const slug = await registrationService.generateUniqueTenantId('');
-
-            expect(slug).toMatch(/^store-[a-z0-9]{5}$/);
-        });
-    });
-
-    describe('registerNewBusiness - Atomic Transaction', () => {
-        const mockRegistrationData = {
-            ownerName: 'John Doe',
-            email: 'john@example.com',
-            phone: '11999999999',
-            password: 'SecurePass123!',
-            businessName: 'Test Business',
-            legalName: 'Test Business LTDA',
-            cnpj: '12345678000190',
-            address: {
-                zip: '12345-678',
-                street: 'Test Street',
-                number: '123',
-                neighborhood: 'Test Neighborhood',
-                city: 'Test City',
-                state: 'TS',
-                complement: ''
-            },
-            segment: 'Hamburgueria',
-            monthlyRevenue: 'R$ 10k - R$ 30k',
-            deliveryChannels: {
-                ownDelivery: true,
-                ifood: false,
-                rappi: false,
-                aiqfome: false,
-                others: false
-            },
-            digitalMenu: {
-                hasOwn: false,
-                platform: ''
-            },
-            serviceTypes: ['delivery', 'takeaway']
-        };
-
-        it('should use atomic transaction for registration', async () => {
-            const mockUser = { uid: 'test-uid', delete: vi.fn() };
-            vi.mocked(createUserWithEmailAndPassword).mockResolvedValue({ user: mockUser } as any);
-            vi.mocked(getDocs).mockResolvedValue({ empty: true } as any);
-            vi.mocked(runTransaction).mockResolvedValue(undefined);
+    describe('registerNewBusiness - Cloud Function Flow', () => {
+        it('should call the createTenant cloud function', async () => {
+            const mockCreateTenant = vi.fn().mockResolvedValue({
+                data: { success: true, token: 't1', tenantId: 'tenant-1' }
+            });
+            vi.mocked(httpsCallable).mockReturnValue(mockCreateTenant as any);
 
             await registrationService.registerNewBusiness(mockRegistrationData);
 
-            // Verify transaction was called
-            expect(runTransaction).toHaveBeenCalledTimes(1);
+            expect(mockCreateTenant).toHaveBeenCalledWith(mockRegistrationData);
         });
 
-        it('should rollback auth user if transaction fails', async () => {
-            const mockUser = { uid: 'test-uid', delete: vi.fn() };
-            vi.mocked(createUserWithEmailAndPassword).mockResolvedValue({ user: mockUser } as any);
-            vi.mocked(getDocs).mockResolvedValue({ empty: true } as any);
-            vi.mocked(runTransaction).mockRejectedValue(new Error('Transaction failed'));
+        it('should sign in with custom token on success', async () => {
+            await registrationService.registerNewBusiness(mockRegistrationData);
+
+            expect(signInWithCustomToken).toHaveBeenCalledWith(auth, 'mock-custom-token');
+        });
+
+        it('should store tenantId in localStorage hints', async () => {
+            await registrationService.registerNewBusiness(mockRegistrationData);
+
+            expect(localStorage.getItem('summo_pending_tenant_id')).toBe('mock-tenant-id');
+            expect(localStorage.getItem(`summo_tenant_id_${mockRegistrationData.email}`)).toBe('mock-tenant-id');
+        });
+
+        it('should throw error if cloud function returns failure', async () => {
+            vi.mocked(httpsCallable).mockReturnValue(vi.fn().mockResolvedValue({
+                data: { success: false, error: 'Registration failed' }
+            }) as any);
 
             await expect(
                 registrationService.registerNewBusiness(mockRegistrationData)
-            ).rejects.toThrow('Falha ao criar empresa');
-
-            // Verify auth user was deleted (rollback)
-            expect(mockUser.delete).toHaveBeenCalled();
+            ).rejects.toThrow('Registration failed');
         });
 
-        it('should store tenantId in localStorage before auth creation', async () => {
-            const mockUser = { uid: 'test-uid', delete: vi.fn() };
-            vi.mocked(createUserWithEmailAndPassword).mockResolvedValue({ user: mockUser } as any);
-            vi.mocked(getDocs).mockResolvedValue({ empty: true } as any);
-            vi.mocked(runTransaction).mockResolvedValue(undefined);
+        it('should handle email already in use error', async () => {
+            vi.mocked(httpsCallable).mockReturnValue(vi.fn().mockRejectedValue({
+                message: 'auth/email-already-in-use'
+            }) as any);
 
-            await registrationService.registerNewBusiness(mockRegistrationData);
-
-            // Verify localStorage was set
-            expect(localStorage.getItem('summo_pending_tenant_id')).toBeTruthy();
-            expect(localStorage.getItem(`summo_tenant_id_${mockRegistrationData.email}`)).toBeTruthy();
-        });
-
-        it('should clear localStorage hints if transaction fails', async () => {
-            const mockUser = { uid: 'test-uid', delete: vi.fn() };
-            vi.mocked(createUserWithEmailAndPassword).mockResolvedValue({ user: mockUser } as any);
-            vi.mocked(getDocs).mockResolvedValue({ empty: true } as any);
-            vi.mocked(runTransaction).mockRejectedValue(new Error('Transaction failed'));
-
-            try {
-                await registrationService.registerNewBusiness(mockRegistrationData);
-            } catch (error) {
-                // Expected to fail
-            }
-
-            // Verify localStorage was cleared
-            expect(localStorage.getItem('summo_pending_tenant_id')).toBeNull();
-            expect(localStorage.getItem(`summo_tenant_id_${mockRegistrationData.email}`)).toBeNull();
-        });
-
-        it('should log detailed steps for audit', async () => {
-            const consoleSpy = vi.spyOn(console, 'log');
-            const mockUser = { uid: 'test-uid', delete: vi.fn() };
-            vi.mocked(createUserWithEmailAndPassword).mockResolvedValue({ user: mockUser } as any);
-            vi.mocked(getDocs).mockResolvedValue({ empty: true } as any);
-            vi.mocked(runTransaction).mockResolvedValue(undefined);
-
-            await registrationService.registerNewBusiness(mockRegistrationData);
-
-            // Verify logging
-            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[Registration]'));
-            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Starting enterprise registration flow'));
+            await expect(
+                registrationService.registerNewBusiness(mockRegistrationData)
+            ).rejects.toThrow('Este e-mail já está cadastrado');
         });
     });
 });

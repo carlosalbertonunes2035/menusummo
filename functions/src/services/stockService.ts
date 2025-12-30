@@ -32,6 +32,20 @@ export async function processStockDeduction(id: string, quantity: number, tenant
     }
 
     const recipesRef = db.collection('recipes');
+
+    // 2. Check if it's a Product and if Stock Tracking is enabled
+    // Optimization: We could pass this in the order item snapshot, but for safety/consistency we read DB.
+    const productRef = db.collection('products').doc(id);
+    const productSnap = await productRef.get();
+
+    if (productSnap.exists) {
+        const productData = productSnap.data();
+        if (productData?.trackStock === false) {
+            console.log(`[Stock] Skipping deduction for ${productData.name} (trackStock: false)`);
+            return;
+        }
+    }
+
     const recipeQuery = await recipesRef.where('tenantId', '==', tenantId).where('productId', '==', id).limit(1).get();
 
     if (!recipeQuery.empty) {

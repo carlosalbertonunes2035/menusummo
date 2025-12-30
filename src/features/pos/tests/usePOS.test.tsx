@@ -1,11 +1,8 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act } from '@/test/test-utils';
 import { usePOS } from '../hooks/usePOS';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { AppProvider } from '@/contexts/AppContext';
-import { DataProvider } from '@/contexts/DataContext';
 import { OrderType, PaymentMethod, Product } from '@/types';
 
-// Mocks
 // Mocks using vi.hoisted to ensure they are available in vi.mock factory
 const { mockShowToast, mockSettings } = vi.hoisted(() => {
     return {
@@ -20,10 +17,17 @@ const { mockShowToast, mockSettings } = vi.hoisted(() => {
 // Mock AppContext
 vi.mock('@/contexts/AppContext', () => ({
     useApp: () => ({
-        showToast: mockShowToast,
         settings: mockSettings,
+        tenantId: 'test-tenant'
     }),
     AppProvider: ({ children }: any) => <div>{children}</div>
+}));
+
+vi.mock('@/contexts/ToastContext', () => ({
+    useToast: () => ({
+        showToast: mockShowToast
+    }),
+    ToastProvider: ({ children }: any) => <div>{children}</div>
 }));
 
 // Partial mock of DataContext
@@ -50,14 +54,10 @@ const mockIngredients = [
     { id: 'i1', name: 'Meat', currentStock: 100, unit: 'g', cost: 0.5, isActive: true }
 ];
 
-vi.mock('@/contexts/DataContext', async () => {
-    return {
-        useData: () => ({
-            products: mockProducts,
-            ingredients: mockIngredients
-        })
-    };
-});
+vi.mock('@/features/inventory/hooks/queries', () => ({
+    useProducts: () => ({ data: mockProducts }),
+    useIngredients: () => ({ data: mockIngredients })
+}));
 
 describe('usePOS Hook', () => {
     beforeEach(() => {
@@ -173,9 +173,6 @@ describe('usePOS Hook', () => {
     it('should not add item if stock is insufficient', () => {
         const { result } = renderHook(() => usePOS());
         const product = mockProducts[0]; // Needs 1 unit of i1
-        // Mock stock to be low just for this test? 
-        // Since we mock useData globally, it's hard to change per test without advanced setup.
-        // Let's rely on the mockIngredients having 100 stock.
 
         // Let's try to add 101 items
         const largeQty = 101;

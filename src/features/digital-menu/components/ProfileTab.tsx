@@ -4,6 +4,8 @@
 import React from 'react';
 import { User, MapPin, LogOut, Smartphone, Shield } from 'lucide-react';
 import { useApp } from '../../../contexts/AppContext';
+import { useToast } from '../../../contexts/ToastContext';
+
 
 interface ProfileTabProps {
     user: { name: string; phone: string; address?: string };
@@ -11,7 +13,8 @@ interface ProfileTabProps {
 }
 
 const ProfileTab: React.FC<ProfileTabProps> = ({ user, setUser }) => {
-    const { showToast } = useApp();
+    const { showToast } = useToast();
+
 
     const handleLogout = () => {
         if (window.confirm('Tem certeza que deseja sair? Seus dados de perfil serão limpos.')) {

@@ -4,13 +4,14 @@ import { Order } from '@/types';
 import { Revenue } from '@/types/finance';
 import { revenueService } from '@/services/revenueService';
 import { CreditCard, Calendar, AlertCircle, Plus, FilePlus, Trash2, Loader2 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { useToast } from '@/contexts/ToastContext';
 
 interface FinanceReceivablesProps {
     orders: Order[];
 }
 
 const FinanceReceivables: React.FC<FinanceReceivablesProps> = ({ orders }) => {
+    const { showToast } = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [manualRevenues, setManualRevenues] = useState<Revenue[]>([]);
@@ -37,7 +38,7 @@ const FinanceReceivables: React.FC<FinanceReceivablesProps> = ({ orders }) => {
 
     const handleAddRevenue = async () => {
         if (!formData.description || formData.amount <= 0) {
-            toast.error('Preencha os dados corretamente');
+            showToast('Preencha os dados corretamente', 'error');
             return;
         }
 
@@ -50,12 +51,12 @@ const FinanceReceivables: React.FC<FinanceReceivablesProps> = ({ orders }) => {
                 status: 'PENDING',
                 category: 'manual_entry', // Default for now
             });
-            toast.success('Receita adicionada!');
+            showToast('Receita adicionada!', 'success');
             setIsModalOpen(false);
             setFormData({ description: '', amount: 0, date: new Date().toISOString().split('T')[0] });
             loadRevenues();
         } catch (error) {
-            toast.error('Erro ao salvar receita');
+            showToast('Erro ao salvar receita', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -65,10 +66,10 @@ const FinanceReceivables: React.FC<FinanceReceivablesProps> = ({ orders }) => {
         if (!confirm('Tem certeza?')) return;
         try {
             await revenueService.deleteRevenue(id);
-            toast.success('Removido!');
+            showToast('Removido!', 'success');
             loadRevenues();
         } catch (error) {
-            toast.error('Erro ao remover');
+            showToast('Erro ao remover', 'error');
         }
     }
 

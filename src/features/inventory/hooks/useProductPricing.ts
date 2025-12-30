@@ -21,7 +21,7 @@ export const useProductPricing = (
 
         // Channel Specific Fees
         let channelFeePercent = 0;
-        let channelFixedFee = 0;
+        const channelFixedFee = 0;
 
         if (channel === 'ifood') {
             const ifoodConfig = settings.financial?.ifood || { commission: 12, paymentFee: 3.2 };

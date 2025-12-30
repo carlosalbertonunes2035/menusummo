@@ -85,7 +85,12 @@ describe('AuthContext - Enterprise Version', () => {
 
     describe('Validação Rigorosa de tenantId', () => {
         it('should force logout if user document does not exist', async () => {
-            const mockUser = { uid: 'test-uid', email: 'test@example.com' };
+            const mockUser = {
+                uid: 'test-uid',
+                email: 'test@example.com',
+                getIdTokenResult: vi.fn().mockResolvedValue({ claims: {} }),
+                getIdToken: vi.fn().mockResolvedValue('test-token')
+            };
 
             // Mock: usuário autenticado
             vi.mocked(firebaseAuth.onAuthStateChanged).mockImplementation((auth, callback: any) => {
@@ -108,7 +113,12 @@ describe('AuthContext - Enterprise Version', () => {
         });
 
         it('should recover tenantId from localStorage if missing in Firestore', async () => {
-            const mockUser = { uid: 'test-uid', email: 'test@example.com' };
+            const mockUser = {
+                uid: 'test-uid',
+                email: 'test@example.com',
+                getIdTokenResult: vi.fn().mockResolvedValue({ claims: {} }),
+                getIdToken: vi.fn().mockResolvedValue('test-token')
+            };
             const recoveredTenantId = 'recovered-tenant-123';
 
             localStorage.setItem(`summo_tenant_id_${mockUser.uid}`, recoveredTenantId);
@@ -132,7 +142,12 @@ describe('AuthContext - Enterprise Version', () => {
         });
 
         it('should guarantee tenantId exists in final systemUser', async () => {
-            const mockUser = { uid: 'test-uid', email: 'test@example.com' };
+            const mockUser = {
+                uid: 'test-uid',
+                email: 'test@example.com',
+                getIdTokenResult: vi.fn().mockResolvedValue({ claims: {} }),
+                getIdToken: vi.fn().mockResolvedValue('test-token')
+            };
             const validTenantId = 'valid-tenant-123';
 
             vi.mocked(firebaseAuth.onAuthStateChanged).mockImplementation((auth, callback: any) => {
@@ -157,7 +172,12 @@ describe('AuthContext - Enterprise Version', () => {
 
     describe('Error Handling Enterprise', () => {
         it('should logout on any critical error', async () => {
-            const mockUser = { uid: 'test-uid', email: 'test@example.com' };
+            const mockUser = {
+                uid: 'test-uid',
+                email: 'test@example.com',
+                getIdTokenResult: vi.fn().mockResolvedValue({ claims: {} }),
+                getIdToken: vi.fn().mockResolvedValue('test-token')
+            };
 
             vi.mocked(firebaseAuth.onAuthStateChanged).mockImplementation((auth, callback: any) => {
                 callback(mockUser as any);

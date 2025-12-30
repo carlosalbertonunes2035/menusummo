@@ -223,9 +223,20 @@ export interface StoreSettings {
         showReadyColumn?: boolean;
         categoryOrder?: string[];
     };
+    tables?: {
+        totalTables: number;
+        prefix: string;
+        startNumber: number;
+        sections?: {
+            name: string;
+            range: [number, number];
+            color: string;
+        }[];
+    };
     dockItems?: string[];
     onboarding?: OnboardingState;
     lastSeedingAt?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }
 

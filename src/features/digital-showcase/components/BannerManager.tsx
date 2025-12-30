@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useApp } from '../../../contexts/AppContext';
 import { Plus, Trash2, Upload, ImageIcon, AlertCircle, Clock, Loader2 } from 'lucide-react';
 import { storageService } from '../../../lib/firebase/storageService';
 import { PromoBanner } from '../../../types';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface BannerManagerProps {
     banners: PromoBanner[];
@@ -13,7 +13,7 @@ interface BannerManagerProps {
 }
 
 const BannerManager: React.FC<BannerManagerProps> = ({ banners, onUpdateBanners, rotationSeconds, onUpdateRotation, tenantId }) => {
-    const { showToast } = useApp();
+    const { showToast } = useToast();
     const [uploadingBanners, setUploadingBanners] = useState<Record<string, boolean>>({});
 
     // Standard Styles
@@ -26,7 +26,7 @@ const BannerManager: React.FC<BannerManagerProps> = ({ banners, onUpdateBanners,
 
     const handleAddBanner = () => {
         const newBanner: PromoBanner = {
-            // eslint-disable-next-line react-hooks/purity
+
             id: Date.now().toString(),
             enabled: true,
             title: '',

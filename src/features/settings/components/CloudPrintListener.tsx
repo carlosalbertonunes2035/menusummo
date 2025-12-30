@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { db } from '../../../lib/firebase/client';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, QuerySnapshot, DocumentData } from '@firebase/firestore';
 import { useApp } from '../../../contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
 import { printingService } from '../../../services/printingService';
 
 /**
@@ -10,7 +11,8 @@ import { printingService } from '../../../services/printingService';
  * and relays them to the local printer agent if this tab is active on a desktop.
  */
 const CloudPrintListener: React.FC = () => {
-    const { tenantId, showToast } = useApp();
+    const { tenantId } = useApp();
+    const { showToast } = useToast();
 
     useEffect(() => {
         if (!tenantId) return;

@@ -53,43 +53,57 @@ export async function parseOrderText(text: string, products: any[]) {
 }
 
 /**
- * Suggests a product to upsell based on the current cart item.
+ * Suggests a product to upsell based on rules (Deterministic & Fast).
+ * REPLACED AI: Significantly faster (< 5ms) and zero cost.
  */
 export async function suggestUpsell(addedProduct: any, allProducts: any[]) {
-    console.log(`[POSAgent] 💡 Buscando upsell para: ${addedProduct.name}`);
+    // console.log(`[POSAgent] 💡 Buscando upsell (Algo) para: ${addedProduct.name}`);
 
-    // Context: simplified product list
-    const menuContext = allProducts.map(p => ({ id: p.id, name: p.name, category: p.category, price: p.price || 0 }));
+    // 1. Define Complementary Categories
+    // If user bought Burger -> Suggest Drink or Fries
+    // If user bought Drink -> Suggest Dessert
+    const categoryRules: Record<string, string[]> = {
+        'Lanche': ['Bebida', 'Acompanhamento', 'Sobremesa'],
+        'Pizza': ['Bebida', 'Borda', 'Sobremesa'],
+        'Prato': ['Bebida', 'Salada', 'Sobremesa'],
+        'Bebida': ['Sobremesa', 'Porção'],
+        'default': ['Bebida', 'Sobremesa']
+    };
 
-    const prompt = `
-        ATUE COMO UM GARÇOM EXPERIENTE.
-        
-        CLIENTE ADICIONOU: "${addedProduct.name}" (${addedProduct.category})
-        
-        CARDÁPIO:
-        ${JSON.stringify(menuContext)}
+    // Normalize category
+    const mainCategory = normalizeCategory(addedProduct.category);
+    const targetCategories = categoryRules[mainCategory] || categoryRules['default'];
 
-        SUA TAREFA:
-        1. Escolha 1 item do cardápio que combine PERFEITAMENTE com o item adicionado (ex: Bebida com Lanche, Sobremesa com Prato).
-        2. Não sugira itens da mesma categoria principal (ex: não sugerir outro lanche se ele pediu lanche).
-        3. Priorize itens de alta margem ou populares.
-        
-        RETORNE EM JSON:
-        { "suggestedProductId": "ID_DO_PRODUTO", "reason": "Motivo curto" }
-    `;
+    // 2. Find Candidates
+    const candidates = allProducts.filter(p =>
+        p.id !== addedProduct.id && // Not the same product
+        p.isAvailable !== false &&
+        targetCategories.some(cat => normalizeCategory(p.category) === normalizeCategory(cat))
+    );
 
-    const result = await ai.generate({
-        model: MODELS.fast,
-        prompt,
-        output: {
-            format: 'json',
-            schema: z.object({
-                suggestedProductId: z.string(),
-                reason: z.string()
-            })
-        },
-        config: { temperature: 0.6 }
-    });
+    // 3. Fallback: If no match, try "Populares" or High Margin (simplified to Price here)
+    // In a real scenario, use 'salesCount' or 'margin'.
+    let chosen = candidates.sort((a, b) => (b.price || 0) - (a.price || 0))[0];
 
-    return result.output;
+    // If still nothing, pick any different item
+    if (!chosen) {
+        chosen = allProducts.find(p => p.id !== addedProduct.id);
+    }
+
+    if (!chosen) return null;
+
+    return {
+        suggestedProductId: chosen.id,
+        reason: `Combina bem com ${addedProduct.name} (Oferta Especial)`
+    };
+}
+
+// Helper for fuzzy string matching
+function normalizeCategory(cat: string = ''): string {
+    const s = cat.toLowerCase();
+    if (s.includes('lanche') || s.includes('burger') || s.includes('sandu')) return 'Lanche';
+    if (s.includes('pizza')) return 'Pizza';
+    if (s.includes('bebida') || s.includes('suco') || s.includes('refrigerante')) return 'Bebida';
+    if (s.includes('doce') || s.includes('sobremesa')) return 'Sobremesa';
+    return cat;
 }

@@ -1,5 +1,6 @@
 
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface SummoModalProps {
@@ -41,7 +42,7 @@ export const SummoModal: React.FC<SummoModalProps> = ({
         '5xl': 'max-w-5xl'
     };
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             {/* Backdrop */}
             <div
@@ -82,6 +83,7 @@ export const SummoModal: React.FC<SummoModalProps> = ({
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

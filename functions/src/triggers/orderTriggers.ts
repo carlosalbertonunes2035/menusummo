@@ -1,14 +1,20 @@
-import * as functions from 'firebase-functions/v1';
+import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { processStockDeduction } from '../services/stockService';
 
 /**
  * CRM Auto-Update Trigger
  */
-export const onOrderCreated = functions.region('southamerica-east1').firestore
-    .document('orders/{orderId}')
-    .onCreate(async (snapshot, context) => {
+export const onOrderCreated = onDocumentCreated(
+    {
+        document: 'orders/{orderId}',
+        region: 'southamerica-east1'
+    },
+    async (event) => {
         const db = admin.firestore();
+        const snapshot = event.data;
+        if (!snapshot) return;
+
         const orderData = snapshot.data();
         const { tenantId, customerPhone, customerName, total, deliveryAddress, location } = orderData;
 
@@ -84,14 +90,21 @@ export const onOrderCreated = functions.region('southamerica-east1').firestore
                 });
             }
         });
-    });
+    }
+);
 
 /**
  * Stock Deduction & Loyalty Earning Trigger
  */
-export const onOrderStatusUpdated = functions.region('southamerica-east1').firestore
-    .document('orders/{orderId}')
-    .onUpdate(async (change, context) => {
+export const onOrderStatusUpdated = onDocumentUpdated(
+    {
+        document: 'orders/{orderId}',
+        region: 'southamerica-east1'
+    },
+    async (event) => {
+        const change = event.data;
+        if (!change) return;
+
         const newData = change.after.data();
         const oldData = change.before.data();
         const db = admin.firestore();
@@ -160,5 +173,5 @@ export const onOrderStatusUpdated = functions.region('southamerica-east1').fires
                 }
             }
         }
-        return null;
-    });
+    }
+);

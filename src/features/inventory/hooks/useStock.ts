@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Ingredient, StockMovementType, ShoppingListItem } from '../../../types';
-import { useData } from '@/contexts/DataContext';
-import { useStockMovements } from '@/hooks/useStockMovements';
-import { useShoppingList } from '@/hooks/useShoppingList';
+import { useRecipesQuery } from '@/lib/react-query/queries/useRecipesQuery';
 import { useApp } from '@/contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useStockQuery } from '@/lib/react-query/queries/useStockQuery';
+import { useIngredientsQuery } from '@/lib/react-query/queries/useIngredientsQuery';
 import { useDebounce } from '../../../lib/hooks';
 import { searchMatch } from '../../../lib/utils';
 import { functions } from '@/lib/firebase/client';
@@ -25,7 +26,9 @@ export interface BulkItemCandidate {
 
 export const useStock = () => {
     const { systemUser } = useAuth();
-    const { ingredients: globalIngredients, recipes } = useData(); // We still need global for some syncs? No, let's use the local paginated
+    const { tenantId } = useApp();
+    const { showToast } = useToast();
+    const { recipes } = useRecipesQuery(tenantId);
 
     // 1. Pagination State
     const {
@@ -40,9 +43,9 @@ export const useStock = () => {
         return paginatedIngredients?.pages.flatMap(page => page.docs) || [];
     }, [paginatedIngredients]);
 
-    const { data: stockMovements } = useStockMovements({ limit: 500 });
-    const { data: shoppingList } = useShoppingList();
-    const { handleAction, showToast } = useApp();
+    // showToast removed
+    const { movements: stockMovements, shoppingList, addMovement, saveShoppingItem, deleteShoppingItem } = useStockQuery(tenantId);
+    const { saveIngredient, deleteIngredient } = useIngredientsQuery(tenantId);
 
     const [activeTab, setActiveTab] = useState<TabType>('OVERVIEW');
     const [modalType, setModalType] = useState<ModalType>(null);
@@ -156,7 +159,7 @@ export const useStock = () => {
 
         if (modalType === 'SHOPPING_ADD') {
             if (!shoppingFormData.name) return;
-            handleAction('shopping_list', 'add', undefined, {
+            saveShoppingItem({
                 name: shoppingFormData.name,
                 quantity: parseFloat(shoppingFormData.quantity),
                 unit: shoppingFormData.unit,
@@ -165,14 +168,15 @@ export const useStock = () => {
             });
         } else if (modalType === 'ADD') {
             if (!formData.name) return;
-            handleAction('ingredients', 'add', undefined, {
-                id: Date.now().toString(), name: formData.name, unit: formData.unit,
+            saveIngredient({
+                name: formData.name, unit: formData.unit,
                 currentStock: Number(formData.currentStock), minStock: Number(formData.minStock),
                 costPerUnit: Number(formData.costPerUnit), image: formData.image, isActive: true,
                 purchaseUnit: formData.purchaseUnit, conversionFactor: Number(formData.conversionFactor)
             });
         } else if (modalType === 'EDIT' && selectedId) {
-            handleAction('ingredients', 'update', selectedId, {
+            saveIngredient({
+                id: selectedId,
                 name: formData.name, unit: formData.unit,
                 currentStock: Number(formData.currentStock), minStock: Number(formData.minStock),
                 costPerUnit: Number(formData.costPerUnit), image: formData.image,
@@ -186,8 +190,8 @@ export const useStock = () => {
                 qty = qty * (selectedIngredient.conversionFactor || 1);
             }
 
-            handleAction('ingredients', 'update', selectedId, { currentStock: selectedIngredient.currentStock + qty });
-            handleAction('stock_movements', 'add', undefined, {
+            saveIngredient({ id: selectedId, currentStock: selectedIngredient.currentStock + qty });
+            addMovement({
                 ingredientId: selectedId, ingredientName: selectedIngredient.name,
                 type: StockMovementType.IN, quantity: qty, cost, date: new Date(),
                 reason: formData.isBulkEntry ? `Entrada em Lote (${formData.restockQty} ${selectedIngredient.purchaseUnit})` : undefined
@@ -195,8 +199,8 @@ export const useStock = () => {
             showToast('Estoque Atualizado', 'success');
         } else if (modalType === 'LOSS' && selectedId && selectedIngredient) {
             const qty = Number(formData.restockQty);
-            handleAction('ingredients', 'update', selectedId, { currentStock: selectedIngredient.currentStock - qty });
-            handleAction('stock_movements', 'add', undefined, {
+            saveIngredient({ id: selectedId, currentStock: selectedIngredient.currentStock - qty });
+            addMovement({
                 ingredientId: selectedId, ingredientName: selectedIngredient.name,
                 type: StockMovementType.LOSS, quantity: -qty, cost: 0, reason: formData.lossReason, date: new Date()
             });
@@ -245,8 +249,8 @@ export const useStock = () => {
             if (item.matchedIngredientId) {
                 const ing = ingredients.find(i => i.id === item.matchedIngredientId);
                 if (ing) {
-                    handleAction('ingredients', 'update', ing.id, { currentStock: ing.currentStock + item.quantity });
-                    handleAction('stock_movements', 'add', undefined, {
+                    saveIngredient({ id: ing.id, currentStock: ing.currentStock + item.quantity });
+                    addMovement({
                         ingredientId: ing.id, ingredientName: ing.name,
                         type: StockMovementType.IN, quantity: item.quantity, cost: item.totalCost, date: new Date()
                     });
@@ -282,6 +286,6 @@ export const useStock = () => {
         // Handlers
         openAddModal, openEditModal, openRestockModal, openLossModal, openShoppingAdd, closeModal, handleFormSubmit,
         processAiFile, processXmlFile, confirmBulkImport,
-        handleAction // Exposed for direct list actions
+        saveIngredient, deleteIngredient, saveShoppingItem, deleteShoppingItem // Exposed new actions
     };
 };

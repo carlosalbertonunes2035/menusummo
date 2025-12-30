@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Expense } from '../../../../types';
 import { Plus, Trash2, X } from 'lucide-react';
 import { useApp } from '../../../../contexts/AppContext';
+import { useFinanceQuery } from '@/lib/react-query/queries/useFinanceQuery';
 import { FINANCIAL_CATEGORIES } from '../../../../constants';
 
 interface FinanceExpensesProps {
@@ -9,7 +10,8 @@ interface FinanceExpensesProps {
 }
 
 const FinanceExpenses: React.FC<FinanceExpensesProps> = ({ expenses }) => {
-    const { handleAction, tenantId } = useApp();
+    const { tenantId } = useApp();
+    const { saveExpense: saveExpenseMutation, deleteExpense } = useFinanceQuery(tenantId);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({
         category: '',
@@ -17,13 +19,11 @@ const FinanceExpenses: React.FC<FinanceExpensesProps> = ({ expenses }) => {
         amount: '',
     });
 
-    const onDeleteExpense = (id: string) => handleAction('expenses', 'delete', id);
+    const onDeleteExpense = (id: string) => deleteExpense(id);
 
     const saveExpense = () => {
         if (!formData.amount || !formData.description || !formData.category) return;
-        handleAction('expenses', 'add', undefined, {
-            id: Date.now().toString(),
-            tenantId: tenantId,
+        saveExpenseMutation({
             category: formData.category,
             description: formData.description,
             amount: parseFloat(formData.amount),

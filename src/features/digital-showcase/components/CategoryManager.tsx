@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useData } from '@/contexts/DataContext';
 import { useApp } from '@/contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useProductsQuery } from '@/lib/react-query/queries/useProductsQuery';
 import { GripVertical, Save, Plus, Info, Image as ImageIcon, Loader2, Upload, ChevronUp, ChevronDown } from 'lucide-react';
 import { useMenuEditor } from '@/features/inventory/hooks/useMenuEditor';
 import { storageService } from '@/lib/firebase/storageService';
@@ -13,8 +14,9 @@ interface CategoryManagerProps {
 }
 
 const CategoryManager: React.FC<CategoryManagerProps> = ({ localSettings, updateLocalSettings }) => {
-    const { products } = useData();
-    const { handleAction, showToast } = useApp();
+    const { tenantId } = useApp();
+    const { showToast } = useToast();
+    const { products, saveProduct } = useProductsQuery(tenantId);
     const menuEditorLogic = useMenuEditor();
 
     const [orderedCategories, setOrderedCategories] = useState<string[]>([]);
@@ -149,7 +151,8 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ localSettings, update
                     });
                 }
 
-                await handleAction('products', 'update', product.id, {
+                await saveProduct({
+                    id: product.id,
                     channels: existingChannels
                 });
             }

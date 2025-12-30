@@ -4,8 +4,8 @@ export interface Customer {
     phone: string;
     email?: string;
     address?: string; // Legacy/Primary address
-    location?: any;   // Lat/Lng
-    addresses?: any[];
+    location?: { lat: number; lng: number };   // Lat/Lng
+    addresses?: { label?: string; street: string; number: string; zip: string }[];
     lastOrderDate: Date | string; // Handle both for safety
     totalOrders: number;
     totalSpent: number;

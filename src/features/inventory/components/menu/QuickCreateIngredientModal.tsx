@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { X, Save, Package, DollarSign } from 'lucide-react';
 import { useApp } from '../../../../contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '../../../auth/context/AuthContext';
+import { useIngredientsQuery } from '@/lib/react-query/queries/useIngredientsQuery';
 import { storageService } from '../../../../lib/firebase/storageService';
 import { Image as ImageIcon, Loader2 } from 'lucide-react';
 
@@ -13,7 +15,9 @@ interface QuickCreateIngredientModalProps {
 }
 
 export const QuickCreateIngredientModal: React.FC<QuickCreateIngredientModalProps> = ({ isOpen, onClose, initialName = '', onCreated }) => {
-    const { showToast, handleAction } = useApp();
+    const { tenantId } = useApp();
+    const { showToast } = useToast();
+    const { saveIngredient } = useIngredientsQuery(tenantId);
     const { systemUser } = useAuth();
     const [name, setName] = useState(initialName);
     const [unit, setUnit] = useState('kg');
@@ -47,14 +51,13 @@ export const QuickCreateIngredientModal: React.FC<QuickCreateIngredientModalProp
         const id = Date.now().toString();
 
         try {
-            // Note: handleAction needs to respect the new image field if it's not strictly typed in the caller, 
-            // but we saw Ingredient type DOES have image.
-            await handleAction('ingredients', 'add', id, {
-                id, name, unit, costPerUnit: parseFloat(cost) || 0, currentStock: 0, minStock: 0, isActive: true, image
-            });
+            const newIngredient = {
+                name, unit, costPerUnit: parseFloat(cost) || 0, currentStock: 0, minStock: 0, isActive: true, image
+            };
+            const result = await saveIngredient(newIngredient);
 
             showToast('Insumo criado com sucesso!', 'success');
-            onCreated?.(id);
+            if (result?.id) onCreated?.(result.id);
             onClose();
         } catch (error) {
             showToast('Erro ao criar insumo.', 'error');

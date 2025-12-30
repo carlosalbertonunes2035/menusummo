@@ -1,9 +1,16 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useMenuEditor } from '../../hooks/useMenuEditor';
-import { useData } from '../../../../contexts/DataContext';
 import { useApp } from '../../../../contexts/AppContext';
+import { useOptionGroupsQuery } from '@/lib/react-query/queries/useOptionGroupsQuery';
+import { useProductsQuery } from '@/lib/react-query/queries/useProductsQuery';
 import { useAuth } from '../../../auth/context/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import OptionGroupManager from './OptionGroupManager';
+
+// Atomic Components
+import { ProductEditorHeader } from './editor/ProductEditorHeader';
+import { ProductEditorTabs, ProductEditorTab } from './editor/ProductEditorTabs';
+import { ProductEditorFooter } from './editor/ProductEditorFooter';
 
 // Sub-components
 import { ProductBasicInfo } from './editor/ProductBasicInfo';
@@ -12,17 +19,19 @@ import { ProductEngineering } from './editor/ProductEngineering';
 import { ProductSEO } from './editor/ProductSEO';
 import { ProductChannels } from './editor/ProductChannels';
 
-import {
-    X, LayoutTemplate, ListPlus, Calculator, Globe, Package, CheckCircle2,
-    Save, Trash2, Library, Link2Off, Monitor, Loader2, Wand2,
-    Image as ImageIcon, UploadCloud, Camera, Eye
-} from 'lucide-react';
 import { Product, OptionGroup, ChannelConfig } from '../../../../types';
 import { slugify } from '../../../../lib/seoUtils';
 import { isReservedSlug } from '../../../../lib/reservedSlugs';
 import ErrorBoundary from '../../../../components/ui/ErrorBoundary';
 
 import { AiRecipeModal } from './editor/AiRecipeModal';
+import { SummoModal } from '../../../../components/ui/SummoModal';
+import { Trash2, Save, Sparkles } from 'lucide-react';
+
+// AI Consultant
+import { useAiConsultant } from '../../../ai-consultant/hooks/useAiConsultant';
+import { AiConsultantModal } from '../../../ai-consultant/components/AiConsultantModal';
+import { AiInsightBadge } from '../../../ai-consultant/components/AiInsightBadge';
 
 interface ProductEditorProps {
     logic: ReturnType<typeof useMenuEditor>;
@@ -37,13 +46,27 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
         linkOptionGroup, unlinkOptionGroup, handleDelete
     } = logic;
 
-    const { optionGroups, products } = useData();
-    const { showToast } = useApp();
+    const { tenantId } = useApp();
+    const { showToast } = useToast();
+    const { optionGroups } = useOptionGroupsQuery(tenantId);
+    const { products } = useProductsQuery(tenantId);
 
     // UI States
     const [isOptionManagerOpen, setIsOptionManagerOpen] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+
+    // AI Consultant
+    const {
+        insights,
+        isLoading: isLoadingInsights,
+        error: insightsError,
+        getInsights,
+        dismissInsight,
+        applyInsight,
+        clearInsights
+    } = useAiConsultant();
+    const [showAiConsultantModal, setShowAiConsultantModal] = useState(false);
 
     // Auto-Slug Effect: Only runs on NEW products or when Name is actively edited
     useEffect(() => {
@@ -52,6 +75,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
 
         if (isNewProduct || isNameEdited) {
             const nameToSlug = editData.name || selectedProduct?.name || '';
+            const existingRecipeId = (currentEditingProduct as any)?.recipe?.id || (currentEditingProduct as any)?.recipeId;
             if (nameToSlug) {
                 const newSlug = slugify(nameToSlug);
                 const currentEffectiveSlug = editData.slug ?? selectedProduct?.slug;
@@ -84,13 +108,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
 
     const handleSaveAndClose = async () => {
         // AI INTERCEPTOR:
-        // If it's a NEW product (or manual edit) AND has no recipe yet,
-        // and has a reasonably descriptive name, suggest the AI Recipe.
         const isNewOrNoRecipe = !selectedProduct?.id || !currentEditingProduct?.recipe?.id;
         const hasName = !!(editData.name || selectedProduct?.name);
-
-        // Ensure we don't track loop (if coming from AI modal accept, we proceed)
-        // We use a simple check: if the EditData already has a 'recipe' object injected (from AI accept), skip this.
         const recipeJustInjected = !!editData.recipe;
 
         if (isNewOrNoRecipe && hasName && !recipeJustInjected) {
@@ -98,9 +117,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
             return;
         }
 
-        // Optimistic Close: Close UI immediately
         handleClose(true);
-        // Then perform save in background
         handleSave();
     };
 
@@ -132,8 +149,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
         setEditData((prev: Partial<Product>) => {
             const newData = { ...prev, [field]: value };
             const existingChannels = prev.channels || selectedProduct?.channels || [];
-
-            // Ensure basic channels exist if arrays are empty (Fix for broken imports)
             let updatedChannels = [...existingChannels];
 
             if (updatedChannels.length === 0) {
@@ -144,11 +159,10 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                 ];
             }
 
-            // Sync logic
             if (field === 'name') {
                 updatedChannels = updatedChannels.map((c: ChannelConfig) => ({ ...c, displayName: value }));
             } else if (field === 'price') {
-                const newPrice = Number(value); // Ensure number
+                const newPrice = Number(value);
                 newData.price = newPrice;
                 updatedChannels = updatedChannels.map((c: ChannelConfig) => {
                     if (['pos', 'digital-menu', 'ifood'].includes(c.channel)) {
@@ -181,34 +195,14 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
         });
     };
 
-    // Completion Score
-    const getCompletionScore = () => {
-        let score = 0;
-        const current = currentEditingProduct;
-        if (!current) return 0;
-        if (current.name) score += 20;
-        if (current.channels?.some(c => c.image)) score += 20;
-        if (current.ingredients && current.ingredients.length > 0) score += 20;
-        if (current.channels?.some(c => c.isAvailable && c.price > 0)) score += 20;
-        if (current.slug) score += 20;
-        return score;
-    };
-
     // Tab Navigation
-    const tabFlow = ['GENERAL', 'OPTIONS', 'ENGINEERING', 'CHANNELS', 'SEO'] as const;
-    const currentTabIndex = activeTab ? tabFlow.indexOf(activeTab) : 0;
+    const tabFlow: ProductEditorTab[] = ['GENERAL', 'OPTIONS', 'ENGINEERING', 'CHANNELS', 'SEO'];
+    const currentTabIndex = activeTab ? tabFlow.indexOf(activeTab as ProductEditorTab) : 0;
     const canGoNext = currentTabIndex >= 0 && currentTabIndex < tabFlow.length - 1;
-    const canGoPrevious = currentTabIndex > 0;
 
     const handleNextTab = () => {
         if (canGoNext && currentTabIndex >= 0) {
             setActiveTab(tabFlow[currentTabIndex + 1]);
-        }
-    };
-
-    const handlePreviousTab = () => {
-        if (canGoPrevious && currentTabIndex >= 0) {
-            setActiveTab(tabFlow[currentTabIndex - 1]);
         }
     };
 
@@ -233,10 +227,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleSaveAndClose, onCloseRequest, selectedProduct?.id, showDeleteConfirm, showUnsavedModal]);
 
-
     if (!selectedProduct || !currentEditingProduct) return null;
 
-    const digitalChannelData = currentEditingProduct.channels?.find((c: ChannelConfig) => c.channel === 'digital-menu') || currentEditingProduct.channels?.[0] || { image: '', displayName: '', description: '' };
     const currentChannelData = currentEditingProduct.channels?.find((c: ChannelConfig) => c.channel === activeChannel);
 
     return (
@@ -245,67 +237,58 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                 <div className="absolute inset-0 bg-summo-dark/60 backdrop-blur-sm transition-opacity" onClick={onCloseRequest}></div>
 
                 <div className="relative w-full lg:w-[1000px] bg-white shadow-2xl border-l border-gray-200 flex flex-col animate-slide-in-right h-full">
-                    {/* Header */}
-                    <div className="px-6 py-4 bg-white border-b border-gray-100 flex justify-between items-center sticky top-0 z-20">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-lg bg-summo-bg flex items-center justify-center text-summo-primary flex-shrink-0 relative overflow-hidden">
-                                {digitalChannelData.image ? <img src={digitalChannelData.image} className="w-full h-full object-cover" /> : <Package size={20} />}
-                            </div>
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <h2 className="text-lg font-bold text-gray-800 leading-none truncate">{editData.name || selectedProduct.name || "Novo Produto"}</h2>
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${(editData.type || currentEditingProduct.type) === 'COMBO' ? 'bg-orange-100 text-orange-700' : 'bg-summo-bg text-summo-primary'}`}>
-                                        {(editData.type || currentEditingProduct.type) === 'COMBO' ? '🎁 COMBO' : 'SIMPLES'}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-gray-400 mt-1 truncate">{selectedProduct.id ? "Editando Produto" : "Criando Novo Produto"}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            {currentChannelData && (
-                                <label className={`flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border transition select-none ${currentChannelData.isAvailable ? 'bg-green-50 border-green-200 hover:bg-green-100' : 'bg-red-50 border-red-200 hover:bg-red-100'}`}>
-                                    <div className={`w-2 h-2 rounded-full ${currentChannelData.isAvailable ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                                    <span className={`text-xs font-bold uppercase ${currentChannelData.isAvailable ? 'text-green-700' : 'text-red-700'}`}>{currentChannelData.isAvailable ? 'Ativo' : 'Pausado'}</span>
-                                    <input type="checkbox" className="hidden" checked={currentChannelData.isAvailable || false} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChannelDataChange('isAvailable', e.target.checked)} />
-                                </label>
+
+                    <ProductEditorHeader
+                        product={selectedProduct}
+                        editData={editData}
+                        activeChannelData={currentChannelData}
+                        onClose={onCloseRequest}
+                        onChannelToggle={(checked) => handleChannelDataChange('isAvailable', checked)}
+                    >
+                        {/* AI Consultant Button */}
+                        <div className="flex items-center gap-2">
+                            {insights.length > 0 && (
+                                <AiInsightBadge
+                                    count={insights.length}
+                                    onClick={() => setShowAiConsultantModal(true)}
+                                />
                             )}
-                            <div className="h-8 w-px bg-gray-200"></div>
-                            <button type="button" onClick={onCloseRequest} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition"><X size={24} /></button>
+                            <button
+                                onClick={async () => {
+                                    setShowAiConsultantModal(true);
+                                    if (insights.length === 0) {
+                                        await getInsights(currentEditingProduct, {
+                                            restaurantName: tenantId,
+                                            restaurantType: 'Espetaria'
+                                        });
+                                    }
+                                }}
+                                className="
+                                    flex items-center gap-2 px-3 py-1.5 text-sm font-medium
+                                    bg-primary-100 dark:bg-primary-900/30
+                                    text-primary-700 dark:text-primary-300
+                                    rounded-lg hover:bg-primary-200 dark:hover:bg-primary-900/50
+                                    transition-all duration-200
+                                "
+                                title="Consultar IA sobre este produto"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                <span>Consultor IA</span>
+                            </button>
                         </div>
-                    </div>
+                    </ProductEditorHeader>
 
-                    {/* Progress Bar */}
-                    <div className="px-6 pb-2">
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-                            <span className="font-medium">Progresso:</span>
-                            <span className="font-bold text-summo-primary">{getCompletionScore()}%</span>
-                        </div>
-                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-gradient-to-r from-orange-500 to-orange-600 rounded-full transition-all duration-500 ease-out"
-                                style={{ width: `${getCompletionScore()}%` }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Tabs */}
-                    <div className="px-6 border-b border-gray-100 flex gap-6 overflow-x-auto no-scrollbar">
-                        <button onClick={() => setActiveTab('GENERAL')} className={`py-4 text-sm font-bold border-b-2 transition whitespace-nowrap ${activeTab === 'GENERAL' ? 'border-summo-primary text-summo-primary' : 'border-transparent text-gray-400 hover:text-gray-600'}`}><LayoutTemplate size={16} className="inline mr-2 mb-0.5" /> Cadastro Básico</button>
-                        <button onClick={() => setActiveTab('OPTIONS')} className={`py-4 text-sm font-bold border-b-2 transition whitespace-nowrap ${activeTab === 'OPTIONS' ? 'border-summo-primary text-summo-primary' : 'border-transparent text-gray-400 hover:text-gray-600'}`}><ListPlus size={16} className="inline mr-2 mb-0.5" /> Complementos</button>
-                        <button onClick={() => setActiveTab('ENGINEERING')} className={`py-4 text-sm font-bold border-b-2 transition whitespace-nowrap ${activeTab === 'ENGINEERING' ? 'border-summo-primary text-summo-primary' : 'border-transparent text-gray-400 hover:text-gray-600'}`}><Calculator size={16} className="inline mr-2 mb-0.5" /> Engenharia & Lucro</button>
-                        <button onClick={() => setActiveTab('CHANNELS')} className={`py-4 text-sm font-bold border-b-2 transition whitespace-nowrap ${activeTab === 'CHANNELS' ? 'border-summo-primary text-summo-primary' : 'border-transparent text-gray-400 hover:text-gray-600'}`}><Monitor size={16} className="inline mr-2 mb-0.5" /> Canais de Venda</button>
-                        <button onClick={() => setActiveTab('SEO')} className={`py-4 text-sm font-bold border-b-2 transition whitespace-nowrap ${activeTab === 'SEO' ? 'border-summo-primary text-summo-primary' : 'border-transparent text-gray-400 hover:text-gray-600'}`}><Globe size={16} className="inline mr-2 mb-0.5" /> SEO & Marketing</button>
-                    </div>
+                    <ProductEditorTabs
+                        activeTab={activeTab as ProductEditorTab}
+                        setActiveTab={setActiveTab}
+                    />
 
                     <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 pb-24">
                         <ErrorBoundary scope={activeTab}>
 
-                            {/* GENERAL TAB */}
                             {activeTab === 'GENERAL' && (
                                 <div className="space-y-6 animate-fade-in">
                                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-1"><Monitor size={12} /> Informações Principais</h4>
-
                                         <ProductBasicInfo
                                             product={currentEditingProduct}
                                             editData={editData}
@@ -313,7 +296,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                                             categories={uniqueCategories as string[]}
                                             onImageChange={handleImageChange}
                                         />
-
                                         <div className="pt-4 border-t border-gray-100 mt-4">
                                             <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Etiquetas (Tags)</label>
                                             <div className="flex flex-wrap gap-2">
@@ -323,149 +305,97 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                                                         onClick={() => handleTagToggle(tag)}
                                                         className={`px-3 py-1.5 rounded-lg text-sm font-bold border transition flex items-center gap-1 ${(currentEditingProduct?.tags || []).includes(tag) ? 'bg-summo-bg text-summo-primary border-summo-primary' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
                                                     >
-                                                        {tag} {(currentEditingProduct?.tags || []).includes(tag) && <CheckCircle2 size={12} strokeWidth={3} />}
+                                                        {tag}
                                                     </button>
                                                 ))}
                                             </div>
                                         </div>
                                     </div>
-
                                 </div>
                             )}
 
-                            {/* OPTIONS TAB */}
                             {activeTab === 'OPTIONS' && (
-                                <div className="space-y-6 animate-fade-in">
-                                    <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h3 className="font-bold text-gray-800">Grupos Vinculados</h3>
-                                            <button onClick={() => setIsOptionManagerOpen(true)} className="bg-summo-primary text-white px-4 py-2 rounded-xl font-bold shadow-lg hover:bg-summo-dark transition text-sm flex items-center gap-2"><Library size={16} /> Gerenciar Biblioteca</button>
-                                        </div>
-                                        {!linkedGroups || linkedGroups.length === 0 ? <p className="text-center py-8 text-gray-400">Nenhum grupo de complemento vinculado.</p> :
-                                            <div className="space-y-3">{linkedGroups.map((group: OptionGroup) => (group ? <div key={group.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200 flex justify-between items-center"><div><p className="font-bold text-gray-700">{group.title}</p><p className="text-xs text-gray-500">{group.options?.length || 0} opções</p></div><button onClick={() => unlinkOptionGroup(group.id)} className="text-red-400 hover:text-red-600 bg-white p-2 rounded-lg border border-gray-200 shadow-sm"><Link2Off size={16} /></button></div> : null))}</div>
-                                        }
-                                    </div>
-                                </div>
+                                <OptionGroupManager
+                                    isEmbedded={true}
+                                    isOpen={true}
+                                    onClose={() => { }}
+                                    onLinkGroup={linkOptionGroup}
+                                    existingGroupIds={currentEditingProduct.optionGroupIds || []}
+                                />
                             )}
 
-                            {/* ENGINEERING TAB */}
                             {activeTab === 'ENGINEERING' && (
                                 <ProductEngineering
-                                    product={currentEditingProduct}
-                                    linkRecipe={linkRecipe}
-                                    unlinkRecipe={unlinkRecipe}
-                                    onChannelDataChange={handleChannelDataChange}
-                                    onComboUpdate={logic.handleComboUpdate}
+                                    product={currentEditingProduct as any}
+                                    onUpdate={setEditData}
+                                    onLinkRecipe={linkRecipe}
+                                    onUnlinkRecipe={unlinkRecipe}
+                                    onUpdateIngredientAmount={updateIngredientAmount}
+                                    onRemoveIngredient={removeIngredient}
                                 />
                             )}
 
-                            {/* CHANNELS TAB */}
                             {activeTab === 'CHANNELS' && (
                                 <ProductChannels
-                                    product={currentEditingProduct}
-                                    editData={editData}
+                                    product={currentEditingProduct as any}
                                     activeChannel={activeChannel}
-                                    onChannelChange={setActiveChannel}
-                                    onChannelDataChange={handleChannelDataChange}
-                                    handleGenerateCopy={handleGenerateCopy}
-                                    isGeneratingCopy={isGeneratingCopy}
+                                    setActiveChannel={setActiveChannel}
+                                    onUpdateChannel={handleChannelDataChange}
                                 />
                             )}
 
-                            {/* SEO TAB */}
                             {activeTab === 'SEO' && (
                                 <ProductSEO
-                                    product={currentEditingProduct}
-                                    editData={editData}
-                                    onUpdate={handleBasicInfoUpdate}
+                                    product={currentEditingProduct as any}
+                                    onUpdate={setEditData}
                                     slugError={slugError}
                                 />
                             )}
                         </ErrorBoundary>
                     </div>
 
-                    {/* Footer */}
-                    <div className="bg-white border-t border-gray-200 sticky bottom-0 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-                        <div className="p-4 pb-safe lg:pb-4 flex items-center justify-between gap-4">
-                            {/* Delete Button - Left Side */}
-                            <button
-                                onClick={() => setShowDeleteConfirm(true)}
-                                className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition flex-shrink-0"
-                                title={selectedProduct.id ? "Excluir Produto (Ctrl+D)" : "Descartar Rascunho"}
-                            >
-                                <Trash2 size={20} />
-                            </button>
+                    <ProductEditorFooter
+                        isEditMode={!!selectedProduct.id}
+                        canGoNext={canGoNext}
+                        onDelete={() => setShowDeleteConfirm(true)}
+                        onSaveAndClose={handleSaveAndClose}
+                        onNext={handleNextTab}
+                    />
 
-                            {/* Navigation Buttons - Right Side */}
-                            <div className="flex items-center gap-3 flex-1 justify-end">
-                                {/* Always Show Save Button for Quick Access */}
-                                <button
-                                    onClick={handleSaveAndClose}
-                                    className="px-6 py-3 bg-white text-summo-primary border-2 border-summo-primary/10 rounded-xl font-bold hover:bg-summo-bg transition flex items-center justify-center gap-2 active:scale-95"
-                                    title="Salvar e Fechar (Ctrl+S)"
-                                >
-                                    <Save size={18} /> Salvar
-                                </button>
-
-                                {canGoNext ? (
-                                    <button
-                                        onClick={handleNextTab}
-                                        className="px-6 py-3 bg-summo-primary text-white rounded-xl font-bold hover:bg-summo-dark transition active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-summo-primary/20"
-                                    >
-                                        Próximo →
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleSaveAndClose}
-                                        className="px-6 py-3 bg-summo-primary text-white rounded-xl font-bold shadow-lg shadow-summo-primary/30 hover:bg-summo-dark transition flex items-center justify-center gap-2 active:scale-95"
-                                    >
-                                        <Save size={20} /> Concluir
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div >
+                </div>
                 <style>{` .animate-slide-in-right { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; } @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } } `}</style>
-            </div >
+            </div>
 
             {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-3 bg-red-100 rounded-full">
-                                <Trash2 size={24} className="text-red-600" />
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-800">
-                                Excluir Produto?
-                            </h3>
-                        </div>
-                        <p className="text-gray-600 mb-6">
-                            Tem certeza que deseja excluir <strong className="text-gray-800">"{selectedProduct?.name}"</strong>?
-                            <br />
-                            <span className="text-red-600 text-sm mt-2 block">⚠️ Esta ação não pode ser desfeita.</span>
-                        </p>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setShowDeleteConfirm(false)}
-                                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={() => {
-                                    handleDelete();
-                                    setShowDeleteConfirm(false);
-                                }}
-                                className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition"
-                            >
-                                Sim, Excluir
-                            </button>
-                        </div>
+            <SummoModal
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                title="Excluir Produto"
+            >
+                <div className="p-4">
+                    <p className="text-gray-600 mb-6">Tem certeza que deseja excluir <b>{selectedProduct.name}</b>? Esta ação não pode ser desfeita.</p>
+                    <div className="flex justify-end gap-3">
+                        <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                        <button onClick={() => { handleDelete(); setShowDeleteConfirm(false); }} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Sim, Excluir</button>
                     </div>
                 </div>
-            )}
+            </SummoModal>
+
+            {/* Unsaved Changes Warning Modal */}
+            <SummoModal
+                isOpen={showUnsavedModal}
+                onClose={() => setShowUnsavedModal(false)}
+                title="Descartar Alterações?"
+            >
+                <div className="p-4">
+                    <p className="text-gray-600 mb-6">Você tem alterações não salvas. Deseja sair e perder o progresso?</p>
+                    <div className="flex justify-end gap-3">
+                        <button onClick={() => setShowUnsavedModal(false)} className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg">Continuar Editando</button>
+                        <button onClick={() => { logic.discardChanges(); setShowUnsavedModal(false); }} className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200">Sair sem Salvar</button>
+                    </div>
+                </div>
+            </SummoModal>
+
 
             <OptionGroupManager
                 isOpen={isOptionManagerOpen}
@@ -473,54 +403,6 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                 onLinkGroup={linkOptionGroup}
                 existingGroupIds={currentEditingProduct.optionGroupIds || []}
             />
-            {/* Unsaved Changes Warning Modal */}
-            {showUnsavedModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-3 bg-orange-100 rounded-full">
-                                <Save size={24} className="text-orange-600" />
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-800">
-                                Salvar Alterações?
-                            </h3>
-                        </div>
-                        <p className="text-gray-600 mb-6">
-                            Você tem alterações não salvas em <strong className="text-gray-800">"{editData.name || selectedProduct.name || "Novo Produto"}"</strong>.
-                            <br />
-                            Deseja salvar antes de sair?
-                        </p>
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={async () => {
-                                    await handleSaveAndClose();
-                                    setShowUnsavedModal(false);
-                                }}
-                                className="w-full py-3 bg-summo-primary text-white rounded-xl font-bold hover:bg-summo-dark transition flex items-center justify-center gap-2 shadow-lg shadow-summo-primary/20"
-                            >
-                                <Save size={18} /> Sim, Salvar e Sair
-                            </button>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => {
-                                        logic.discardChanges();
-                                        setShowUnsavedModal(false);
-                                    }}
-                                    className="flex-1 py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl font-bold hover:bg-red-100 transition"
-                                >
-                                    Descartar Alterações
-                                </button>
-                                <button
-                                    onClick={() => setShowUnsavedModal(false)}
-                                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition"
-                                >
-                                    Continuar Editando
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* AI Proactive Modal */}
             <AiRecipeModal
@@ -533,11 +415,10 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                 }}
                 onAccept={(aiRecipe: any) => {
                     // Inject AI Recipe into Edits
-                    // We map the AI format to our Recipe Format
                     const newRecipe = {
                         name: aiRecipe.name,
                         ingredients: aiRecipe.ingredients.map((ing: any) => ({
-                            ingredientId: null, // Will be matched/created by backend
+                            ingredientId: `NEW_${ing.name}`, // Placeholder for auto-creation
                             name: ing.name,
                             quantity: ing.quantity,
                             unit: ing.unit,
@@ -547,10 +428,8 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                         totalCost: aiRecipe.totalCost
                     };
 
-                    // Update state and THEN save
                     setEditData(prev => ({ ...prev, recipe: newRecipe } as any));
 
-                    // Small delay to ensure state update before save (in a real scenario we'd use useEffect or specific saver)
                     setTimeout(() => {
                         handleSave();
                         handleClose(true);
@@ -559,9 +438,38 @@ const ProductEditor: React.FC<ProductEditorProps> = ({ logic }) => {
                 }}
                 productName={editData.name || selectedProduct.name || ''}
             />
+
+            {/* AI Consultant Modal */}
+            <AiConsultantModal
+                isOpen={showAiConsultantModal}
+                onClose={() => setShowAiConsultantModal(false)}
+                insights={insights}
+                isLoading={isLoadingInsights}
+                error={insightsError}
+                onApplyInsight={(insight) => {
+                    // Apply suggested changes
+                    if (insight.suggestedAction) {
+                        switch (insight.type) {
+                            case 'pricing':
+                                if (typeof insight.suggestedAction.value === 'number') {
+                                    handleBasicInfoUpdate('price', insight.suggestedAction.value);
+                                    showToast('Preço atualizado com base na sugestão da IA', 'success');
+                                }
+                                break;
+                            case 'description':
+                                if (typeof insight.suggestedAction.value === 'string') {
+                                    handleBasicInfoUpdate('description', insight.suggestedAction.value);
+                                    showToast('Descrição atualizada com base na sugestão da IA', 'success');
+                                }
+                                break;
+                        }
+                    }
+                    applyInsight(insight);
+                }}
+                onDismissInsight={dismissInsight}
+            />
         </>
     );
 };
-
 
 export default ProductEditor;

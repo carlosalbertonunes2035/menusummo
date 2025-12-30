@@ -2,7 +2,7 @@
  * SUMMO AI Schemas
  * Zod schemas for structured AI outputs - Anti-hallucination enforcement
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 // ============================================
 // INGREDIENT SCHEMA

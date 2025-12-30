@@ -21,7 +21,7 @@ export const ChannelConfigSchema = z.object({
 
 export const ProductSchema = z.object({
     id: z.string(),
-    status: z.enum(['ACTIVE', 'ARCHIVED', 'PAUSED', 'draft']).default('ACTIVE').optional(),
+    status: z.enum(['ACTIVE', 'ARCHIVED', 'PAUSED', 'DRAFT', 'draft']).default('ACTIVE').optional(),
     type: z.enum(['SIMPLE', 'COMBO']).default('SIMPLE').optional(),
     comboItems: z.array(z.object({
         productId: z.string(),
@@ -60,6 +60,7 @@ export const ProductSchema = z.object({
     seoDescription: z.string().max(160).optional(),
     keywords: z.array(z.string()).default([]),
     imageFit: z.enum(['contain', 'cover']).optional(),
+    ownerUid: z.string().optional() // Made optional for legacy data compatibility
 });
 
 // --- SETTINGS SCHEMA ---
@@ -130,7 +131,8 @@ export const OrderSchema = z.object({
     origin: z.string(),
     payments: z.array(PaymentTransactionSchema).optional(),
     createdAt: z.any(),
-    tenantId: z.string()
+    tenantId: z.string(),
+    ownerUid: z.string().min(1, "Owner UID obrigatório") // SECURITY: ENFORCED
 });
 
 // --- USER & PERMISSIONS SCHEMA ---
@@ -171,7 +173,8 @@ export const IngredientSchema = z.object({
     lastPurchasePrice: z.number().optional(),
     category: z.string().optional(),
     purchaseUnit: z.string().optional(),
-    conversionFactor: z.number().optional()
+    conversionFactor: z.number().optional(),
+    ownerUid: z.string().min(1, "Owner UID obrigatório") // SECURITY: ENFORCED
 });
 
 // --- SECURITY SCHEMAS (Phase 2) ---

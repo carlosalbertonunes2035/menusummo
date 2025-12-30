@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { StockMovementType } from '../../../types';
-import { DollarSign, Loader2, Wallet, FileText, Bike, TrendingUp, CreditCard, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { DollarSign, Loader2, Wallet, FileText, Bike, TrendingUp, CreditCard, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useOrders } from '@/hooks/useOrders';
 import { useStockMovements } from '@/hooks/useStockMovements';
 import { useExpenses } from '@/hooks/useExpenses';
@@ -37,13 +37,13 @@ const Finance: React.FC = () => {
         return true;
     }, [dateRange]);
 
-    const filteredOrders = useMemo(() => orders.filter(o => filterDate(new Date(o.createdAt))), [orders, filterDate]);
-    const filteredExpenses = useMemo(() => expenses.filter(e => filterDate(new Date(e.date))), [expenses, filterDate]);
-    const filteredMovements = useMemo(() => stockMovements.filter(m => filterDate(new Date(m.date))), [stockMovements, filterDate]);
+    const filteredOrders = useMemo(() => orders.filter((o: any) => filterDate(new Date(o.createdAt))), [orders, filterDate]);
+    const filteredExpenses = useMemo(() => expenses.filter((e: any) => filterDate(new Date(e.date))), [expenses, filterDate]);
+    const filteredMovements = useMemo(() => stockMovements.filter((m: any) => filterDate(new Date(m.date))), [stockMovements, filterDate]);
 
-    const revenue = filteredOrders.reduce((acc, o) => acc + o.total, 0);
-    const cmv = filteredMovements.filter(m => m.type === StockMovementType.SALE || m.type === StockMovementType.LOSS).reduce((acc, m) => acc + m.cost, 0);
-    const totalExpenses = filteredExpenses.reduce((acc, e) => acc + e.amount, 0);
+    const revenue = filteredOrders.reduce((acc: number, o: any) => acc + o.total, 0);
+    const cmv = filteredMovements.filter((m: any) => m.type === StockMovementType.SALE || m.type === StockMovementType.LOSS).reduce((acc: number, m: any) => acc + m.cost, 0);
+    const totalExpenses = filteredExpenses.reduce((acc: number, e: any) => acc + e.amount, 0);
     const netProfit = revenue - cmv - totalExpenses;
 
     // New KPI for Dashboard Header

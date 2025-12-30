@@ -1,14 +1,16 @@
 
 import { useEffect, useRef } from 'react';
-import { useData } from '@/contexts/DataContext';
+import { useApp } from '@/contexts/AppContext';
+import { useIngredientsQuery } from '@/lib/react-query/queries/useIngredientsQuery';
 import { useOrders } from '@/hooks/useOrders';
 import { sendNotification } from '@/services/notificationService';
 import { OrderStatus } from '@/types';
 import { usePrevious } from '@/lib/hooks';
 
 export const useNotifications = () => {
+    const { tenantId } = useApp();
     const { data: orders } = useOrders({ limit: 50 });
-    const { ingredients } = useData();
+    const { ingredients } = useIngredientsQuery(tenantId);
     const prevOrdersLength = usePrevious(orders.length);
 
     // Track notified low stock items to avoid spamming on every render

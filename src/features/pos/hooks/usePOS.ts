@@ -1,12 +1,13 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Product, OrderItem, OrderType, PaymentMethod, PaymentTransaction, SalesChannel } from '@/types';
-import { useData } from '@/contexts/DataContext';
 import { useApp } from '@/contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useProducts, useIngredients } from '@/features/inventory/hooks/queries';
 
 export const usePOS = () => {
-    const { tenantId, showToast, settings } = useApp();
+    const { tenantId, settings } = useApp();
+    const { showToast } = useToast();
     const { data: products = [] } = useProducts(tenantId);
     const { data: ingredients = [] } = useIngredients(tenantId);
 

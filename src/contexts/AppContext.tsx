@@ -1,18 +1,16 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo, useEffect } from 'react';
 import { db } from '@/lib/firebase/client';
-import { collection, query, where, getDocs, doc, setDoc, deleteDoc, updateDoc, getDoc } from '@firebase/firestore';
-import { Order, StoreSettings, CashRegister, OrderStatus, Ingredient, StockMovementType, Customer } from '@/types';
+import { collection, query, where, getDocs, doc, setDoc, deleteDoc, getDoc } from '@firebase/firestore';
+import { Order, StoreSettings, CashRegister, OrderStatus } from '@/types';
 import { GET_DEFAULT_SETTINGS, INITIAL_CASH_REGISTER } from '@/constants';
 import { ToastMessage, ToastType } from '@/components/ui/Toast';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { getCollection, setCollection } from '@/lib/localStorage';
+import { setCollection } from '@/lib/localStorage';
 import { useToast } from './ToastContext';
 import { CollectionName } from '@/types/collections';
-import { orderService } from '@/services/OrderService';
-import { productService } from '@/services/ProductService';
-import { customerService } from '@/services/CustomerService';
-import { stockService } from '@/services/StockService';
+import { useSettingsQuery } from '@/lib/react-query/queries/useSettingsQuery';
+import { logger } from '@/lib/logger';
 
 interface AppContextProps {
     tenantId: string;
@@ -22,13 +20,7 @@ interface AppContextProps {
     setSettings: (settings: StoreSettings) => void;
     cashRegister: CashRegister;
     setCashRegister: (register: CashRegister) => void;
-    toasts: ToastMessage[];
-    showToast: (message: string, type: ToastType) => void;
-    removeToast: (id: string) => void;
-    handleAction: (collectionName: CollectionName, action: 'add' | 'update' | 'delete', id?: string, data?: any) => Promise<string | undefined>;
     onPlaceOrder: (orderData: Omit<Order, 'id' | 'createdAt'> & { tableNumber?: string }) => Promise<string>;
-    handleUpdateStatus: (orderId: string, status: OrderStatus) => Promise<void>;
-    handleAssignDriver: (orderId: string, driverId: string) => Promise<void>;
     resetTenantData: () => Promise<void>;
     deduplicateTenantData: () => Promise<void>;
 }
@@ -38,28 +30,25 @@ const AppContext = createContext<AppContextProps | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { systemUser, isMockMode } = useAuth();
     const tenantId = systemUser?.tenantId || '';
-    const { showToast, removeToast, toasts } = useToast();
-
-    // Service Instances (memoized with isMockMode)
-    const orders = useMemo(() => orderService(isMockMode), [isMockMode]);
-    const products = useMemo(() => productService(isMockMode), [isMockMode]);
-    const customers = useMemo(() => customerService(isMockMode), [isMockMode]);
-    const stock = useMemo(() => stockService(isMockMode), [isMockMode]);
+    const { showToast } = useToast();
 
 
 
-    const [settings, setSettingsState] = useState<StoreSettings>(GET_DEFAULT_SETTINGS(tenantId || 'global'));
+
+    // -------------------------------------------------------------------------
+    // 🚀 PHASE 2: DATA LAYER (TanStack Query)
+    // -------------------------------------------------------------------------
+    const {
+        settings,
+        updateSettings: triggerUpdateSettings,
+        isLoading: isSettingsLoading
+    } = useSettingsQuery(tenantId);
+
     const [cashRegister, setCashRegisterState] = useState<CashRegister>(INITIAL_CASH_REGISTER);
 
     useEffect(() => {
         const loadInitialData = async () => {
-            // CRITICAL SECURITY: Only load if we have a valid tenantId
-            // CRITICAL SECURITY: Only load if we have a valid tenantId
-            // Suppress warning during initial auth load
             if (!tenantId) {
-                // Only warn if we have a user but no tenant (misconfiguration), not during initial load
-                // console.warn('[AppContext] No tenantId, using default settings'); 
-                setSettingsState(GET_DEFAULT_SETTINGS('global'));
                 setCashRegisterState(INITIAL_CASH_REGISTER);
                 return;
             }
@@ -69,38 +58,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 return key.endsWith(`_${tenantId}`);
             };
 
-            // 1. Try Firestore First (Production Mode)
-            if (!isMockMode && tenantId) {
-                try {
-                    const settingsDoc = await getDoc(doc(db, 'settings', tenantId));
-                    if (settingsDoc.exists()) {
-                        setSettingsState(settingsDoc.data() as StoreSettings);
-                    } else {
-                        setSettingsState(GET_DEFAULT_SETTINGS(tenantId));
-                    }
-                } catch (e) {
-                    console.error("Error loading settings from Firestore:", e);
-                    setSettingsState(GET_DEFAULT_SETTINGS(tenantId));
-                }
-            } else {
-                // 2. Fallback Removed - Hard Failure
-                console.error("[AppContext] Firestore connection required. Mock mode disabled.");
-                // Optional: setSettingsState(GET_DEFAULT_SETTINGS(tenantId)); 
-                // But better to leave empty or error state if real data is mandated.
-                // For now, default settings to allow UI to render, but log heavily.
-                setSettingsState(GET_DEFAULT_SETTINGS(tenantId));
-            }
-
             // Load Cash Register (always from localStorage)
             const cashKey = `summo_db_cash_register_${tenantId}`;
             const storedCash = localStorage.getItem(cashKey);
 
-            // CRITICAL: Validate before parsing
             if (storedCash && validateTenantKey(cashKey)) {
                 try {
                     setCashRegisterState(JSON.parse(storedCash));
-                } catch (e) {
-                    console.error('[Security] Invalid cash register data, using defaults');
+                } catch (_e) {
+                    logger.error('[Security] Invalid cash register data, using defaults');
                     setCashRegisterState(INITIAL_CASH_REGISTER);
                 }
             } else {
@@ -116,7 +82,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const apiKey = settings.integrations?.google?.apiKey;
         if (apiKey && !window.google?.maps) {
             import('../services/googleMapsService').then(({ loadGoogleMapsScript }) => {
-                loadGoogleMapsScript(apiKey).catch(err => console.error('Failed to load Google Maps:', err));
+                loadGoogleMapsScript(apiKey).catch(err => logger.error('Failed to load Google Maps:', err));
             });
         }
     }, [settings.integrations?.google?.apiKey]);
@@ -129,149 +95,72 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }, []);
 
     const setSettings = useCallback(async (newSettings: StoreSettings) => {
-        setSettingsState(newSettings);
-        localStorage.setItem(`summo_db_settings_${tenantId}`, JSON.stringify(newSettings));
-
-        if (!isMockMode && tenantId) {
-            try {
-                await setDoc(doc(db, 'settings', tenantId), newSettings, { merge: true });
-                showToast("Configurações sincronizadas na nuvem", 'success');
-            } catch (e: any) {
-                console.error("Error saving settings to Firestore:", e);
-                showToast(`Erro na nuvem: ${e.message || 'Sem conexão'}`, 'error');
-                throw e;
-            }
-        } else if (isMockMode) {
+        if (isMockMode) {
             showToast("Salvo apenas localmente (Modo Simulado)", 'info');
+            return;
         }
-    }, [tenantId, isMockMode, showToast]);
+
+        try {
+            await triggerUpdateSettings(newSettings);
+            showToast("Configurações sincronizadas na nuvem", 'success');
+        } catch (e: any) {
+            logger.error("Error saving settings via Query:", e);
+            showToast(`Erro na nuvem: ${e.message || 'Sem conexão'}`, 'error');
+            throw e;
+        }
+    }, [triggerUpdateSettings, isMockMode, showToast]);
 
     const setCashRegister = useCallback((newRegister: CashRegister) => {
         setCashRegisterState(newRegister);
         localStorage.setItem(`summo_db_cash_register_${tenantId}`, JSON.stringify(newRegister));
     }, [tenantId]);
 
-    // --- DATA ACTIONS (Legacy + Generic) ---
-    // --- DATA ACTIONS (Standardized) ---
-    const handleAction = useCallback(async (collectionName: CollectionName, action: 'add' | 'update' | 'delete', id?: string, data?: any): Promise<string | undefined> => {
-        if (!tenantId) {
-            showToast("Erro: Sessão inválida (Sem Tenant ID)", 'error');
-            return;
-        }
-
-        try {
-            let resultId: string | undefined = id;
-
-            switch (collectionName) {
-                case 'orders':
-                    if (action === 'add') resultId = await orders.save(data, tenantId);
-                    else if (action === 'update' && id) { await orders.save({ ...data, id }, tenantId); resultId = id; }
-                    else if (action === 'delete' && id) await orders.remove(id, tenantId);
-                    break;
-                case 'products':
-                    if (action === 'add') resultId = await products.save(data, tenantId);
-                    else if (action === 'update' && id) { await products.save({ ...data, id }, tenantId); resultId = id; }
-                    else if (action === 'delete' && id) await products.remove(id, tenantId);
-                    break;
-                case 'customers':
-                    if (action === 'add') await customers.save(data, tenantId);
-                    else if (action === 'update' && id) await customers.save({ ...data, id }, tenantId);
-                    else if (action === 'delete' && id) await customers.remove(id, tenantId);
-                    break;
-                case 'settings':
-                    if (action === 'update') await setSettings(data);
-                    break;
-                default:
-                    // Standard Firestore Logic
-                    const docId = id || data?.id || Date.now().toString();
-                    const docRef = doc(db, collectionName, docId);
-                    if (action === 'add' || action === 'update') await setDoc(docRef, { ...data, tenantId }, { merge: true });
-                    else if (action === 'delete' && id) await deleteDoc(doc(db, collectionName, id));
-            }
-            return resultId;
-        } catch (e) {
-            console.error(`Error in handleAction(${collectionName}, ${action}):`, e);
-            showToast("Erro ao processar ação nos dados.", 'error');
-            throw e;
-        }
-    }, [tenantId, showToast, isMockMode, orders, products, customers, setSettings]);
-
-    // --- REDACTED: updateCustomerFromOrder is now handled by Cloud Functions trigger (onOrderCreated) ---
 
     // --- SECURE ORDER PLACEMENT ---
     const onPlaceOrder = useCallback(async (orderData: Omit<Order, 'id' | 'createdAt'>): Promise<string> => {
-        console.log(`[onPlaceOrder] Initiated. MockMode: ${isMockMode}`);
+        logger.info(`[onPlaceOrder] Initiated. MockMode: ${isMockMode}`);
 
-        // 1. Mock Mode Removed - Enforcing Production
         if (isMockMode === true) {
-            console.error("Critical: Mock Mode attempted in Production Build.");
+            logger.error("Critical: Mock Mode attempted in Production Build.");
             throw new Error("Simulation Mode is disabled in this environment.");
         }
 
-        // 2. Production Mode: Call Secure Backend
-        // Explicit check to prevent fall-through
         if (!isMockMode) {
             try {
-                console.log('[onPlaceOrder] Calling secureCheckout (Production)...', orderData);
-
-                // Dynamic import to avoid circular dependencies if functions wasn't ready
+                // Dynamic import to avoid circular dependencies
                 const { functions } = await import('@/lib/firebase/client');
                 const { httpsCallable } = await import('@firebase/functions');
 
                 const secureCheckout = httpsCallable(functions, 'secureCheckout');
 
+                // Flattening complex objects if needed
                 const payload = {
                     ...orderData,
                     tenantId,
-                    // Flattening complex objects if needed, but Order structure usually matches
-                    // Removing fields that backend will generate
                     status: undefined,
                     createdAt: undefined,
                     id: undefined
                 };
 
                 const result = await secureCheckout(payload);
-                const data = result.data as any;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const data = result.data as any; // Using explicit-any suppression for Cloud Function response until strict type is shared
 
                 if (data.success) {
-                    console.log('[onPlaceOrder] Success:', data.orderId);
                     return data.orderId;
                 } else {
                     throw new Error(data.message || 'Falha desconhecida no checkout.');
                 }
-
-            } catch (error: any) {
-                console.error('[onPlaceOrder] Secure Checkout Error:', error);
-                // CRITICAL: Do NOT fallback to orders.save in production, as it is blocked by rules
-                showToast(`Erro no servidor: ${error.message || 'Tente novamente.'}`, 'error');
-                throw error;
+            } catch (error) {
+                const err = error as Error;
+                logger.error('[onPlaceOrder] Secure Checkout Error:', err);
+                showToast(`Erro no servidor: ${err.message || 'Tente novamente.'}`, 'error');
+                throw err;
             }
         }
+        throw new Error("Invalid execution state");
+    }, [tenantId, isMockMode, showToast]);
 
-        throw new Error("Invalid execution state in onPlaceOrder");
-    }, [orders, tenantId, isMockMode, showToast]);
-
-    const handleUpdateStatus = useCallback(async (orderId: string, status: OrderStatus) => {
-        const order = await orders.getById(orderId, tenantId);
-        if (order) {
-            await orders.save({ ...order, status }, tenantId);
-
-            if (status === OrderStatus.COMPLETED) {
-                // Stock deduction is now handled by Cloud Functions onOrderStatusUpdated trigger
-                console.log("[AppContext] Order completed. Stock deduction triggered in Cloud.");
-            }
-        }
-        showToast("Status atualizado", 'info');
-    }, [orders, stock, showToast, tenantId, systemUser]);
-
-    const handleAssignDriver = useCallback(async (orderId: string, driverId: string) => {
-        const order = await orders.getById(orderId, tenantId);
-        if (order) {
-            await orders.save({ ...order, driverId, status: OrderStatus.DELIVERING }, tenantId);
-            await handleAction('drivers', 'update', driverId, { status: 'BUSY' });
-            showToast("Motorista atribuído", 'info');
-        }
-    }, [orders, handleAction, showToast, tenantId]);
 
     const resetTenantData = useCallback(async () => {
         if (!tenantId) return;
@@ -299,14 +188,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     // Delete in chunks of 500 (Firestore limit for batches, though we use individual deletes)
                     const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, collName, d.id)));
                     await Promise.all(deletePromises);
-                    console.log(`[Reset] Limpo: ${collName} (${snapshot.size} docs)`);
+                    logger.info(`[Reset] Limpo: ${collName} (${snapshot.size} docs)`);
                 }
             }
 
             showToast("Dados resetados! Reiniciando sistema...", 'success');
             setTimeout(() => window.location.reload(), 1500);
         } catch (error) {
-            console.error("Reset failed:", error);
+            logger.error("Reset failed:", error);
             showToast("Falha crítica ao resetar dados.", 'error');
         }
     }, [tenantId, isMockMode, showToast]);
@@ -348,7 +237,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     const deletePromises = toDelete.map(id => deleteDoc(doc(db, collName, id)));
                     await Promise.all(deletePromises);
                     totalDeleted += toDelete.length;
-                    console.log(`[Deduplicate] ${collName}: ${toDelete.length} removidos.`);
+                    logger.info(`[Deduplicate] ${collName}: ${toDelete.length} removidos.`);
                 }
             }
 
@@ -359,7 +248,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 showToast("Nenhuma duplicata encontrada.", 'info');
             }
         } catch (error) {
-            console.error("Deduplication failed:", error);
+            logger.error("Deduplication failed:", error);
             showToast("Falha na limpeza de duplicatas.", 'error');
         }
     }, [tenantId, showToast]);
@@ -372,19 +261,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setSettings,
         cashRegister,
         setCashRegister,
-        toasts,
-        showToast,
-        removeToast,
-        handleAction,
         onPlaceOrder,
-        handleUpdateStatus,
-        handleAssignDriver,
         resetTenantData,
         deduplicateTenantData,
     }), [
-        tenantId, switchTenant, settings, cashRegister, toasts,
-        setSettings, setCashRegister, showToast, removeToast,
-        handleAction, onPlaceOrder, handleUpdateStatus, handleAssignDriver, resetTenantData, deduplicateTenantData
+        tenantId, switchTenant, settings, cashRegister,
+        setSettings, setCashRegister,
+        onPlaceOrder, resetTenantData, deduplicateTenantData
     ]);
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -1,6 +1,7 @@
 import { ai } from '../ai/config';
 import * as admin from 'firebase-admin';
 import { FullProductTreeSchema } from '../shared/schemas';
+import { z } from 'zod';
 
 /**
  * createFullProductTree
@@ -12,6 +13,13 @@ export const createFullProductTree = ai.defineTool({
     description: 'Cria uma lista de produtos completos com fiches técnicas e ingredientes, vinculando a insumos existentes ou criando novos.',
     inputSchema: FullProductTreeSchema,
 }, async (input) => {
+    return createProductTreeLogic(input);
+});
+
+/**
+ * Core Logic for Product Tree Creation (Decoupled for Testing)
+ */
+export const createProductTreeLogic = async (input: z.infer<typeof FullProductTreeSchema>) => {
     const db = admin.firestore();
     const batch = db.batch();
     const tenantId = input.tenantId;
@@ -104,6 +112,7 @@ export const createFullProductTree = ai.defineTool({
             cost: totalRecursiveCost,
             recipeId: recipeRef.id,
             status: 'ACTIVE',
+            trackStock: input.trackStock ?? true, // Respect user choice, default to True
             tags: ['importado', 'ia-match'],
             channels: [
                 { channel: 'pos', price: prod.price, isAvailable: true, displayName: prod.name },
@@ -120,4 +129,4 @@ export const createFullProductTree = ai.defineTool({
     await batch.commit();
 
     return `Sucesso: Lote de ${input.products.length} produtos criado (${summary.join(', ')}).`;
-});
+};

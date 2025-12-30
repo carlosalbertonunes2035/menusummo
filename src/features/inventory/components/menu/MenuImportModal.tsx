@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Upload, Store, Search, Loader2, Wand2, FileText, Camera, Info, CheckCircle2, Zap, BarChart3, TrendingDown, AlertTriangle } from 'lucide-react';
+import { X, Upload, Store, Search, Loader2, Wand2, FileText, Info, CheckCircle2, Zap, BarChart3, AlertTriangle } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../../auth/context/AuthContext';
 import { useApp } from '../../../../contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
 import { httpsCallable } from '@firebase/functions';
 import { ref, uploadBytes, getDownloadURL } from '@firebase/storage';
 import { functions, storage } from '../../../../lib/firebase/client';
@@ -14,16 +15,28 @@ interface MenuImportModalProps {
     onSuccess: () => void;
 }
 
+interface ScrapedData {
+    restaurant?: string;
+    menu?: { price: number }[];
+    success?: boolean;
+    error?: string;
+}
+
+interface ImportResult {
+    message?: string;
+    products?: unknown[];
+}
+
 const MenuImportModal: React.FC<MenuImportModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const { systemUser } = useAuth();
-    const { showToast } = useApp();
+    const { showToast } = useToast();
     const [step, setStep] = useState<'SELECT' | 'IFOOD_LINK' | 'VISION_UPLOAD' | 'SCANNING' | 'CONFIRM' | 'AI_PROCESSING' | 'RESULTS'>('SELECT');
     const [ifoodLink, setIfoodLink] = useState('');
-    const [scrapedData, setScrapedData] = useState<any>(null);
-    const [importResults, setImportResults] = useState<any>(null);
+    const [scrapedData, setScrapedData] = useState<ScrapedData | null>(null);
+    const [importResults, setImportResults] = useState<ImportResult | null>(null);
     const [isImporting, setIsImporting] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
+    const [trackStock, setTrackStock] = useState(true); // Default to True (Gold Standard)
     const { startImport } = useMenuImport();
 
 
@@ -334,16 +347,34 @@ const MenuImportModal: React.FC<MenuImportModalProps> = ({ isOpen, onClose, onSu
                             </div>
                         </div>
 
-                        <div className="flex gap-4">
-                            <button onClick={() => setStep('SELECT')} className="flex-1 py-4 text-slate-400 font-bold hover:text-white transition-colors">Cancelar</button>
-                            <button
-                                onClick={() => executeAIImport(scrapedData)}
-                                disabled={isImporting}
-                                className="flex-[2] py-4 bg-green-600 text-white font-black rounded-2xl hover:bg-green-500 shadow-xl shadow-green-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                            >
-                                {isImporting ? <Loader2 size={18} className="animate-spin" /> : <BarChart3 size={18} />}
-                                {isImporting ? 'SINCRONIZANDO...' : 'CONFIRMAR IMPORTAÇÃO'}
-                            </button>
+                        <div className="flex flex-col gap-4">
+                            {/* Stock Toggle */}
+                            <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between cursor-pointer hover:bg-white/10 transition-all" onClick={() => setTrackStock(!trackStock)}>
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${trackStock ? 'bg-green-500/20 text-green-500' : 'bg-slate-700/50 text-slate-400'}`}>
+                                        <BarChart3 size={20} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-bold text-white text-sm">Rastrear Estoque (Ficha Técnica)</p>
+                                        <p className="text-xs text-slate-400">Desconta insumos automaticamente.</p>
+                                    </div>
+                                </div>
+                                <div className={`w-12 h-6 rounded-full relative transition-colors ${trackStock ? 'bg-green-500' : 'bg-slate-700'}`}>
+                                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${trackStock ? 'left-7' : 'left-1'}`} />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button onClick={() => setStep('SELECT')} className="flex-1 py-4 text-slate-400 font-bold hover:text-white transition-colors">Cancelar</button>
+                                <button
+                                    onClick={() => executeAIImport({ ...scrapedData, trackStock })}
+                                    disabled={isImporting}
+                                    className="flex-[2] py-4 bg-green-600 text-white font-black rounded-2xl hover:bg-green-500 shadow-xl shadow-green-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                >
+                                    {isImporting ? <Loader2 size={18} className="animate-spin" /> : <BarChart3 size={18} />}
+                                    {isImporting ? 'SINCRONIZANDO...' : 'CONFIRMAR IMPORTAÇÃO'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 );

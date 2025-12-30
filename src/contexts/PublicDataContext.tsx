@@ -32,34 +32,41 @@ export const PublicDataProvider: React.FC<{ children: ReactNode; tenantId: strin
         }
 
         setSettingsLoading(true);
+        let innerUnsubscribe: (() => void) | null = null;
 
-        // 1. Listen by storefront.slug field
-        const q = query(collection(db, 'settings'), where('storefront.slug', '==', slug));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            if (!snapshot.empty) {
-                const docData = snapshot.docs[0].data() as StoreSettings;
+        const settingsDocRef = doc(db, 'settings', slug);
+        const unsubscribeId = onSnapshot(settingsDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const docData = docSnap.data() as StoreSettings;
                 setSettings(docData);
-                setRealTenantId(docData.tenantId || snapshot.docs[0].id);
+                setRealTenantId(docData.tenantId || docSnap.id);
                 setSettingsLoading(false);
             } else {
-                // 2. Fallback: Try document ID directly
-                const settingsDocRef = doc(db, 'settings', slug);
-                onSnapshot(settingsDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const docData = docSnap.data() as StoreSettings;
+                const q = query(collection(db, 'settings'), where('storefront.slug', '==', slug));
+                innerUnsubscribe = onSnapshot(q, (snapshot) => {
+                    if (!snapshot.empty) {
+                        const docData = snapshot.docs[0].data() as StoreSettings;
                         setSettings(docData);
-                        setRealTenantId(docData.tenantId || docSnap.id);
+                        setRealTenantId(docData.tenantId || snapshot.docs[0].id);
                     } else {
                         setSettings(GET_DEFAULT_SETTINGS(slug));
                         setRealTenantId(slug);
                     }
                     setSettingsLoading(false);
+                }, (err) => {
+                    console.error('Public Data Slug Error:', err);
+                    setSettingsLoading(false);
                 });
             }
+        }, (err) => {
+            console.error('Public Data ID Error:', err);
+            setSettingsLoading(false);
         });
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribeId();
+            if (innerUnsubscribe) innerUnsubscribe();
+        };
     }, [slug, isMockMode]);
 
     // Isolated Mock Mode logic for clarity

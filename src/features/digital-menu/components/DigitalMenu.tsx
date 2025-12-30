@@ -3,6 +3,8 @@ import { Helmet } from 'react-helmet-async';
 import { Clock } from 'lucide-react';
 import { usePublicData } from '../../../contexts/PublicDataContext';
 import { useApp } from '../../../contexts/AppContext';
+import { useToast } from '../../../contexts/ToastContext';
+
 import ErrorBoundary from '../../../components/ui/ErrorBoundary';
 
 // --- Modularized Sub-components & Hook ---
@@ -57,7 +59,7 @@ const DigitalMenu: React.FC = () => {
         updateUrlForProduct, promotionalProducts, categories, allOrders
     } = useDigitalMenu();
 
-    const { showToast } = useApp();
+    const { showToast } = useToast();
 
     // SEO & Tracking
     const seoTitle = settings.seo?.title || settings.brandName || 'Cardápio Digital';

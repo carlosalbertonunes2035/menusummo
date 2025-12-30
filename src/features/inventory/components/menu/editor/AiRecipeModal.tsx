@@ -24,29 +24,27 @@ export const AiRecipeModal: React.FC<AiRecipeModalProps> = ({ isOpen, onClose, o
     }, [isOpen, productName]);
 
     const generateSuggestion = async () => {
+        // Ignorar nomes genéricos ou muito curtos para não gastar tokens/atrapalhar user
+        const genericNames = ['teste', 'test', 'abc', 'novo produto', 'prod', 'produto'];
+        const isGeneric = genericNames.includes(productName.toLowerCase().trim());
+        const isTooShort = productName.trim().length < 3;
+
+        if (isGeneric || isTooShort) {
+            onClose(); // Fecha silenciosamente se for lixo
+            return;
+        }
+
         setLoading(true);
         setError('');
         try {
-            // CALL CLOUD FUNCTION HERE
-            // For now, simulating the response as verified in 'simulation.ts'
-            // In production, this would be: const generate = httpsCallable(functions, 'generateRecipeSuggestion');
+            const generateFn = httpsCallable(functions, 'generateRecipeSuggestion');
+            const { data } = await generateFn({
+                productName,
+                productCategory,
+                restaurantName: "Summo" // Pode ser extraído de um contexto global futuramente
+            });
 
-            // SIMULATED LATENCY
-            await new Promise(r => setTimeout(r, 2000));
-
-            // SIMULATED AI RESPONSE based on User's request (Espetinho context)
-            const mockResult = {
-                name: `Receita Sugerida: ${productName}`,
-                ingredients: [
-                    { name: "Carne Bovina (Alcatra)", quantity: 0.150, unit: "kg", estimatedCost: 10.00 },
-                    { name: "Espeto de Bambu", quantity: 1, unit: "uni", estimatedCost: 0.10 },
-                    { name: "Sal Grosso", quantity: 0.005, unit: "kg", estimatedCost: 0.05 }
-                ],
-                totalCost: 10.15
-            };
-
-            setSuggestion(mockResult);
-
+            setSuggestion(data);
         } catch (err) {
             console.error(err);
             setError('Falha ao gerar sugestão. Tente novamente.');

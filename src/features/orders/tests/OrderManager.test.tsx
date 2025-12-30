@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@/test/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import OrderManager from '../pages/OrderManager';
 import { OrderStatus } from '@/types';
@@ -38,26 +38,33 @@ const { mockOrders, mockHandleUpdateStatus, mockSettings } = vi.hoisted(() => {
 });
 
 // Mock dependencies
-vi.mock('@/contexts/DataContext', () => ({
-    useData: () => ({
-        orders: mockOrders,
-        products: [] // Added products to match component usage
+vi.mock('@/lib/react-query/queries/useProductsQuery', () => ({
+    useProductsQuery: () => ({
+        products: []
     })
 }));
 
-vi.mock('@/contexts/AppContext', () => ({
-    useApp: () => ({
-        handleUpdateStatus: mockHandleUpdateStatus,
-        settings: mockSettings,
-        tenantId: 'test-tenant'
-    })
-}));
+vi.mock('@/contexts/AppContext', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@/contexts/AppContext')>();
+    return {
+        ...actual,
+        useApp: () => ({
+            handleUpdateStatus: mockHandleUpdateStatus,
+            settings: mockSettings,
+            tenantId: 'test-tenant'
+        }),
+    };
+});
 
-vi.mock('@/features/auth/context/AuthContext', () => ({
-    useAuth: () => ({
-        systemUser: { id: 'user1', tenantId: 'test-tenant' }
-    })
-}));
+vi.mock('@/features/auth/context/AuthContext', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@/features/auth/context/AuthContext')>();
+    return {
+        ...actual,
+        useAuth: () => ({
+            systemUser: { id: 'user1', tenantId: 'test-tenant' }
+        })
+    };
+});
 
 vi.mock('@/hooks/useOrders', () => ({
     useOrders: () => ({

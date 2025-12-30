@@ -64,6 +64,7 @@ export const ProfitAdviceSchema = z.object({
 // ============================================
 export const FullProductTreeSchema = z.object({
     tenantId: z.string().describe('ID do tenant (obrigatório para isolamento)'),
+    trackStock: z.boolean().optional().describe('Se true, ativa controle de estoque para todos os produtos importados'),
     products: z.array(z.object({
         name: z.string().describe('Nome do prato ou produto'),
         price: z.number().describe('Preço de venda base'),

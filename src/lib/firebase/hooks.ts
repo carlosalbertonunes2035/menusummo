@@ -95,9 +95,12 @@ export const useFirestoreCollection = <T>(
     const limitCount = options?.limit;
     const orderByConfig = options?.orderBy;
 
+    const filterHash = useMemo(() => JSON.stringify(filters), [filters]);
+    const orderByHash = useMemo(() => JSON.stringify(orderByConfig), [orderByConfig]);
+
     const cacheKey = useMemo(() =>
-        `${collectionName}_${tenantId}_${JSON.stringify(filters)}_${limitCount}_${JSON.stringify(orderByConfig)}`,
-        [collectionName, tenantId, filters, limitCount, orderByConfig]
+        `${collectionName}_${tenantId}_${filterHash}_${limitCount}_${orderByHash}`,
+        [collectionName, tenantId, filterHash, limitCount, orderByHash]
     );
 
     const [data, setData] = useState<T[]>(() => {
@@ -125,7 +128,7 @@ export const useFirestoreCollection = <T>(
             }
         }
 
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+
         setLoading(true);
         setError(null);
 

@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions/v1";
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from "firebase-admin";
 import { extractRawMenuFromMedia } from "../ai/agents/visionAgent";
 // Agents removed for Skeleton Loading Strategy
@@ -9,21 +9,22 @@ import { extractRawMenuFromMedia } from "../ai/agents/visionAgent";
 /**
  * Menu Import Orchestrator (The Gerente)
  * Triggered when a new job is created in tenants/{tenantId}/import_jobs/{jobId}
- * Using v1 for stability in southamerica-east1
+ * Using v2 for stability in southamerica-east1
  */
-export const onMenuImportCreated = functions
-    .region("southamerica-east1")
-    .runWith({
+export const onMenuImportCreated = onDocumentCreated(
+    {
+        document: "tenants/{tenantId}/import_jobs/{jobId}",
+        region: "southamerica-east1",
         timeoutSeconds: 540, // 9 minutes limit
-        memory: "2GB"
-    })
-    .firestore
-    .document("tenants/{tenantId}/import_jobs/{jobId}")
-    .onCreate(async (snap, context) => {
-        const job = snap.data();
-        const { tenantId, jobId } = context.params;
+        memory: "2GiB"
+    },
+    async (event) => {
+        const job = event.data?.data();
+        if (!job) return;
+
+        const { tenantId, jobId } = event.params;
         const db = admin.firestore();
-        const jobRef = snap.ref;
+        const jobRef = event.data!.ref;
 
         // Only process pending jobs
         if (job.status !== 'pending') return;
@@ -152,4 +153,5 @@ export const onMenuImportCreated = functions
                 message: `Erro crítico: ${error.message}`
             });
         }
-    });
+    }
+);

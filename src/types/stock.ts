@@ -1,4 +1,4 @@
-import { Ingredient } from './product';
+
 
 export enum StockMovementType {
     IN = 'IN',

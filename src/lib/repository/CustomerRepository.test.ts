@@ -45,6 +45,25 @@ vi.mock('../../lib/localStorage', () => ({
     setCollection: vi.fn(),
 }));
 
+// Mock Audit & Auth (BaseRepository dependencies)
+vi.mock('@/services/AuditService', () => ({
+    auditService: {
+        logMutation: vi.fn()
+    },
+    AuditEventType: {
+        CREATE: 'CREATE',
+        UPDATE: 'UPDATE',
+        DELETE: 'DELETE'
+    }
+}));
+
+vi.mock('../../lib/firebase/client', () => ({
+    db: mockDb,
+    auth: {
+        currentUser: { uid: 'test-user-123' }
+    }
+}));
+
 describe('CustomerRepository (Firebase Mode)', () => {
     let repository: CustomerRepository;
     const tenantId = 'test-tenant';
@@ -86,10 +105,11 @@ describe('CustomerRepository (Firebase Mode)', () => {
         await repository.update(mockCustomer.id, updates, tenantId);
 
         expect(mockDoc).toHaveBeenCalledWith(mockDb, 'customers', mockCustomer.id);
-        expect(mockUpdateDoc).toHaveBeenCalledWith('doc-ref', expect.objectContaining({
+        expect(mockSetDoc).toHaveBeenCalledWith('doc-ref', expect.objectContaining({
             ...updates,
+            tenantId,
             updatedAt: expect.anything()
-        }));
+        }), { merge: true });
     });
 
     it('should find a customer by phone in Firestore', async () => {

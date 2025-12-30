@@ -2,17 +2,26 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Product, ChannelConfig, SalesChannel, Ingredient } from '../../../types';
 import { Recipe, RecipeIngredient } from '../../../types/recipe';
-import { useData } from '../../../contexts/DataContext';
+import { useIngredientsQuery } from '@/lib/react-query/queries/useIngredientsQuery';
 import { useApp } from '../../../contexts/AppContext';
+import { useToast } from '@/contexts/ToastContext';
 import { db, functions } from '@/lib/firebase/client';
+import { useAuth } from '../../auth/context/AuthContext';
 import { httpsCallable } from '@firebase/functions';
 import { collection, doc } from '@firebase/firestore';
 import { ProductSchema } from '../../../lib/schemas';
+import { useProductsQuery } from '@/lib/react-query/queries/useProductsQuery';
+import { useRecipesQuery } from '@/lib/react-query/queries/useRecipesQuery';
 import { z } from 'zod';
 
 export const useMenuEditor = () => {
-    const { products, ingredients, recipes } = useData();
-    const { handleAction, showToast } = useApp();
+    const { tenantId } = useApp();
+    const { systemUser } = useAuth();
+    const { showToast } = useToast();
+    const { ingredients, saveIngredient } = useIngredientsQuery(tenantId);
+
+    const { products, saveProduct, deleteProduct } = useProductsQuery(tenantId);
+    const { recipes, saveRecipe, deleteRecipe } = useRecipesQuery(tenantId);
 
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [editData, setEditData] = useState<Partial<Product>>({});
@@ -24,10 +33,14 @@ export const useMenuEditor = () => {
 
     // Helpers
     const onUpdateProduct = useCallback(async (p: Partial<Product>): Promise<string | undefined> => {
-        const result = await handleAction('products', p.id ? 'update' : 'add', p.id, p);
-        return result;
-    }, [handleAction]);
-    const onDuplicateProduct = (p: Product) => handleAction('products', 'add', undefined, { ...p, name: p.name + ' (Cópia)' });
+        const result = await saveProduct(p);
+        return result.id;
+    }, [saveProduct]);
+
+    const onDuplicateProduct = async (p: Product) => {
+        await saveProduct({ ...p, id: undefined, name: p.name + ' (Cópia)' });
+        showToast('Produto duplicado!', 'success');
+    };
 
     useEffect(() => {
         if (selectedProduct) {
@@ -120,7 +133,7 @@ export const useMenuEditor = () => {
 
         // If there is an existing recipe in DB, compare against it.
         // If NOT, we must compare against the "Inferred Recipe" derived from product.ingredients (Legacy support).
-        let baselineRecipe: Partial<Recipe> = foundRecipe || {
+        const baselineRecipe: Partial<Recipe> = foundRecipe || {
             ingredients: (selectedProduct.ingredients || []).map((i: any) => ({
                 ingredientId: i.ingredientId,
                 quantity: i.amount,
@@ -181,6 +194,8 @@ export const useMenuEditor = () => {
                 ...selectedProduct,
                 ...dataToSave,
                 cost: currentEditingProduct.realCost,
+                ownerUid: systemUser?.id || '',
+                tenantId: tenantId,
                 // Garantimos que a lista de ingredientes no produto reflita a receita linkada
                 ingredients: (currentRecipeData.ingredients || [])
                     .map((ri: RecipeIngredient) => ({
@@ -189,6 +204,44 @@ export const useMenuEditor = () => {
                     }))
                     .filter((i: { ingredientId: string; amount: number }) => i.amount > 0)
             };
+
+            // AI AUTO-CREATION: Resolve placeholders and create missing ingredients
+            try {
+                const resolvedIngredients = await Promise.all(finalProduct.ingredients.map(async (i) => {
+                    if (typeof i.ingredientId === 'string' && i.ingredientId.startsWith('NEW_')) {
+                        const name = i.ingredientId.replace('NEW_', '');
+                        const existing = ingredients.find(inv => inv.name.toLowerCase() === name.toLowerCase());
+                        if (existing) return { ...i, ingredientId: existing.id };
+
+                        // Find original AI metadata from recipeEditData
+                        const aiMeta = (currentRecipeData.ingredients || []).find((ri: any) => ri.ingredientId === i.ingredientId) as any;
+
+                        const result = await saveIngredient({
+                            name,
+                            unit: aiMeta?.unit || 'und',
+                            cost: aiMeta?.cost || 0,
+                            ownerUid: systemUser?.id || '',
+                            tenantId
+                        });
+                        return { ...i, ingredientId: result.id };
+                    }
+                    return i;
+                }));
+
+                finalProduct.ingredients = resolvedIngredients as any;
+
+                // Also update the recipe data we might save later
+                currentRecipeData.ingredients = currentRecipeData.ingredients?.map((ri: any) => {
+                    const resolved = (resolvedIngredients as any[]).find(prev => prev.name === ri.name || prev.ingredientId.includes(ri.name));
+                    if (resolved) return { ...ri, ingredientId: resolved.ingredientId };
+                    return ri;
+                });
+
+            } catch (err) {
+                console.error("AI Auto-create failed:", err);
+                showToast('Erro ao criar insumos da IA.', 'error');
+                return false;
+            }
 
             try {
                 ProductSchema.parse(finalProduct);
@@ -211,7 +264,7 @@ export const useMenuEditor = () => {
                         ingredients: (currentRecipeData.ingredients || []).filter((i: RecipeIngredient) => i.quantity > 0),
                         totalCost: currentEditingProduct.realCost * (currentRecipeData.yield || 1)
                     };
-                    await handleAction('recipes', 'update', currentRecipeData.id, recipeData);
+                    await saveRecipe(recipeData);
                 }
 
                 showToast('Produto salvo com sucesso!', 'success');
@@ -235,7 +288,7 @@ export const useMenuEditor = () => {
             }
         }
         return false;
-    }, [selectedProduct, currentEditingProduct, editData, recipeEditData, onUpdateProduct, handleAction, showToast, recipes]);
+    }, [selectedProduct, currentEditingProduct, editData, recipeEditData, onUpdateProduct, saveRecipe, showToast, recipes]);
 
     const handleClose = useCallback(async (force?: boolean) => {
         if (!force && isDirty) {
@@ -267,6 +320,8 @@ export const useMenuEditor = () => {
 
         const newProd: Product = {
             id: newId,
+            ownerUid: systemUser?.id || '',
+            tenantId: tenantId,
             name: 'Novo Produto',
             category: initialCategory !== 'Todos' ? initialCategory : 'Geral',
             cost: 0, tags: [], ingredients: [], optionGroupIds: [], type: initialType,
@@ -414,8 +469,7 @@ export const useMenuEditor = () => {
         try {
             console.log(`[useMenuEditor] Deleting product ${selectedProduct.id} ("${selectedProduct.name}")`);
 
-            // Always attempt DB delete (Idempotent: if it's a draft not in DB, this is a no-op 200 OK)
-            await handleAction('products', 'delete', selectedProduct.id);
+            await deleteProduct(selectedProduct.id);
 
             console.log('[useMenuEditor] Delete/Discard successful');
             showToast('Produto excluído/descartado.', 'info');
@@ -426,7 +480,7 @@ export const useMenuEditor = () => {
             console.error('[useMenuEditor] Delete failed:', error);
             showToast('Erro ao excluir produto.', 'error');
         }
-    }, [selectedProduct, handleAction, showToast]);
+    }, [selectedProduct, deleteProduct, showToast]);
 
     // Simplified Discard
     const discardChanges = useCallback(() => {

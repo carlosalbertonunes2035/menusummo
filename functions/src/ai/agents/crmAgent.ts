@@ -8,8 +8,10 @@ import { z } from 'genkit';
 export async function getRetentionLoyaltyInsights(customers: any[]) {
     console.log(`[CRMAgent] 👥 Analisando ${customers.length} clientes para retenção.`);
 
-    // Simplified customer data for context
-    const customerContext = customers.map(c => ({
+    // Simplified customer data for context (Limit to Top 5 to prevent token overflow)
+    const recentCustomers = customers.slice(0, 5);
+
+    const customerContext = recentCustomers.map(c => ({
         name: c.name,
         totalOrders: c.totalOrders,
         lastOrderDate: c.lastOrderDate,

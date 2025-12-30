@@ -2,11 +2,17 @@ import { SalesChannel, Product } from './product';
 import { PaymentTransaction } from './finance';
 
 export interface CartItem {
+    id?: string;                    // Unique ID for cart management
     product: Product;
+    productId?: string;             // For quick reference
+    productName?: string;           // For quick reference
     quantity: number;
+    unitPrice?: number;             // Price per unit
+    total?: number;                 // Total price (quantity * unitPrice)
     notes: string;
     selectedOptions?: { groupTitle: string; optionName: string; price: number }[];
     suggestedProduct?: Product | null;
+    addedAt?: Date;                 // When added to cart
 }
 
 export enum OrderStatus {

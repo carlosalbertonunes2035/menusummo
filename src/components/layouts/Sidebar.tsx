@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, ChefHat, Package, Truck, Settings, Rocket, DollarSign, ClipboardList, CarFront, BookOpen, Users, ChevronLeft, ChevronRight, LifeBuoy, GalleryVertical, Megaphone, Droplet, Utensils } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, ChefHat, Package, Truck, Settings, Rocket, DollarSign, ClipboardList, CarFront, BookOpen, Users, ChevronLeft, ChevronRight, LifeBuoy, Megaphone, Droplet, Utensils } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useAuth } from '../../features/auth/context/AuthContext';
 
@@ -125,7 +125,7 @@ const Sidebar: React.FC = () => {
     return (
         <>
             {MobileDock}
-            <div className={`hidden md:flex ${isCollapsed ? 'w-24' : 'w-72'} bg-summo-surface border-r border-summo-border flex-col h-full z-40 flex-shrink-0 animate-fade-in relative transition-all duration-300`}>
+            <div className={`sidebar hidden md:flex ${isCollapsed ? 'w-24' : 'w-72'} bg-summo-surface border-r border-summo-border flex-col h-full z-40 flex-shrink-0 animate-fade-in relative transition-all duration-300`}>
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     className="absolute -right-3 top-24 bg-white border border-gray-200 rounded-full p-1.5 shadow-sm hover:bg-gray-50 z-50 text-gray-500 hover:text-summo-primary transition-colors"

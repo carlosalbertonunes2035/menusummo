@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { BarChart3, PieChart as PieChartIcon, Star, Users, Loader2, Calendar, Download, ChevronDown, FileSpreadsheet, FileText, Target, DollarSign, TrendingUp } from 'lucide-react';
-import { useData } from '../../../contexts/DataContext';
+import { useProductsQuery } from '@/lib/react-query/queries/useProductsQuery';
 import { useOrders } from '@/hooks/useOrders';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useExpenses } from '@/hooks/useExpenses';
@@ -20,12 +20,12 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
 
 const Reports: React.FC = () => {
-    const { products } = useData();
+    const { tenantId, settings } = useApp();
+    const { products } = useProductsQuery(tenantId);
     const { data: orders } = useOrders({ limit: 1000 });
     const { data: customers } = useCustomers({ limit: 500 });
     const { data: expenses } = useExpenses({ limit: 500 });
     const { data: drivers } = useDrivers();
-    const { settings } = useApp();
     const [activeTab, setActiveTab] = useState<ReportTab>('OVERVIEW');
     const [datePreset, setDatePreset] = useState<DatePreset>('TODAY');
     const [startDate, setStartDate] = useState(new Date());

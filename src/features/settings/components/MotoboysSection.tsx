@@ -4,8 +4,8 @@ import { Driver } from '../../../types';
 
 interface MotoboysSectionProps {
     drivers: Driver[];
-    onAddDriver: (driver: { name: string; phone: string; vehicle: string }) => void;
-    onDeleteDriver: (driverId: string) => void;
+    onAddDriver?: (driver: { name: string; phone: string; vehicle: string }) => void;
+    onDeleteDriver?: (driverId: string) => void;
 }
 
 const MotoboysSection: React.FC<MotoboysSectionProps> = ({ drivers, onAddDriver, onDeleteDriver }) => {

@@ -21,7 +21,7 @@ const Finance = React.lazy(() => import('./features/financial/pages/Finance'));
 const CRM = React.lazy(() => import('./features/crm/pages/CRM'));
 const Settings = React.lazy(() => import('./features/settings/pages/Settings'));
 const DriverApp = React.lazy(() => import('./features/logistics/pages/DriverApp'));
-const Waiter = React.lazy(() => import('./features/orders/pages/Waiter'));
+const Waiter = React.lazy(() => import('./features/virtual-tab').then(m => ({ default: m.WaiterDashboard })));
 const Support = React.lazy(() => import('./features/crm/pages/Support'));
 const DigitalMenu = React.lazy(() => import('./features/digital-menu/components/DigitalMenu'));
 const ProductPage = React.lazy(() => import('./features/digital-menu/components/ProductPage'));
@@ -29,6 +29,7 @@ const LandingPage = React.lazy(() => import('./features/landing-page/components/
 const Terms = React.lazy(() => import('./features/landing-page/components/Terms'));
 const Privacy = React.lazy(() => import('./features/landing-page/components/Privacy'));
 const SecurityAudit = React.lazy(() => import('./features/auth/pages/SecurityAudit'));
+const WaiterTableOrder = React.lazy(() => import('./features/virtual-tab').then(m => ({ default: m.WaiterTableOrder })));
 
 
 // Wrapper for public routes with PublicDataProvider
@@ -137,6 +138,10 @@ export const router = createBrowserRouter([
             {
                 path: 'waiter',
                 element: <Suspense fallback={<LoadingFallback />}><ErrorBoundary scope="Garçom (Mesa)"><Waiter /></ErrorBoundary></Suspense>
+            },
+            {
+                path: 'waiter/order/:tableId',
+                element: <Suspense fallback={<LoadingFallback />}><ErrorBoundary scope="Pedido de Mesa"><WaiterTableOrder /></ErrorBoundary></Suspense>
             },
             {
                 path: 'support',

@@ -52,7 +52,7 @@ export async function extractRawMenuFromMedia(fileUrl: string, mimeType: string)
         config: { temperature: 0.1 }
     });
 
-    return result.output.items;
+    return result.output?.items || [];
 }
 
 /**
@@ -93,7 +93,7 @@ export async function analyzeBulkReceipt(fileUrl: string, mimeType: string) {
         },
         config: { temperature: 0.1 }
     });
-    return result.output;
+    return result.output || [];
 }
 
 /**
@@ -143,6 +143,21 @@ export async function analyzeForVisualEnhancement(fileUrl: string) {
 
     // Return extended object to support both new and legacy fields if needed
     // But mainly targeting new schema
+    if (!result.output) {
+        return {
+            visualPrimitives: '',
+            platingGeometry: '',
+            lightingCondition: '',
+            sceneVibe: '',
+            visibleIngredients: '',
+            platingStyle: '',
+            lightingSuggestion: '',
+            marketingVibe: '',
+            lighting: '',
+            cameraAngle: "N/A"
+        };
+    }
+
     return {
         ...result.output,
         // Legacy mapping for safety if any other code uses it, though MarketingAgent is updated

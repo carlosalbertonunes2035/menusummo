@@ -88,7 +88,7 @@ export const getProductChannel = (product: Product, channel: SalesChannel = 'dig
         channel: channel,
         price: specificConfig?.price || 0,
         promotionalPrice: specificConfig?.promotionalPrice || 0,
-        isAvailable: specificConfig?.isAvailable ?? (channel === 'pos' ? true : false),
+        isAvailable: specificConfig?.isAvailable ?? true,
         displayName: (specificConfig?.displayName && specificConfig.displayName.trim() !== '') ? specificConfig.displayName : product.name,
         description: (specificConfig?.description && specificConfig.description.trim() !== '') ? specificConfig.description : (product.description || ''),
         image: (specificConfig?.image && specificConfig.image.trim() !== '') ? specificConfig.image : (product.image || ''),
@@ -193,3 +193,71 @@ export const solveTSPLocal = (origin: { lat: number, lng: number }, destinations
 
     return sortedIds;
 };
+
+/**
+ * Format date to Brazilian format
+ */
+export const formatDate = (date: Date | string, format: 'short' | 'long' | 'time' = 'short'): string => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+
+    if (format === 'time') {
+        return new Intl.DateTimeFormat('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit',
+        }).format(d);
+    }
+
+    if (format === 'long') {
+        return new Intl.DateTimeFormat('pt-BR', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        }).format(d);
+    }
+
+    return new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    }).format(d);
+};
+
+/**
+ * Format phone number to Brazilian format
+ */
+export const formatPhone = (phone: string): string => {
+    const cleaned = phone.replace(/\D/g, '');
+
+    if (cleaned.length === 11) {
+        return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`;
+    }
+
+    if (cleaned.length === 10) {
+        return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
+    }
+
+    return phone;
+};
+
+/**
+ * Generate table QR Code URL
+ */
+export function generateTableQRCodeURL(
+    tenantSlug: string,
+    tableNumber: string
+): string {
+    const baseUrl = import.meta.env.VITE_APP_URL || 'https://summo.app';
+    return `${baseUrl}/m/${tenantSlug}/mesa/${tableNumber}`;
+}
+
+/**
+ * Generate PDV payment code
+ */
+export function generatePDVCode(tableNumber: string): string {
+    const timestamp = Date.now().toString(36).slice(-4).toUpperCase();
+    return `M${tableNumber}-${timestamp}`;
+}
+
+

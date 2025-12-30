@@ -30,7 +30,37 @@ export function GET_DEFAULT_SETTINGS(tenantId: string): StoreSettings {
         financial: {
             taxRate: 0,
             fixedCostRate: 0,
-            packagingAvgCost: 0
+            packagingAvgCost: 0,
+            payment: {
+                provider: 'CUSTOM',
+                rates: {
+                    debit: 1.5,
+                    creditCash: 2.5,
+                    creditInstallment: 3.5,
+                    pix: 0.99
+                }
+            },
+            ifood: {
+                plan: 'BASIC',
+                payoutModel: 'MONTHLY',
+                commission: 12,
+                paymentFee: 3.2,
+                anticipationFee: 0,
+                monthlyFee: 130,
+                isFreeMonth: false
+            }
+        },
+        bankAccounts: [],
+        loyalty: {
+            enabled: false,
+            pointsPerCurrency: 1,
+            redemptionRate: 20,
+            cashbackValuePer100Points: 5,
+            minRedemptionPoints: 100,
+            branding: {
+                name: 'Pontos',
+                color: '#FF6B35'
+            }
         },
         schedule: [
             { day: 'Segunda', openTime: '18:00', closeTime: '23:00', isOpen: true },

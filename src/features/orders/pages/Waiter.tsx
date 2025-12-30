@@ -11,16 +11,18 @@ import {
     CheckCircle2,
     Loader2
 } from 'lucide-react';
-import { useData } from '../../../contexts/DataContext';
-import { useOrders } from '@/hooks/useOrders';
 import { useApp } from '../../../contexts/AppContext';
+import { useProductsQuery } from '@/lib/react-query/queries/useProductsQuery';
+import { useOrders } from '@/hooks/useOrders';
+import { useCheckout } from '@/hooks/useCheckout';
 import { OrderType, OrderStatus, Product } from '../../../types';
 import { formatCurrency } from '../../../lib/utils';
 
 const Waiter: React.FC = () => {
-    const { products } = useData();
+    const { tenantId, settings } = useApp();
+    const { products } = useProductsQuery(tenantId);
     const { data: orders } = useOrders({ limit: 100 });
-    const { onPlaceOrder } = useApp();
+    const { placeOrder } = useCheckout();
 
     const [view, setView] = useState<'TABLES' | 'ORDERING' | 'MEAL_HISTORY'>('TABLES');
     const [selectedTable, setSelectedTable] = useState<string | null>(null);
@@ -28,7 +30,14 @@ const Waiter: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const tables = useMemo(() => Array.from({ length: 20 }, (_, i) => `Mesa ${(i + 1).toString().padStart(2, '0')}`), []);
+    // Dynamic table generation from settings
+    const tables = useMemo(() => {
+        const config = settings.tables || { totalTables: 20, prefix: 'Mesa', startNumber: 1 };
+        return Array.from({ length: config.totalTables }, (_, i) => {
+            const tableNum = config.startNumber + i;
+            return `${config.prefix} ${tableNum.toString().padStart(2, '0')}`;
+        });
+    }, [settings.tables]);
 
     const filteredProducts = useMemo(() => {
         return products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -92,7 +101,7 @@ const Waiter: React.FC = () => {
                 createdAt: new Date()
             };
 
-            await onPlaceOrder(orderData);
+            await placeOrder(orderData);
             setCart([]);
             setView('TABLES');
             setSelectedTable(null);
@@ -137,8 +146,15 @@ const Waiter: React.FC = () => {
             <main className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                 {view === 'TABLES' && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 animate-fade-in">
-                        {tables.map(table => {
+                        {tables.map((table, index) => {
                             const hasActiveOrder = orders.some(o => o.tableNumber === table && o.status !== OrderStatus.COMPLETED && o.status !== OrderStatus.CANCELLED);
+
+                            // Find section color if configured
+                            const tableNum = (settings.tables?.startNumber || 1) + index;
+                            const section = settings.tables?.sections?.find(s =>
+                                tableNum >= s.range[0] && tableNum <= s.range[1]
+                            );
+
                             return (
                                 <button
                                     key={table}
@@ -150,10 +166,14 @@ const Waiter: React.FC = () => {
                                         ? 'bg-amber-100 border-2 border-amber-300 text-amber-900'
                                         : 'bg-white border-2 border-gray-100 text-gray-700 hover:border-summo-primary hover:text-summo-primary'
                                         }`}
+                                    style={section && !hasActiveOrder ? {
+                                        borderColor: section.color,
+                                        borderWidth: '2px'
+                                    } : undefined}
                                 >
-                                    <span className="text-lg font-black">{table.replace('Mesa ', '')}</span>
+                                    <span className="text-lg font-black">{table.replace(/^[^\d]*/, '')}</span>
                                     <span className="text-[10px] uppercase font-bold text-center">
-                                        {hasActiveOrder ? 'Ocupada' : 'Livre'}
+                                        {hasActiveOrder ? 'Ocupada' : (section?.name || 'Livre')}
                                     </span>
                                 </button>
                             );

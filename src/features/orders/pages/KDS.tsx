@@ -6,10 +6,8 @@ import KDSCard from '../components/kds/KDSCard';
 import { Clock, CalendarDays } from 'lucide-react';
 
 const KDS: React.FC = () => {
-    const { data: orders, loading } = useOrders({ limit: 100 });
-    console.log('DEBUG KDS orders from hook:', JSON.stringify(orders, null, 2));
-
-    const { handleUpdateStatus, settings } = useApp();
+    const { data: orders, loading, updateStatus } = useOrders({ limit: 100 });
+    const { settings } = useApp();
 
     const [activeView, setActiveView] = useState<'PRODUCTION' | 'FUTURE'>('PRODUCTION');
 
@@ -88,13 +86,13 @@ const KDS: React.FC = () => {
     }, [settings.interface?.showReadyColumn]);
 
     const advanceOrder = useCallback((order: Order) => {
-        if (order.status === OrderStatus.PENDING) handleUpdateStatus(order.id, OrderStatus.PREPARING);
-        else if (order.status === OrderStatus.PREPARING) handleUpdateStatus(order.id, OrderStatus.READY);
+        if (order.status === OrderStatus.PENDING) updateStatus({ orderId: order.id, status: OrderStatus.PREPARING });
+        else if (order.status === OrderStatus.PREPARING) updateStatus({ orderId: order.id, status: OrderStatus.READY });
         else if (order.status === OrderStatus.READY) {
             const next = order.type !== OrderType.DELIVERY ? OrderStatus.COMPLETED : OrderStatus.DELIVERING;
-            handleUpdateStatus(order.id, next);
+            updateStatus({ orderId: order.id, status: next });
         }
-    }, [handleUpdateStatus]);
+    }, [updateStatus]);
 
     return (
         <div className={`h-full flex flex-col ${theme.bg} transition-colors duration-300`}>

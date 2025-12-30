@@ -6,9 +6,8 @@ import { useDrivers } from '@/hooks/useDrivers';
 import { useApp } from '../../../contexts/AppContext';
 
 const DriverApp: React.FC = () => {
-    const { data: orders } = useOrders({ limit: 100 });
+    const { data: orders, updateStatus } = useOrders({ limit: 100 });
     const { data: drivers } = useDrivers();
-    const { handleUpdateStatus } = useApp();
 
     // For this standalone view, we'll mock selecting the first active driver.
     // In a real multi-user app, this would come from authentication.
@@ -28,10 +27,10 @@ const DriverApp: React.FC = () => {
 
     // Sort by sequence if available
     const myOrders = orders
-        .filter(o => o.driverId === driver.id && o.status === OrderStatus.DELIVERING)
-        .sort((a, b) => (a.deliverySequence || 999) - (b.deliverySequence || 999));
+        .filter((o: typeof orders[number]) => o.driverId === driver.id && o.status === OrderStatus.DELIVERING)
+        .sort((a: typeof orders[number], b: typeof orders[number]) => (a.deliverySequence || 999) - (b.deliverySequence || 999));
 
-    const completedToday = orders.filter(o => o.driverId === driver.id && o.status === OrderStatus.COMPLETED).length;
+    const completedToday = orders.filter((o: typeof orders[number]) => o.driverId === driver.id && o.status === OrderStatus.COMPLETED).length;
     const earnings = completedToday * (driver.commission || 5.00);
 
     const openMaps = (address: string) => {
@@ -93,7 +92,7 @@ const DriverApp: React.FC = () => {
                         <p className="text-xs">Aguarde novos pedidos da loja.</p>
                     </div>
                 ) : (
-                    myOrders.map((order, index) => {
+                    myOrders.map((order: typeof myOrders[number], index: number) => {
                         const paymentInfo = getPaymentInfo(order);
                         const PaymentIcon = paymentInfo.icon;
 
@@ -140,7 +139,7 @@ const DriverApp: React.FC = () => {
                                         <Navigation size={18} /> Navegar
                                     </button>
                                     <button
-                                        onClick={() => handleUpdateStatus(order.id, OrderStatus.COMPLETED)}
+                                        onClick={() => updateStatus({ orderId: order.id, status: OrderStatus.COMPLETED })}
                                         className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 shadow-lg shadow-green-600/20 transition"
                                     >
                                         <CheckCircle2 size={18} /> Entregue

@@ -7,13 +7,15 @@ import {
     TrendingUp, AlertTriangle, Clock, DollarSign,
     ArrowUpRight, ArrowDownRight, Sparkles
 } from 'lucide-react';
-import { useData } from '../../../../contexts/DataContext';
+import { useApp } from '../../../../contexts/AppContext';
+import { useIngredientsQuery } from '@/lib/react-query/queries/useIngredientsQuery';
 import { formatCurrency } from '../../../../lib/utils';
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4'];
 
 export const StockOverview: React.FC = () => {
-    const { ingredients } = useData();
+    const { tenantId } = useApp();
+    const { ingredients } = useIngredientsQuery(tenantId);
 
     // 1. Calculations
     const totalStockValue = useMemo(() => {

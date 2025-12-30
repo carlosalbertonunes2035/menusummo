@@ -1,14 +1,20 @@
-import * as functions from 'firebase-functions/v1';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 
 /**
  * Automática synchronization: users <-> system_users
  */
-export const syncUserToSystemUser = functions.region('southamerica-east1').firestore
-    .document('users/{userId}')
-    .onWrite(async (change, context) => {
+export const syncUserToSystemUser = onDocumentWritten(
+    {
+        document: 'users/{userId}',
+        region: 'southamerica-east1'
+    },
+    async (event) => {
         const db = admin.firestore();
-        const userId = context.params.userId;
+        const userId = event.params.userId;
+        const change = event.data;
+
+        if (!change) return;
 
         try {
             if (!change.after.exists) {
@@ -25,4 +31,5 @@ export const syncUserToSystemUser = functions.region('southamerica-east1').fires
         } catch (error) {
             console.error(`[syncUserToSystemUser] ❌ Erro ao sincronizar ${userId}:`, error);
         }
-    });
+    }
+);

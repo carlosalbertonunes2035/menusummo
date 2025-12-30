@@ -1,7 +1,6 @@
 
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useData } from '../../contexts/DataContext';
 import { useOrders } from '@/hooks/useOrders';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useIngredients } from '@/features/inventory/hooks/queries';
@@ -10,9 +9,12 @@ import { OrderStatus } from '@/types';
 import { LaunchpadHeader, AlertWidgets, AppGrid, FooterWidget, GrowthWidget } from './launchpad/LaunchpadWidgets';
 import AiInsightsCard from './launchpad/AiInsightsCard';
 import { OnboardingChecklist } from '../dashboard/OnboardingChecklist';
+import { OnboardingTourController } from '../dashboard/OnboardingTourController';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { AlertCircle } from 'lucide-react';
 import { calculateDashboardStats } from '@/lib/utils/financialUtils';
+import { useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 interface LaunchpadProps {
     isLoading?: boolean;
@@ -30,6 +32,24 @@ const Launchpad: React.FC<LaunchpadProps> = ({ isLoading = false }) => {
         navigate('/app/' + path);
     };
 
+    useEffect(() => {
+        // Welcome effect for brand new users
+        if (settings.onboarding?.isCompleted === false && !localStorage.getItem('summo_welcome_shown')) {
+            toast.success(`Boas-vindas ao seu império, ${systemUser?.name || 'Parceiro'}! 🥂`, {
+                duration: 6000,
+                icon: '🚀',
+                style: {
+                    borderRadius: '1rem',
+                    background: '#1e293b',
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    border: '1px solid #FF6B00'
+                }
+            });
+            localStorage.setItem('summo_welcome_shown', 'true');
+        }
+    }, [settings.onboarding, systemUser?.name]);
+
 
 
     const stats = useMemo(() => {
@@ -40,7 +60,7 @@ const Launchpad: React.FC<LaunchpadProps> = ({ isLoading = false }) => {
     const lateOrders = useMemo(() => {
         if (isLoading || !orders) return 0;
         const now = Date.now();
-        return orders.filter(o =>
+        return orders.filter((o: typeof orders[number]) =>
             (o.status === OrderStatus.PENDING || o.status === OrderStatus.PREPARING) &&
             (now - new Date(o.createdAt).getTime()) > (20 * 60 * 1000)
         ).length;
@@ -108,7 +128,7 @@ const Launchpad: React.FC<LaunchpadProps> = ({ isLoading = false }) => {
                         </div>
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <AiInsightsCard />
+                        <AiInsightsCard hideOnboarding={true} />
                         <div className="grid grid-cols-1 gap-4">
                             {(lateOrders > 0 || lowStockItems > 0) && (
                                 <AlertWidgets lateOrders={lateOrders} lowStock={lowStockItems} onNavigate={handleNavigate} />
@@ -124,6 +144,7 @@ const Launchpad: React.FC<LaunchpadProps> = ({ isLoading = false }) => {
             <AppGrid onNavigate={handleNavigate} />
 
             <FooterWidget onNavigate={handleNavigate} />
+            <OnboardingTourController />
         </div>
     );
 };

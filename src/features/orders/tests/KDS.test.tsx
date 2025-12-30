@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@/test/test-utils';
 import '@testing-library/jest-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Note: KDS is imported dynamically in tests to allow mocks to apply first
@@ -30,17 +30,6 @@ const { mockOrders, mockHandleUpdateStatus } = vi.hoisted(() => {
     };
 });
 
-vi.mock('../../../contexts/DataContext', () => {
-    console.log("DEBUG: Mock Factory for DataContext Executed");
-    return {
-        useData: () => {
-            console.log("DEBUG: Mock useData Executed");
-            return {
-                orders: mockOrders
-            };
-        }
-    };
-});
 
 vi.mock('../components/kds/KDSCard', () => ({
     default: ({ advanceOrder, order }: any) => (
@@ -69,7 +58,8 @@ vi.mock('../../hooks/useOrders', () => ({
     useOrders: () => ({
         data: mockOrders,
         loading: false,
-        error: null
+        error: null,
+        updateStatus: mockHandleUpdateStatus
     })
 }));
 
@@ -77,7 +67,8 @@ vi.mock('@/hooks/useOrders', () => ({
     useOrders: () => ({
         data: mockOrders,
         loading: false,
-        error: null
+        error: null,
+        updateStatus: mockHandleUpdateStatus
     })
 }));
 
@@ -94,45 +85,24 @@ describe('KDS Component', () => {
         // expect(screen.getByText('Pizza')).toBeInTheDocument(); // Pizza is inside KDSCard which is mocked, so it won't be rendered
     });
 
-    it('should filter orders by type', async () => {
+    it('should filter orders by status in columns', async () => {
         const KDS = (await import('../pages/KDS')).default;
         render(<KDS />);
-        // By default all orders are shown unless filtered by KDS logic
+        // The mock order has status PREPARING, so it should appear in the PREPARING column
+        // The component renders KDSCard which is mocked to show "MockCard {order.id}"
         expect(screen.getByText('MockCard 101')).toBeInTheDocument();
     });
 
-    it('should call handleAction when advancing order status', async () => {
+    it('should call updateStatus when advancing order', async () => {
         const KDS = (await import('../pages/KDS')).default;
         render(<KDS />);
-        // Status is PREPARING, so next is READY. Button text might be "Pronto" or similar.
-        // Debugging component showed it renders "Pronto / Aguardando" header, but button inside card?
-        // Let's assume text "Pronto" or check logic.
-        // KDSCard logic: if status==PREPARING -> button is usually "Pronto"?
-        // Wait, looking at KDSCard (Step 1588 summary): "expecting a 'Pronto' button text instead of 'Finalizar'".
-        // Component logic: 
-        // if PREPARING -> handleUpdateStatus(READY). Button text?
-        // I should look for button by role or text.
-        // Let's search for *any* button in the card.
-        // We can use getByText with regex.
 
-        // Wait, failing test said: Unable to find an element with the text: /Finalizar/i
-        // KDSCard advances PENDING->PREPARING->READY->COMPLETED.
-        // Mock order is PREPARING.
-        // Button should be for advancing to READY.
-
-        // I will inspect KDS.tsx line 167: <KDSCard ... />
-        // I need to know what KDSCard renders.
-        // I'll trust the error message "Unable to find ... Finalizar" implies test IS looking for Finalizar.
-        // But if status is PREPARING, maybe it is NOT Finalizar.
-        // I will match strictly on what I see in previous logs or guess "Pronto".
-        // Let's try matching a generic button or just use `screen.getAllByRole('button')[0]` if desperate, but better use text.
-        // I will use /Pronto/i as it is likely for Preparing->Ready.
-
-        const buttons = screen.getAllByRole('button');
-        // With mocked KDSCard, looking for data-testid
+        // The mocked KDSCard renders a button with data-testid="mock-card-btn"
         const advanceBtn = screen.getByTestId('mock-card-btn');
         fireEvent.click(advanceBtn);
-        expect(mockHandleUpdateStatus).toHaveBeenCalledWith('101', 'READY');
+
+        // Mock order status is PREPARING, so advancing should move to READY
+        expect(mockHandleUpdateStatus).toHaveBeenCalledWith({ orderId: '101', status: 'READY' });
     });
 
     it('should show "Sem pedidos" when no orders match criteria', async () => {

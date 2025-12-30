@@ -3,7 +3,8 @@ import { Product } from '@/types';
 import { Plus, Minus, Check, AlertCircle, ChevronLeft } from 'lucide-react';
 import { getProductChannel } from '@/lib/utils';
 import { getProductImage } from '../utils/imageMapper';
-import { useData } from '@/contexts/DataContext';
+import { useApp } from '@/contexts/AppContext';
+import { useProductsQuery } from '@/lib/react-query/queries/useProductsQuery';
 
 interface ComboProductDetailViewProps {
     product: Product;
@@ -12,7 +13,8 @@ interface ComboProductDetailViewProps {
 }
 
 const ComboProductDetailView: React.FC<ComboProductDetailViewProps> = ({ product, onAddToCart, onClose }) => {
-    const { products } = useData();
+    const { tenantId } = useApp();
+    const { products } = useProductsQuery(tenantId);
     const [quantity, setQuantity] = useState(1);
     const [notes, setNotes] = useState('');
 
